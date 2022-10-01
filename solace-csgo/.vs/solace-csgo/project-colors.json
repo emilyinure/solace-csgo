@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "3176c7db-de15-4ce4-8641-3e90d58d53d8": {
+      "ProjectGuid": "3176c7db-de15-4ce4-8641-3e90d58d53d8",
+      "DisplayName": "solace-csgo",
+      "ColorIndex": 0
+    }
+  },
+  "NextColorIndex": 1
+}

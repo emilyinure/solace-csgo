@@ -1,0 +1,392 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="sdk">
+      <UniqueIdentifier>{3fc5109a-b8c5-45aa-b5eb-27894d375a68}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="helpers">
+      <UniqueIdentifier>{d927d733-a701-4a1e-abc0-efec296c78cf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{f4910d5e-a14b-4524-8d56-1d68cbbbd9c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hooks">
+      <UniqueIdentifier>{3d880375-a481-4db0-8a44-00233b8fa646}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="g">
+      <UniqueIdentifier>{a0832046-8fda-4617-8e57-508f8b509675}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk\entities">
+      <UniqueIdentifier>{2d934d59-3767-45d9-a0c8-acd7463334c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk\valve">
+      <UniqueIdentifier>{f19db3c2-0d25-4c55-aee6-c442339e15aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk\valve\interfaces">
+      <UniqueIdentifier>{95236fa0-5abd-4e64-b58d-f4ffe0b71e6c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk\offsets">
+      <UniqueIdentifier>{f68260d5-80fc-4045-98e0-d61abb1fdac0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk\valve\math">
+      <UniqueIdentifier>{7c95303d-744c-46a9-9b30-94e5b90bcc7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk\valve\netvars">
+      <UniqueIdentifier>{2e580d27-1e8e-4089-b126-71b13e75f1ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk\valve\structures">
+      <UniqueIdentifier>{c51a50ee-6849-40b7-9998-f993ee421a3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="helpers\render">
+      <UniqueIdentifier>{7850b12c-aa28-4ee2-a2c9-8047c6f0257a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="g\features">
+      <UniqueIdentifier>{75c1ac9a-a71d-45ce-951d-c430b4a43eb9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="helpers\render\controls">
+      <UniqueIdentifier>{7eebea04-dd85-44b3-ae72-7841b0154fc7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="helpers\render\input_helper">
+      <UniqueIdentifier>{95b148f5-21c0-4016-adf1-3585633b059d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sdk\misc">
+      <UniqueIdentifier>{960802ac-c9e4-4a2c-a8aa-06ebcb118946}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="address.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="engine_client.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="base_client.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="interfaces.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="global_vars.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="hooks.h">
+      <Filter>hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="g.h">
+      <Filter>g</Filter>
+    </ClInclude>
+    <ClInclude Include="offsets.h">
+      <Filter>sdk\offsets</Filter>
+    </ClInclude>
+    <ClInclude Include="vec3.h">
+      <Filter>sdk\valve\math</Filter>
+    </ClInclude>
+    <ClInclude Include="input.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="netvars.h">
+      <Filter>sdk\valve\netvars</Filter>
+    </ClInclude>
+    <ClInclude Include="fnv.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="engine_trace.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="engine_cvar.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="player.h">
+      <Filter>sdk\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="entity_list.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="includes.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="render.h">
+      <Filter>helpers\render</Filter>
+    </ClInclude>
+    <ClInclude Include="fire.h">
+      <Filter>sdk\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="math_funcs.h">
+      <Filter>sdk\valve\math</Filter>
+    </ClInclude>
+    <ClInclude Include="delaunator.hpp">
+      <Filter>sdk\valve\math</Filter>
+    </ClInclude>
+    <ClInclude Include="esp.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="controls\base_control.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="controls\button.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="controls\combobox.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="controls\slider.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="controls\toggle.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="controls\window.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="controls\key_bind.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="input_helper\input_helper.hh">
+      <Filter>helpers\render\input_helper</Filter>
+    </ClInclude>
+    <ClInclude Include="menu.hh">
+      <Filter>helpers\render</Filter>
+    </ClInclude>
+    <ClInclude Include="tab.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="multiselect.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="settings.h">
+      <Filter>g</Filter>
+    </ClInclude>
+    <ClInclude Include="block_bot.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="view_matrix.hpp">
+      <Filter>sdk\valve\math</Filter>
+    </ClInclude>
+    <ClInclude Include="movement.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="mem_alloc.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="client_state.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="studio.h">
+      <Filter>sdk\valve\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="animstate.h">
+      <Filter>sdk\valve\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="model_info.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="player_manager.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="penetration.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="aimbot.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="console.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="app_system.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="physics.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="weapon_info.h">
+      <Filter>sdk\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="weapon_system.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="bones.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="debug_overlay.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="vmt.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="mdlcache.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="prediction.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="player_movement.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="chams.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="column.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="groupbox.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="material_system.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="view_setup.h">
+      <Filter>sdk\valve\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="resolver.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="hvh.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="events.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="event_listener.h">
+      <Filter>sdk\valve\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="notification.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="stack.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="tfm.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="predictioncopy.h">
+      <Filter>sdk\valve\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="memory_shit.h">
+      <Filter>sdk\valve\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="buy_bot.h" />
+    <ClInclude Include="netvar_manager.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="job_thread.h">
+      <Filter>sdk\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="ray_tracer.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="checksum_crc.h" />
+    <ClInclude Include="server_animstate.h">
+      <Filter>sdk\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="thread_handler.h">
+      <Filter>g</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="hooks.cpp">
+      <Filter>hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="g.cpp">
+      <Filter>g</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="netvars.cpp">
+      <Filter>sdk\valve\netvars</Filter>
+    </ClCompile>
+    <ClCompile Include="datamap.h">
+      <Filter>sdk\valve\structures</Filter>
+    </ClCompile>
+    <ClCompile Include="render.cpp">
+      <Filter>helpers\render</Filter>
+    </ClCompile>
+    <ClCompile Include="math_funcs.cpp">
+      <Filter>sdk\valve\math</Filter>
+    </ClCompile>
+    <ClCompile Include="esp.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="menu.cc">
+      <Filter>helpers\render</Filter>
+    </ClCompile>
+    <ClCompile Include="window.cc">
+      <Filter>helpers\render\controls</Filter>
+    </ClCompile>
+    <ClCompile Include="block_bot.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="vec3.cpp">
+      <Filter>sdk\valve\math</Filter>
+    </ClCompile>
+    <ClCompile Include="view_matrix.cpp">
+      <Filter>sdk\valve\math</Filter>
+    </ClCompile>
+    <ClCompile Include="movement.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="studio.cpp">
+      <Filter>sdk\valve\structures</Filter>
+    </ClCompile>
+    <ClCompile Include="player.cpp">
+      <Filter>sdk\entities</Filter>
+    </ClCompile>
+    <ClCompile Include="player_manager.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="penetration.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="aimbot.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="bones.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="prediction.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="chams.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="resolver.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="hvh.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="events.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="notification.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="datamap.cpp">
+      <Filter>sdk\valve\structures</Filter>
+    </ClCompile>
+    <ClCompile Include="predictioncopy.cpp">
+      <Filter>sdk\valve\structures</Filter>
+    </ClCompile>
+    <ClCompile Include="buy_bot.cpp" />
+    <ClCompile Include="netvar_manager.cpp">
+      <Filter>g\features</Filter>
+    </ClCompile>
+    <ClCompile Include="ray_tracer.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="checksum_crc.cpp" />
+    <ClCompile Include="server_animstate.cpp">
+      <Filter>sdk\misc</Filter>
+    </ClCompile>
+    <ClCompile Include="thread_hander.cpp">
+      <Filter>g</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
+  </ItemGroup>
+</Project>
