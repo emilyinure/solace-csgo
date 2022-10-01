@@ -1,2 +1,2 @@
 # solace-csgo
- A internal csgo cheat for legacy hvh
+ An internal csgo cheat for legacy hvh
