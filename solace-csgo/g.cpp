@@ -31,6 +31,12 @@ void c_g::init_cheat( ) {
 }
 
 void c_g::release ( ) const {
+	if ( m_pStartData ) {
+		g.m_interfaces->mem_alloc( )->free( m_pStartData );
+		g.m_interfaces->mem_alloc( )->free( m_pEndData );
+		g.m_interfaces->mem_alloc( )->free( m_pPostPred );
+	}
+	events::destroy( );
 	delete m_hooks;
 	delete m_offsets;
 	delete m_interfaces;
@@ -77,42 +83,21 @@ void c_g::on_tick( cmd_t *cmd ) {
 	if ( !cmd || !cmd->m_command_number )
 		return;
 
-	m_cmd = cmd;
-	m_tick = cmd->m_tick_count;
+	m_cmd = cmd;                        //save everything we need from the engine
 	m_view_angles = cmd->m_viewangles;
 
 	auto *nci = g.m_interfaces->engine( )->get_net_channel_info( );
-	if ( nci ) {
+	if ( nci )
 		m_latency = nci->GetLatency( 0 );
-	}
 
-	static auto *cl_interp = g.m_interfaces->console( )->get_convar( "cl_interp" );
+	static auto* cl_interp = g.m_interfaces->console( )->get_convar( "cl_interp" );
 	static auto *cl_interp_ratio = g.m_interfaces->console( )->get_convar( "cl_interp_ratio" );
 	static auto *cl_updaterate = g.m_interfaces->console( )->get_convar( "cl_updaterate" );
 	m_lerp = std::fmaxf( cl_interp->GetFloat( ), cl_interp_ratio->GetFloat( ) / cl_updaterate->GetFloat( ) );
 
 	if ( m_local && m_local->alive( ) ) {
 		prediction::update( );
-		//m_unpred_ground = m_interfaces->entity_list( )->get_client_entity_handle( m_local->m_ground_entity( ) );
-		auto *map = m_local->GetPredDescMap( );
 		
-		if ( map ) {
-			const auto size = max( map->m_packed_size, 4 );
-			if ( !m_pStartData ) {
-				m_pStartData = new byte[ size ];
-				memset( g.m_pStartData, 0, size );
-				m_pEndData = new byte[ size ];
-				memset( g.m_pEndData, 0, size );
-				m_pPostPred = new byte[ size ];
-				memset( g.m_pPostPred, 0, size );
-			}
-
-			auto CopyHelper = CPredictionCopy( PC_EVERYTHING, static_cast< byte * >(m_pStartData), true, reinterpret_cast< const byte * >(g.m_local), false, CPredictionCopy::TRANSFERDATA_COPYONLY );
-			CopyHelper.TransferData( "CM_Start", m_local->index( ), map );
-
-			memcpy( m_pEndData, m_pStartData, sizeof( byte ) * size );
-		}
-
 		m_running_client = true;
 		m_flags = m_local->flags( );
 		m_onground = ( m_flags & fl_onground );
@@ -129,8 +114,9 @@ void c_g::on_tick( cmd_t *cmd ) {
 	m_last_lag = m_lag;
 	m_lag = g.m_interfaces->client_state()->m_choked_commands;
 	
-	cmd->m_buttons |= IN_BULLRUSH;
-	g_block_bot.on_tick( );
+	cmd->m_buttons |= IN_BULLRUSH; // allow unlimited ducking
+
+	g_block_bot.on_tick( );   //run all of our movement changing code before prediction
 	g_movement.auto_strafe( );
 	g_movement.edge_bug();
 	g_movement.bhop( );
@@ -139,39 +125,22 @@ void c_g::on_tick( cmd_t *cmd ) {
 	g_movement.PreciseMove( );
 	g_hvh.SendPacket();
 	g_hvh.break_resolver();
+	g_movement.QuickStop( );
 
-	if ( g.should_stop )
-		g_movement.QuickStop( );
-
-	//auto old_ground = g.m_interfaces->entity_list( )->get_client_entity_handle( g.m_local->m_ground_entity( ) );
 	if ( start_move( m_cmd ) ) {
-		//datamap_t *map = m_local->GetPredDescMap( );
-		//if ( map && !old_ground && g.m_interfaces->entity_list( )->get_client_entity_handle( g.m_local->m_ground_entity( ) ) ) {
-		//	prediction::end( );
-		//	m_cmd->m_buttons |= IN_DUCK;
-		//	CPredictionCopy CopyHelper( PC_EVERYTHING, ( byte * )g.m_local, false, ( const byte * )m_pStartData, true, CPredictionCopy::TRANSFERDATA_COPYONLY );
-		//	CopyHelper.TransferData( "CM_REPREDICT", m_local->index( ), map );
-		//	prediction::start( m_cmd );
-		//}
-		//prediction::start( cmd ); {
-		g_aimbot.backup_players( false );
 		g_aimbot.on_tick( );
-		g_aimbot.backup_players( true );
 		ang_t view_angles;
 		g.m_interfaces->engine( )->get_view_angles( view_angles );
 		g_hvh.m_view_angle = view_angles.y;
 		g_hvh.AntiAim( );
-		//} prediction::end( );
+
 		if ( g.m_can_shift && g.m_can_fire && ( m_cmd->m_buttons & IN_ATTACK ) )
 			g.m_shift = true;
-
-		//if (!m_can_fire && (m_cmd->m_buttons & IN_ATTACK))
-		//	m_cmd->m_buttons &= ~IN_ATTACK;
 
 		if ( g.m_shift )
 			*g.m_packet = false;
 		
-		m_cmd->m_viewangles.y = math::normalize_angle( m_cmd->m_viewangles.y, 180.f );
+		m_cmd->m_viewangles.y = math::normalize_angle( m_cmd->m_viewangles.y, 180.f );   //clamp view to bounds, avoid kicks etc
 		m_cmd->m_viewangles.x = std::clamp<float>( m_cmd->m_viewangles.x, -89.f, 89.f );
 		m_cmd->m_viewangles.z = 0;
 		math::correct_movement( m_cmd );
@@ -414,7 +383,7 @@ bool c_g::can_weapon_fire( ) const {
 //	}
 //}
 //
-void c_g::on_move ( float accumulated_extra_samples, bool bFinalTick, cl_move_t cl_move ) {
+void c_g::on_move ( float accumulated_extra_samples, bool bFinalTick, cl_move_t cl_move ) { // doesnt work for now, will update later
 
 	static auto *sv_maxusrcmdprocessticks = g.m_interfaces->console( )->get_convar( "sv_maxusrcmdprocessticks" );
 	const auto iProcessTicks = sv_maxusrcmdprocessticks->GetInt( );
@@ -483,11 +452,29 @@ void c_g::net_data_received ( ) const {
 }
 
 bool c_g::start_move( cmd_t *cmd ) {
-	should_stop = false;
 	m_can_fire = false;
 	m_weapon = static_cast< weapon_t * >( g.m_interfaces->entity_list( )->get_client_entity_handle( m_local->active_weapon( ) ) );
 	m_origin = m_local->origin( );
-	m_max_lag = ( m_local->flags( ) & fl_onground ) ? 16 : 15;
+	m_max_lag = ( m_local->flags( ) & fl_onground ) ? 16 : 15; // set max packet choking
+
+	auto* map = m_local->GetPredDescMap( );
+
+	if ( map ) {
+		const auto size = max( map->m_packed_size, 4 );
+		if ( !m_pStartData ) {
+			m_pStartData = static_cast< byte* >(g.m_interfaces->mem_alloc()->alloc( sizeof(byte) * size ) ); // setup all of the datamap storage
+			memset( g.m_pStartData, 0, size );
+			m_pEndData = static_cast< byte* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( byte ) * size ) );
+			memset( g.m_pEndData, 0, size );
+			m_pPostPred = static_cast< byte* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( byte ) * size ) );
+			memset( g.m_pPostPred, 0, size );
+		}
+
+		auto CopyHelper = CPredictionCopy( PC_EVERYTHING, static_cast< byte* >( m_pStartData ), true, reinterpret_cast< const byte* >( g.m_local ), false, CPredictionCopy::TRANSFERDATA_COPYONLY );
+		CopyHelper.TransferData( "CM_Start", m_local->index( ), map ); // copy off a prestie local player datamap, used if we want to repredict
+
+		memcpy( m_pEndData, m_pStartData, sizeof( byte ) * size ); // override 
+	}
 
 
 	prediction::start( cmd );
@@ -501,42 +488,45 @@ bool c_g::start_move( cmd_t *cmd ) {
 		m_can_fire = can_weapon_fire( );
 	}
 
-	m_force_strafe = false;
-	const auto abs_origin = g.m_local->origin( );
-	auto *bone_cache = &g.m_local->bone_cache( );
-	bone_array_t *backup_cache = nullptr;
+	generate_shoot_position( );
+
+	if ( m_weapon )
+		if ( m_weapon_type != WEAPONTYPE_GRENADE ) // ensure weapon spread values / etc are up to date.
+			m_weapon->update_accuracy_penalty( );
+
+	m_shot = false;
+
+	if ( m_pStartData && map ) {
+		CPredictionCopy CopyHelper( PC_EVERYTHING, static_cast< byte * >(m_pPostPred), true, reinterpret_cast< const byte * >(g.m_local), false, CPredictionCopy::TRANSFERDATA_COPYONLY ); //after prediction save local player datamap away incase we want to restore this
+		CopyHelper.TransferData( "PostPred", m_local->index( ), map );
+	}
+	
+	return true;
+}
+
+void c_g::generate_shoot_position( ) {
+	const auto abs_origin = g.m_local->origin( ); //restore bones to the ones that will be used by the server
+	auto* bone_cache = &g.m_local->bone_cache( );
+	bone_array_t* backup_cache = nullptr;
 	if ( bone_cache && g.m_bones_setup ) {
 		for ( auto i = 0; i < 128; i++ ) {
-			g.m_real_bones[ i ].mat_val[ 0 ][ 3 ] += abs_origin.x;
+			g.m_real_bones[ i ].mat_val[ 0 ][ 3 ] += abs_origin.x; // adjust bones positions to player origin
 			g.m_real_bones[ i ].mat_val[ 1 ][ 3 ] += abs_origin.y;
 			g.m_real_bones[ i ].mat_val[ 2 ][ 3 ] += abs_origin.z;
 		}
 		backup_cache = bone_cache->m_pCachedBones;
 		bone_cache->m_pCachedBones = g.m_real_bones;
 	}
-	m_local->get_eye_pos( &m_shoot_pos );
+	m_local->get_eye_pos( &m_shoot_pos ); // get proper shoot position, we can regenerate a more accurate one where its needed
 	if ( g.m_bones_setup && bone_cache ) {
 		m_local->get_anim_state( )->ModifyEyePosition( g.m_real_bones, &m_shoot_pos );
 		for ( auto i = 0; i < 128; i++ ) {
-			g.m_real_bones[ i ].mat_val[ 0 ][ 3 ] -= abs_origin.x;
+			g.m_real_bones[ i ].mat_val[ 0 ][ 3 ] -= abs_origin.x; // adjust bones positions back to 3d origin
 			g.m_real_bones[ i ].mat_val[ 1 ][ 3 ] -= abs_origin.y;
 			g.m_real_bones[ i ].mat_val[ 2 ][ 3 ] -= abs_origin.z;
 		}
 		bone_cache->m_pCachedBones = backup_cache;
 	}
-	if ( m_weapon )
-		if ( m_weapon_type != WEAPONTYPE_GRENADE )// ensure weapon spread values / etc are up to date.
-			m_weapon->update_accuracy_penalty( );
-
-	m_shot = false;
-
-	auto *map = g.m_local->GetPredDescMap( );
-	if ( m_pStartData && map ) {
-		CPredictionCopy CopyHelper( PC_EVERYTHING, static_cast< byte * >(m_pPostPred), true, reinterpret_cast< const byte * >(g.m_local), false, CPredictionCopy::TRANSFERDATA_COPYONLY );
-		CopyHelper.TransferData( "PostPred", m_local->index( ), map );
-	}
-	
-	return true;
 }
 
 void c_g::end_move ( cmd_t *cmd ) {
@@ -544,11 +534,12 @@ void c_g::end_move ( cmd_t *cmd ) {
 	cmd->m_sidemove = std::clamp<float>( cmd->m_sidemove, -450.f, 450.f );
 	auto *map = g.m_local->GetPredDescMap( );
 	if ( m_pStartData && map ) {
-		prediction::end( );
+		prediction::end( ); // finish up prediction
 		CPredictionCopy CopyHelper( PC_EVERYTHING, ( byte * )g.m_local, false, static_cast< const byte * >(m_pStartData), true, CPredictionCopy::TRANSFERDATA_COPYONLY );
 		CopyHelper.TransferData( "CM_REPREDICT", m_local->index( ), map );
-		prediction::start( g.m_cmd );
+		prediction::start( g.m_cmd ); // repredict to assure, if there are any changes to the usercmd that affect the player, we wont get compounding prediction errors
 	}
+
 	if ( *m_packet ) {
 		g_hvh.m_step_switch = static_cast< bool >( g.random_int( 0, 1 ) );
 
@@ -571,18 +562,18 @@ void c_g::end_move ( cmd_t *cmd ) {
 		// save sent origin and time.
 		m_net_pos.emplace_front( g.m_interfaces->globals( )->m_curtime, cur );
 	}
+
 	UpdateInformation( );
-	if( g.m_shot && g.m_bones_setup ) {
-		//g_aimbot.draw_hitboxes( g.m_local, g.m_real_bones );
-	}
-	prediction::end( );
+
+	prediction::end( ); // finish up prediction
 	if ( m_pEndData && map ) {
 		CPredictionCopy CopyHelper( PC_EVERYTHING, static_cast< byte * >(m_pEndData), true, ( const byte * )g.m_local, false, CPredictionCopy::TRANSFERDATA_COPYONLY );
-		CopyHelper.TransferData( "CM_END", m_local->index( ), map );
+		CopyHelper.TransferData( "CM_END", m_local->index( ), map ); // save away final copy of our datamap for this cmd
 	}
+
 	if ( m_pStartData && map ) {
 		CPredictionCopy CopyHelper( PC_EVERYTHING, ( byte * )g.m_local, false, static_cast< const byte * >(m_pStartData), true, CPredictionCopy::TRANSFERDATA_COPYONLY );
-		CopyHelper.TransferData( "CM_RESTORE", m_local->index( ), map );
+		CopyHelper.TransferData( "CM_RESTORE", m_local->index( ), map ); // restore starting datamap to allow the game to use the player normally
 	}
 	
 	m_old_packet = *m_packet;

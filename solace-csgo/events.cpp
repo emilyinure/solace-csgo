@@ -12,6 +12,9 @@ public:
 	explicit hurt_listener( IGameEventManager2 *game_events ) : game_events_( game_events ) {
 		game_events_->AddListener( this, "player_hurt", false );
 	}
+	~hurt_listener( ) {
+		game_events_->RemoveListener( this );
+	}
 private:
 	IGameEventManager2 *game_events_;
 } *hurt_listener;
@@ -23,6 +26,9 @@ class impact_listener final : IGameEventListener2 {
 public:
 	explicit impact_listener( IGameEventManager2 *game_events ) : game_events_( game_events ) {
 		game_events_->AddListener( this, "bullet_impact", false );
+	}
+	~impact_listener( ) {
+		game_events_->RemoveListener( this );
 	}
 private:
 	IGameEventManager2 *game_events_;
@@ -37,6 +43,9 @@ public:
 	explicit start_listener( IGameEventManager2 *game_events ) : game_events_( game_events ) {
 		game_events_->AddListener( this, "round_start", false );
 	}
+	~start_listener( ) {
+		game_events_->RemoveListener( this );
+	}
 private:
 	IGameEventManager2 *game_events_;
 } *start_listener;
@@ -46,8 +55,11 @@ class end_listener final : public IGameEventListener2 {
 		g.m_cmds.clear( );
 	}
 public:
-	explicit end_listener( IGameEventManager2 *game_events ) : game_events_( game_events ) {
+	explicit end_listener( IGameEventManager2* game_events ) : game_events_( game_events ) {
 		game_events_->AddListener( this, "round_end", false );
+	}
+	~end_listener( ) {
+		game_events_->RemoveListener( this );
 	}
 private:
 	IGameEventManager2 *game_events_;
@@ -57,6 +69,13 @@ void events::init ( ) {
 	impact_listener = new class impact_listener( g.m_interfaces->events( ) );
 	start_listener = new class start_listener( g.m_interfaces->events( ) );
 	end_listener = new class end_listener( g.m_interfaces->events( ) );
+}
+
+void events::destroy( ) {
+	delete hurt_listener;
+	delete impact_listener;
+	delete start_listener;
+	delete end_listener;
 }
 
 void events::player_hurt( IGameEvent *evt ) {

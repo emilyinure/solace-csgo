@@ -40,7 +40,6 @@ public:
 	__forceinline Sequence( ) : m_time{}, m_state{}, m_seq{} {};
 	__forceinline Sequence( float time, int state, int seq ) : m_time{ time }, m_state{ state }, m_seq{ seq } {};
 };
-
 class c_g {
 public:
 	interfaces_t *m_interfaces = nullptr;
@@ -59,7 +58,6 @@ public:
 	server_anim_state* m_animstate = nullptr;
 	
 	bool m_in_pred = false;
-	int   m_tick = 0;
 	ang_t m_view_angles = ang_t();
 	bool  m_onground = false;;
 	int   m_lag = 0;;
@@ -70,7 +68,6 @@ public:
 	bool  m_force_view = false;
 	HWND m_window;
 	WNDPROC m_old_window;
-	bool m_force_strafe = false;
 	float m_latency;
 	float m_lerp;
 	ang_t m_rotation;
@@ -102,7 +99,6 @@ public:
 	ang_t m_angle;
 	float m_body = 0;
 	bool m_ground = 0;
-	bool should_stop = false;
 
 	std::deque< Sequence > m_sequences = {};
 	bool m_datamap_updated;
@@ -163,5 +159,6 @@ public:
 	random_float_t random_float;
 
 	bool start_move ( cmd_t *cmd );
+	void generate_shoot_position( );
 	void end_move( cmd_t *cmd );
 }; inline c_g g;

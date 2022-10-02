@@ -4,11 +4,14 @@
 #include "vec3.h"
 
 class movement {
+	bool m_force_strafe = false;
+	bool m_should_stop = false;
 public:
-	int jump_count = 0;
+	void set_should_stop( bool state ) { m_should_stop = state; };
+	void set_force_strafe( bool state ) { m_force_strafe = state; };
 	void draw ( );
 	void bhop ( );
-	static void QuickStop ( );
+	void QuickStop ( );
 	static void PreciseMove ( );
 	void auto_peek ( );
 	void move_to ( vec3_t target_origin ) const;

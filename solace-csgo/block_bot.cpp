@@ -1,5 +1,6 @@
 #include "block_bot.h"
 #include "includes.h"
+#include "movement.h"
 
 void block_bot_t::on_draw( ) const {
 	if ( m_draw.empty( ) )
@@ -220,7 +221,7 @@ void block_bot_t::on_tick ( ) {
 	}
 	else {
 		g.m_view_angles = ang_t( 0, local_origin.look( target_origin ).y, 0 );
-		g.m_force_strafe = true;
+		g_movement.set_force_strafe( true );
 		g.m_cmd->m_forwardmove = 450;
 		g.m_cmd->m_sidemove = 0;
 	}

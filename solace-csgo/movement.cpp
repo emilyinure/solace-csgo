@@ -53,23 +53,22 @@ void movement::draw() {
 }
 
 void movement::bhop( ) {
-	if (!settings::misc::movement::bhop) {
-		jump_count = 0;
+	if (!settings::misc::movement::bhop) 
 		return;
-	}
-	if (!(g.m_cmd->m_buttons & IN_JUMP)) {
-		jump_count = 0;
+	if (!(g.m_cmd->m_buttons & IN_JUMP))
 		return;
-	}
-	if (g.m_interfaces->entity_list()->get_client_entity_handle(g.m_local->m_ground_entity())) {
-		jump_count++;
+	if (g.m_interfaces->entity_list()->get_client_entity_handle(g.m_local->m_ground_entity()))
 		return;
-	}
 	
 	g.m_cmd->m_buttons &= ~IN_JUMP;
 }
 
 void movement::QuickStop( ) {
+	if ( !m_should_stop )
+		return;
+
+	m_should_stop = false; // this will be reset every frame anyways
+
 	if ( !g.m_interfaces->entity_list( )->get_client_entity_handle( g.m_local->m_ground_entity( ) ) )
 		return;
 	
@@ -275,11 +274,15 @@ void movement::edge_bug() {
 		CopyHelper.TransferData("edgebug_post", g.m_local->index(), map);
 	}
 }
+
 void movement::auto_strafe ( ) {
 	if ( settings::misc::movement::autostrafe == 0 )
 		return;
-	if ( !( g.m_cmd->m_buttons & IN_JUMP ) && !g.m_force_strafe )
+	if ( !( g.m_cmd->m_buttons & IN_JUMP ) && !m_force_strafe )
 		return;
+
+	m_force_strafe = false; // this will be reset every tick anyways
+	
 	if ( g.m_interfaces->entity_list( )->get_client_entity_handle( g.m_local->m_ground_entity( ) ) )
 		return;
 	const auto velocity = g.m_local->velocity( );

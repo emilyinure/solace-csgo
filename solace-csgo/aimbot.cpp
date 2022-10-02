@@ -1,6 +1,6 @@
 #include "aimbot.h"
 
-
+#include "movement.h"
 #include "bones.h"
 #include "hooks.h"
 #include "penetration.h"
@@ -611,7 +611,7 @@ bool aimbot_t::get_best_point ( ent_info_t *info, bone_array_t* bones ) {
 		//}
 	}
 	if ( selected_point ) {
-		g.should_stop = true;
+		g_movement.set_should_stop(true);
 		info->m_damage = max_damage;
 		selected_point->m_shoot_pos = selected_eye;
 		info->m_aim_point = selected_point;
@@ -1018,70 +1018,31 @@ void aimbot_t::on_tick ( ) {
 	if ( g.m_lag == 0 )
 		return;
 
+	backup_players( false ); // backup player vars before we change them
 	
-	m_last_target = m_best_target;
+	m_last_target = m_best_target; 
 	m_best_target = nullptr;
 	
-	get_targets( );
-	std::vector<ent_info_t*> valid_targets = mp_threading();
-	//for ( auto &info : m_targets ) {
-	//	auto *studio_model = g.m_interfaces->model_info( )->get_studio_model( info->m_ent->model( ) );
-	//	if ( !studio_model )	
-	//		continue;
-	//	info->m_selected_record = g_resolver.FindIdealRecord( info );
-	//	if ( info->m_selected_record ) {
-	//		get_points( info, studio_model );
-	//		if ( /*best_target( info ) && */get_best_point( info ) ) {
-	//			//m_best_target = info;
-	//			valid_targets.push_back( info );
-	//			if ( info->m_damage >= info->m_ent->health( ) )
-	//				break;
-	//			continue;
-	//		}
-	//	}
-	//	info->m_selected_record = last_record( info );
-	//	if ( info->m_selected_record ) {
-	//		get_points( info, studio_model );
-	//		if ( /*best_target( info ) && */get_best_point( info ) ) {
-	//			//m_best_target = info;
-	//			valid_targets.push_back( info );
-	//			if ( info->m_damage >= info->m_ent->health( ) )
-	//				break;
-	//		}
-	//	}
-	//}
-
+	get_targets( ); // get all possible targets
+	std::vector<ent_info_t*> valid_targets = mp_threading( );
 
 	for ( auto i = 0; i < valid_targets.size( ); i++ ) {
-		add_to_threads( valid_targets[ i ], i );
+		add_to_threads( valid_targets[ i ], i ); // this is a very jank thread hander, will update soon
 	}
-	g_thread_handler.start( );
+	g_thread_handler.start( ); // start running the threads
 
-	//while ( g_thread_handler.busy( ) )
-	//	continue;
-
-	g_thread_handler.wait( );
-	//while( true ) {
-	//	bool all_done = true;
-	//	for ( auto i = 0; i < g_thread_handler.objects.size( ); i++ ) {
-	//		if ( !g_thread_handler.objects[ i ]->finished || g_thread_handler.objects[ i ]->handling ) {
-	//			all_done = false;
-	//			break;
-	//		}
-	//	}
-	//	if ( all_done )
-	//		break;
-	//}
-	//auto thread = std::thread( g_thread_handler.assign_object( ) );
+	g_thread_handler.wait( ); // wait until all threads are finished
 
 	for ( auto i = 0; i < g_thread_handler.objects.size( ); i++ ) {
 		const auto object = static_cast< hcThreadObject * >(g_thread_handler.objects[i]);
-		if ( object->ret_state )
-			if ( best_target( valid_targets[ object->id ] ) )
+		if ( object->ret_state ) // did the player pass?
+			if ( best_target( valid_targets[ object->id ] ) ) // only set if the player is the best overall target
 				m_best_target = valid_targets[ object->id ];
 	}
 
 	g_thread_handler.objects.clear( );
 
-	apply( );
+	apply( ); // look and shoot at the best point
+
+	backup_players( true ); //restore
 }
