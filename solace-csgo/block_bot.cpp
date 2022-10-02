@@ -154,7 +154,7 @@ void block_bot_t::on_tick ( ) {
 
 			local_delta -= velocity;
 			const auto delta_len = local_delta.length_2d( );
-			g.m_view_angles = ang_t( 0, vec3_t().look( local_delta ).y, 0 );;
+			g.m_view_angles = ang_t( 0, static_cast< float >( atan2( local_delta.y, local_delta.x ) * 180.f / M_PI ), 0 );;
 			const auto current_speed = velocity.dot( local_delta.normalized( ) );
 			auto projected_delta = fminf( 450.f, local_delta.length( ) + current_speed );
 
@@ -192,7 +192,7 @@ void block_bot_t::on_tick ( ) {
 			local_delta -= velocity;
 			
 			const auto delta_len = fminf( local_delta.length_2d( ), 450 );
-			g.m_view_angles = ang_t( 0, vec3_t( ).look( local_delta ).y, 0 );
+			g.m_view_angles = ang_t( 0, static_cast< float >( atan2( local_delta.y, local_delta.x ) * 180.f / M_PI ), 0 );
 
 			const auto current_speed = velocity.dot( local_delta.normalized( ) );
 

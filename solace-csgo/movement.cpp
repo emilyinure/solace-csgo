@@ -203,7 +203,7 @@ void movement::move_to(vec3_t target_origin) const {
 	//	local_delta *= newspeed / speed;
 	//}
 	
-	g.m_view_angles = ang_t( 0, vec3_t( ).look( local_delta ).y, 0 );;
+	g.m_view_angles = ang_t( 0, static_cast< float >( atan2( local_delta.y, local_delta.x ) * 180.f / M_PI ), 0 );;
 	float projected_delta = fminf(450.f, local_delta.length_2d());
 	if (projected_delta <= 0.1f ) {
 		g.m_cmd->m_forwardmove = 0.f;
@@ -278,6 +278,7 @@ void movement::edge_bug() {
 void movement::auto_strafe ( ) {
 	if ( settings::misc::movement::autostrafe == 0 )
 		return;
+
 	if ( !( g.m_cmd->m_buttons & IN_JUMP ) && !m_force_strafe )
 		return;
 
@@ -285,17 +286,16 @@ void movement::auto_strafe ( ) {
 	
 	if ( g.m_interfaces->entity_list( )->get_client_entity_handle( g.m_local->m_ground_entity( ) ) )
 		return;
+
 	const auto velocity = g.m_local->velocity( );
 
-	m_speed = velocity.length_2d( );
+	const float speed = velocity.length_2d( );
 
 	// compute the ideal strafe angle for our velocity.
-	m_ideal = ( m_speed > 0.f ) ? RAD2DEG( std::asin( 15.f / m_speed ) ) : 90.f;
-	m_ideal2 = ( m_speed > 0.f ) ? RAD2DEG( std::asin( 30.f / m_speed ) ) : 90.f;
+	const float ideal = ( speed > 0.f ) ? RAD2DEG( std::asin( 15.f / speed ) ) : 90.f;
+	const float ideal2 = ( speed > 0.f ) ? RAD2DEG( std::asin( 30.f / speed ) ) : 90.f;
 
 	m_switch *= -1;
-	
-	// get our viewangle change.
 
 	auto direction = vec3_t( );
 	if ( g.m_cmd->m_sidemove == 0 && g.m_cmd->m_forwardmove == 0 )
@@ -311,12 +311,10 @@ void movement::auto_strafe ( ) {
 	else if ( g.m_cmd->m_sidemove < 0 )
 		direction += vec3_t( 0, 1, 0 );
 
-	g.m_view_angles.y += vec3_t( ).look( direction ).y;
+	g.m_view_angles.y += static_cast< float >(atan2( direction.y, direction.x ) * 180.f / M_PI);
 
 	const auto delta = math::normalize_angle( g.m_view_angles.y - m_old_yaw, 180 );
 
-	m_old_yaw = g.m_view_angles.y;
-	
 	// convert to absolute change.
 	const auto abs_delta = std::abs( delta );
 
@@ -338,7 +336,7 @@ void movement::auto_strafe ( ) {
 	*/
 
 
-	if ( abs_delta <= m_ideal2 || abs_delta >= 30.f ) {
+	if ( abs_delta <= ideal2 || abs_delta >= 30.f ) {
 		// compute angle of the direction we are traveling in.
 		const auto velocity_angle = RAD2DEG( atan2( velocity.y, velocity.x ) );
 
@@ -350,15 +348,15 @@ void movement::auto_strafe ( ) {
 			velocity_delta += 360;
 
 		// correct our strafe amongst the path of a circle.
-		const auto correct = m_ideal2;
-
-		if ( fabsf( velocity_delta ) > correct ) {
-			g.m_view_angles.y = velocity_angle - std::copysignf( correct, velocity_delta );
+		if ( fabsf( velocity_delta ) > ideal2 ) {
+			g.m_view_angles.y = velocity_angle - std::copysignf( ideal2, velocity_delta );
 			g.m_cmd->m_sidemove = std::copysignf( 450.f, velocity_delta );
 		}
 		else {
-			g.m_view_angles.y += std::copysignf( m_ideal, velocity_delta );
-			g.m_cmd->m_sidemove = std::copysignf( 450.f, velocity_delta );
+			g.m_view_angles.y += std::copysignf( ideal, delta );
+			g.m_cmd->m_sidemove = std::copysignf( 450.f, delta );
 		}
 	}
+
+	m_old_yaw = g.m_view_angles.y;
 }

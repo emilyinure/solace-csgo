@@ -248,12 +248,12 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 		}
 
 		for ( auto i = 0; i < 2; i++ ) {
-			int count = 0;
+			int hitbox_count = 0;
 			if ( hitbox_num == hitbox_head )
-				count = 1;
-			vec3_t temp_point = point_list.m_points[ count ].m_point;
+				hitbox_count = 1;
+			vec3_t temp_point = point_list.m_points[ hitbox_count ].m_point;
 			vec3_t accumulated_point = temp_point;
-
+			int acum_count = 0;
 			const auto resolve_mode = info->m_selected_record->m_mode;
 			bool should_avg = false;
 			if ( resolve_mode == resolver::RESOLVE_STAND1 ) {
@@ -265,7 +265,7 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 					vec3_t new_avg_point = temp_point;
 					math::VectorTransform( new_avg_point, bone_transform, new_avg_point );
 					accumulated_point += new_avg_point;
-					count++;
+					acum_count++;
 				}
 			}
 			else if ( resolve_mode == resolver::RESOLVE_STAND2 ) {
@@ -278,7 +278,7 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 					vec3_t new_avg_point = temp_point;
 					math::VectorTransform( new_avg_point, bone_transform, new_avg_point );
 					accumulated_point += new_avg_point;
-					count++;
+					acum_count++;
 				}
 			}
 			else if ( resolve_mode == resolver::RESOLVE_WALK || resolve_mode == resolver::RESOLVE_BODY ) {
@@ -286,17 +286,18 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 					vec3_t new_avg_point = temp_point;
 					math::VectorTransform( new_avg_point, bone_transform, new_avg_point );
 					accumulated_point += new_avg_point;
-					count++;
+					acum_count++;
 				}
 			}
 			
-			accumulated_point /= count;
-			accumulated_point -= point_list.m_points[ count ].m_point;
+			accumulated_point /= acum_count;
+			accumulated_point -= temp_point;
 			float len = accumulated_point.length( );
 			if( len > r  )
 				accumulated_point = (accumulated_point / len) * r;
 
-			point_list.m_points[ count ].m_point += accumulated_point;
+			point_list.m_points[ hitbox_count ].m_point += accumulated_point;
+			hitbox_count++;
 		}
 
 
