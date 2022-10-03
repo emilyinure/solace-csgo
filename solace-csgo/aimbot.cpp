@@ -124,6 +124,84 @@ void aimbot_t::get_targets() {
 			m_targets.push_back( &ent );
 	}
 }
+vec3_t get_hitbox_edge_in_dir( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, float radius ) { // i think the logic here is right??
+	vec3_t center = ( maxs + mins ) * 0.5f;
+	vec3_t dir = ( end - start ).normalized( );
+
+	vec3_t dir_to_maxs = maxs - end;
+	float dir_to_maxs_dot = (-dir).dot( dir_to_maxs );
+	float dir_to_maxs_len = dir_to_maxs.normalize( );
+
+	vec3_t dir_to_mins = mins - end;
+	float dir_to_mins_dot = (-dir).dot( dir_to_mins );
+	float dir_to_mins_len = dir_to_mins.length( );
+
+
+	vec3_t hitbox_end;
+	float len_to_hitbox_end = 0.f;
+	int perpendicular = 0;
+	float greater_dot = 0.f;
+
+	if ( dir_to_maxs_dot > dir_to_mins_dot ) { // select the hitbox end that has the dir coming towards it 
+		len_to_hitbox_end = dir_to_maxs_len;
+		greater_dot = dir_to_maxs_dot;
+		hitbox_end = maxs;
+		perpendicular = 1;
+	}
+	else if ( dir_to_mins_dot > dir_to_maxs_dot ) {
+		len_to_hitbox_end = dir_to_mins_len;
+		greater_dot = dir_to_mins_dot;
+		hitbox_end = mins;
+		perpendicular = 1;
+	}
+	else if( dir_to_maxs_len > dir_to_mins_len ) {
+		len_to_hitbox_end = dir_to_mins_len;
+		hitbox_end = mins;
+		perpendicular = 2;
+	}
+	else if ( dir_to_maxs_len < dir_to_mins_len ) {
+		len_to_hitbox_end = dir_to_maxs_len;
+		hitbox_end = maxs;
+		perpendicular = 2;
+	}
+
+	if ( perpendicular == 2 ) {
+		vec3_t step = end - dir;
+		float step_dist = ( hitbox_end - step ).length( );
+		float step_difference = len_to_hitbox_end - step_dist;
+		float needed_dist = len_to_hitbox_end - radius;
+		return end - ( dir * needed_dist / step_difference );
+	}
+	else if ( perpendicular == 0 ) {
+		vec3_t step = end - dir;
+		float end_dist = math::minimum_distance( mins, maxs, end );
+		float step_dist = math::minimum_distance( mins, maxs, step );
+		float step_difference = end_dist - step_dist;
+		float needed_dist = end_dist - radius;
+		return end - ( dir * needed_dist / step_difference );
+
+	}
+	else {
+		vec3_t step = end + (-dir * greater_dot);
+		float step_dist = math::minimum_distance( mins, maxs, step );
+		if ( step_dist < radius ) {
+			step = end - dir;
+			float end_dist = math::minimum_distance( mins, maxs, end );
+			step_dist = math::minimum_distance( mins, maxs, step );
+			float step_difference = end_dist - step_dist;
+			float needed_dist = end_dist - radius;
+			return end - ( dir * needed_dist / step_difference );
+		}
+		else {
+			step = end - dir;
+			step_dist = ( hitbox_end - step ).length( );
+			float step_difference = len_to_hitbox_end - step_dist;
+			float needed_dist = len_to_hitbox_end - radius;
+			return end - ( dir * needed_dist / step_difference );
+		}
+	}
+
+}
 void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 	info->m_hitboxes.clear( );
 	for ( auto hitbox_num = hitboxes::hitbox_max - 1; hitbox_num >= 0; hitbox_num-- ) {
@@ -185,12 +263,16 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 			point_list.m_points.emplace_back( center, 0, hitbox_num );
 
 			// back.
-			point_list.m_points.emplace_back( vec3_t( hitbox->maxs.x, hitbox->maxs.y - r, hitbox->maxs.z ), 0, hitbox_num);
+			point_list.m_points.emplace_back( vec3_t( hitbox->maxs.x, hitbox->maxs.y - r, hitbox->maxs.z ), 0, hitbox_num );
 
 			break;
 		case hitbox_body:
-			point_list.m_points.emplace_back( hitbox->maxs, 0, hitbox_num );
-			point_list.m_points.emplace_back( hitbox->mins, 0, hitbox_num );
+			// right. safe
+			point_list.m_points.emplace_back( center, mode, hitbox_num );
+
+			// back. safe
+			point_list.m_points.emplace_back( vec3_t( center.x, center.y - r * 0.5f, center.z ), mode, hitbox_num );
+
 
 			// right.
 			point_list.m_points.emplace_back( center, mode, hitbox_num );
@@ -206,7 +288,7 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 			break;
 		case hitbox_thorax:
 		case hitbox_chest:
-			point_list.m_points.emplace_back( hitbox->maxs, 0, hitbox_num );
+			point_list.m_points.emplace_back( vec3_t{ center.x, center.y - r * 0.5f, center.z }, 0, hitbox_num );
 			point_list.m_points.emplace_back( hitbox->mins, 0, hitbox_num );
 			// add center.
 
@@ -239,66 +321,78 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 			math::AngleMatrix( hitbox->angle, &temp );
 			math::ConcatTransforms( bone_transform, temp, &bone_transform );
 		}
-		for ( auto& point : point_list.m_points ) {
-			math::VectorTransform( point.m_point, bone_transform, point.m_point );
+		auto i = 1;
+		if ( hitbox_num == hitbox_head )
+			i++;
+		for ( ; i < point_list.m_points.size(); i++ ) {
+			math::VectorTransform( point_list.m_points[i].m_point, bone_transform, point_list.m_points[i].m_point );
 		}
 		if ( hitbox_num == hitbox_head ) {
 			point_list.m_points[ 0 ].m_point.z += r;
-			point_list.m_points[ 0 ].m_point -= point_list.m_points[ 0 ].m_point.look( g.m_shoot_pos ).forward( ) * r;
 		}
 
-		for ( auto i = 0; i < 2; i++ ) {
-			int hitbox_count = 0;
-			if ( hitbox_num == hitbox_head )
-				hitbox_count = 1;
-			vec3_t temp_point = point_list.m_points[ hitbox_count ].m_point;
-			vec3_t accumulated_point = temp_point;
-			int acum_count = 0;
-			const auto resolve_mode = info->m_selected_record->m_mode;
-			bool should_avg = false;
-			if ( resolve_mode == resolver::RESOLVE_STAND1 ) {
-				for ( auto i1 = 0; i1 < 11; i1++ ) {
-					if ( i1 == info->m_stand_index )
-						continue;
-					if ( !info->m_possible_stand_indexs[ i1 ] )
-						continue;
-					vec3_t new_avg_point = temp_point;
-					math::VectorTransform( new_avg_point, bone_transform, new_avg_point );
-					accumulated_point += new_avg_point;
-					acum_count++;
+		const auto resolve_mode = info->m_selected_record->m_mode;
+		if ( resolve_mode == resolver::RESOLVE_STAND1 || resolve_mode == resolver::RESOLVE_STAND2 || resolve_mode == resolver::RESOLVE_WALK || resolve_mode == resolver::RESOLVE_BODY )
+			for ( auto i = 0; i < 2; i++ ) {
+				int hitbox_count = 0;
+				if ( hitbox_num == hitbox_head )
+					hitbox_count = 1;
+				vec3_t temp_point = point_list.m_points[ hitbox_count ].m_point;
+				vec3_t accumulated_point = temp_point;
+				int acum_count = 0;
+				if ( resolve_mode == resolver::RESOLVE_STAND1 ) {
+					for ( auto i1 = 0; i1 < 11; i1++ ) {
+						if ( i1 == info->m_stand_index )
+							continue;
+						if ( !info->m_possible_stand_indexs[ i1 ] )
+							continue;
+						vec3_t new_avg_point = temp_point;
+						math::VectorTransform( new_avg_point, bone_transform, new_avg_point ); 
+						if ( hitbox_num == hitbox_head && hitbox_count == 1)
+							new_avg_point.z += r;
+						accumulated_point += new_avg_point;
+						acum_count++;
+					}
 				}
-			}
-			else if ( resolve_mode == resolver::RESOLVE_STAND2 ) {
-				for ( auto i1 = 0; i1 < 11; i1++ ) {
-					if ( i1 == info->m_stand2_index )
-						continue;
-					if ( !info->m_possible_stand2_indexs[ i1 ] )
-						continue;
+				else if ( resolve_mode == resolver::RESOLVE_STAND2 ) {
+					for ( auto i1 = 0; i1 < 11; i1++ ) {
+						if ( i1 == info->m_stand2_index )
+							continue;
+						if ( !info->m_possible_stand2_indexs[ i1 ] )
+							continue;
 
-					vec3_t new_avg_point = temp_point;
-					math::VectorTransform( new_avg_point, bone_transform, new_avg_point );
-					accumulated_point += new_avg_point;
-					acum_count++;
+						vec3_t new_avg_point = temp_point;
+						math::VectorTransform( new_avg_point, bone_transform, new_avg_point );
+						if ( hitbox_num == hitbox_head && hitbox_count == 1 )
+							new_avg_point.z += r;
+						accumulated_point += new_avg_point;
+						acum_count++;
+					}
 				}
-			}
-			else if ( resolve_mode == resolver::RESOLVE_WALK || resolve_mode == resolver::RESOLVE_BODY ) {
-				for ( auto i1 = 0; i1 < 2; i1++ ) {
-					vec3_t new_avg_point = temp_point;
-					math::VectorTransform( new_avg_point, bone_transform, new_avg_point );
-					accumulated_point += new_avg_point;
-					acum_count++;
+				else if ( resolve_mode == resolver::RESOLVE_WALK || resolve_mode == resolver::RESOLVE_BODY ) {
+					for ( auto i1 = 0; i1 < 2; i1++ ) {
+						vec3_t new_avg_point = temp_point;
+						math::VectorTransform( new_avg_point, bone_transform, new_avg_point );
+						if ( hitbox_num == hitbox_head && hitbox_count == 1 )
+							new_avg_point.z += r;
+						accumulated_point += new_avg_point;
+						acum_count++;
+					}
 				}
-			}
-			
-			accumulated_point /= acum_count;
-			accumulated_point -= temp_point;
-			float len = accumulated_point.length( );
-			if( len > r  )
-				accumulated_point = (accumulated_point / len) * r;
 
-			point_list.m_points[ hitbox_count ].m_point += accumulated_point;
-			hitbox_count++;
-		}
+				math::VectorTransform( temp_point, bone_transform, temp_point );
+				if ( hitbox_num == hitbox_head && hitbox_count == 1 )
+					temp_point.z += r;
+
+				accumulated_point /= acum_count;
+				accumulated_point -= temp_point;
+				float len = math::minimum_distance(hitbox->mins, hitbox->maxs, accumulated_point);
+				if ( len > r )
+					point_list.m_points[ hitbox_count ].m_point = get_hitbox_edge_in_dir( temp_point, accumulated_point, hitbox->mins, hitbox->maxs, r );
+				else
+					point_list.m_points[ hitbox_count ].m_point = temp_point + accumulated_point;
+				hitbox_count++;
+			}
 
 
 

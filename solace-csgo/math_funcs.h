@@ -23,7 +23,7 @@ namespace math {
 	bool world_to_screen( const vec3_t &point, vec3_t &screen );
 	float distSegmentToSegment( const vec3_t &p1, const vec3_t &p2, const vec3_t &q1, const vec3_t &q2, float &invariant1, float &invariant2 );
 	void correct_movement( cmd_t *cmd );
-
+	float minimum_distance( vec3_t v, vec3_t w, vec3_t p );
 	inline float normalize_angle( float ang, float max ) {
 		while ( ang > max )
 			ang -= max * 2;

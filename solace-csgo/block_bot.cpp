@@ -47,7 +47,7 @@ void block_bot_t::on_tick ( ) {
 		return;
 	static auto original_origin = vec3_t( );
 	static auto original_local = vec3_t( );
-	const auto local_origin = g.m_local->origin( );
+	const auto &local_origin = g.m_local->origin( );
 	auto valid = [ ]( ent_info_t *ent ) {
 		if ( !ent )
 			return false;

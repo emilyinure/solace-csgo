@@ -146,6 +146,19 @@ void math::correct_movement( cmd_t *cmd ) {
 	cmd->m_upmove = std::clamp( correct_movement.z, -320.f, 320.f );
 }
 
+float math::minimum_distance( vec3_t v, vec3_t w, vec3_t p ) {
+	// Return minimum distance between line segment vw and point p
+	const float l2 = ( v - w ).length_sqr( );  // i.e. |w-v|^2 -  avoid a sqrt
+	if ( l2 == 0.0 ) return ( p - v ).length( );   // v == w case
+												   // Consider the line extending the segment, parameterized as v + t (w - v).
+												   // We find projection of point p onto the line. 
+												   // It falls where t = [(p-v) . (w-v)] / |w-v|^2
+												   // We clamp t from [0,1] to handle points outside the segment vw.
+	const float t = max( 0, min( 1, ( p - v ).dot( w - v ) / l2 ) );
+	const vec3_t projection = v + ( w - v ) * t;  // Projection falls on the segment
+	return ( p - projection ).length( );
+}
+
 void math::sin_cos ( float r, float *s, float *c ) {
 	*s = std::sin( r );
 	*c = std::cos( r );
