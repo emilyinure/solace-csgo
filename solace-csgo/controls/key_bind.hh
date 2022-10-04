@@ -1,6 +1,3 @@
-#pragma once
-
-
 #include <iostream>
 #include <fstream>
 
@@ -18,11 +15,11 @@ public:
 		menu.append_bind( &this->value_ );
 	}
 
-	auto disable() -> void override {
+	virtual auto disable() -> void override {
 		this->open_ = false;
 	}
 
-	auto draw( ) -> void override {
+	virtual auto draw( ) -> void override {
 		if ( this->capturing_ ) {
 			for ( auto i = 0; i < 255; ++i ) {
 				if ( GetAsyncKeyState( i ) && i != 3 ) {
@@ -51,6 +48,7 @@ public:
 		
 		if ( this->open_ || this->capturing_ )
 			g.m_render->filled_rect( button_area_.x + 1, button_area_.y + 1, button_area_.w - 2, button_area_.h - 2, { 0xDB, 0x2E, 0x2C, 100 } );
+
 		g.m_render->outlined_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h, { 240,240,240, 7 } );
 
 		g.m_render->text( g.m_render->m_constantia_12( ), this->area.x, this->area.y + button_area_.h / 2 - text_height / 2.f, { 240,240,240, 100 }, this->name );
@@ -74,11 +72,11 @@ public:
 			if( selected )
 				g.m_render->filled_rect( item_area.x + 1, item_area.y + 1, item_area.w - 2, item_area.h - 2, color{ 0xDB, 0x2E, 0x2C, 100 } );
 
-			g.m_render->text( g.m_render->m_constantia_12( ), item_area.x + 6, item_area.y + item_area.h / 2 - text_height / 2, { 240,240,240, 100 }, item );
+			g.m_render->text( g.m_render->m_constantia_12( ), item_area.x + 6, item_area.y + item_area.h / 2.f - text_height / 2.f, { 240,240,240, 100 }, item );
 		}
 	}
 
-	auto update( ) -> void override {
+	virtual auto update( ) -> void override {
 		if ( menu.focused_control && menu.focused_control != this )
 			return;
 
@@ -117,11 +115,11 @@ public:
 			}
 		}
 	}
-	void save() override {
+	virtual void save() override {
 		std::cout << this->value_.type << "\n";
 		std::cout << this->value_.key << "\n";
 	}
-	void load() override {
+	virtual void load() override {
 		std::string line;
 		std::getline(std::cin, line);
 		std::istringstream(line) >> this->value_.type;

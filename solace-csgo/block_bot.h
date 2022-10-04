@@ -3,7 +3,7 @@
 
 #include "console.h"
 class vec3_t;
-class ent_info_t;
+struct ent_info_t;
 class block_bot_t {
 	ent_info_t *target = nullptr;
 	std::vector<vec3_t> m_draw;

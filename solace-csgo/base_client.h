@@ -29,7 +29,7 @@ enum class send_prop_type {
 class c_recv_proxy_data {
 public:
 	const recv_prop_t *m_recv_prop;
-	char _pad[ 4 ];//csgo ( for l4d keep it commented out :) )
+	char _pad[ 4 ];
 	d_variant		m_value;
 	int				m_element;
 	int				m_object_id;

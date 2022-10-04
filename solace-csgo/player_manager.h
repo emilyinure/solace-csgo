@@ -6,7 +6,7 @@
 #include "includes.h"
 #include "animstate.h"
 
-class ent_info_t;
+struct ent_info_t;
 class backup_record_t {
 public:
 	bone_array_t *m_bones;
@@ -149,16 +149,16 @@ struct ent_info_t {
 	player_t *m_ent = nullptr;
 	bool m_fake_player = false;
 	CIKContext m_ik;
-	aim_point_t* m_aim_point;
+	aim_point_t* m_aim_point{};
 	int m_shots = 0;
 	int m_missed_shots;
 	int m_body_index;
 	int m_stand_index;
 	int m_stand2_index;
 	player_record_t m_walk_record;
-	bool m_moved;
-	float m_old_body;
-	float m_shot_wanted;
+	bool m_moved{};
+	float m_old_body{};
+	float m_shot_wanted{};
 	bool m_possible_stand2_indexs[ 11 ] = { true,true,true, true,true,true,true,  true,true,true, true };
 	bool m_stand2_backup_indexs[ 11 ] = {true, true, true , true,true,true,true,  true,true,true, true };
 	int m_backup_stand_index2 = 0;

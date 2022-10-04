@@ -658,7 +658,6 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 	anim_state backup_anim_state{};
 	m_ent->client_side_anim( ) = true;
 	if (!m_teamate) {
-		auto diff = math::normalize_angle(state->m_goal_feet_yaw - state->m_eye_yaw, 180);
 		state->feetYawRate = 0.f;
 		std::memcpy(&backup_anim_state, state, sizeof(anim_state));
 		auto index = m_stand_index;

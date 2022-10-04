@@ -277,14 +277,11 @@ void resolver::ResolveStand( ent_info_t *data, std::shared_ptr<player_record_t> 
 			// indicate that we are using the moving lby.
 			data->m_moved = true;
 		}
-		if (record->m_ukn_vel) {
-			data->m_body_update_time = record->m_anim_time + .22f;
-			record->m_eye_angles.y = record->m_body;
-			record->m_mode = Modes::RESOLVE_BODY;
-			record->m_base_angle = record->m_body;
-			return;
-		}
-		if ( data->m_body_update_time != -1 && record->m_anim_time >= data->m_body_update_time ) {
+		
+		if (record->m_ukn_vel) 
+			data->m_body_update_time = -1;
+
+		if ( data->m_body_update_time > 0 && record->m_anim_time >= data->m_body_update_time && !record->m_ukn_vel ) {
 			// only shoot the LBY flick 3 times.
 			// if we happen to miss then we most likely mispredicted.
 			if ( data->m_body_index <= 2 ) {
@@ -303,20 +300,7 @@ void resolver::ResolveStand( ent_info_t *data, std::shared_ptr<player_record_t> 
 		}
 	}
 	if ( data->m_moved ) {
-		auto diff = math::normalize_angle( record->m_body - move->m_body, 180 );
 		const auto delta = record->m_anim_time - move->m_anim_time;
-
-		// it has not been time for this first update yet.
-		if ( delta < 0.22f ) {
-			// set angles to current LBY.
-			record->m_eye_angles.y = move->m_body;
-
-			// set resolve mode.
-			record->m_mode = Modes::RESOLVE_STOPPED_MOVING;
-
-			// exit out of the resolver, thats it.
-			return;
-		}
 
 		record->m_base_angle = move->m_body;
 		record->m_mode = Modes::RESOLVE_STAND1;
@@ -753,23 +737,32 @@ int resolver::miss_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& st
 	auto any_true = false;
 
 	for ( auto i1 = 0; i1 < 11; i1++ ) {
-		auto hit_type = check_hit( pen_in, data, record->m_fake_bones[ fake_index ] );
-		if ( hit_type == trace_ret::hit ) {
-			if ( possible_indexes[ i1 ] && i1 != *current_index ) {
-
-#ifdef _DEBUG
-				g_aimbot.draw_hitboxes( impact->m_shot->m_target, record->m_fake_bones[ fake_index ] );
-#endif
-				possible_indexes[ i1 ] = false;
-				eliminations++;
+		if ( i1 == *current_index ) {
+			if ( possible_indexes[ i1 ] )
+				any_true = true;
+			else {
+				new_possible.push_back( i1 );
 			}
 		}
-		else if ( possible_indexes[ i1 ] )
-			any_true = true;
 		else {
-			new_possible.push_back( i1 );
+			auto hit_type = check_hit( pen_in, data, record->m_fake_bones[ fake_index ] );
+			if ( hit_type == trace_ret::hit ) {
+				if ( possible_indexes[ i1 ]) {
+
+#ifdef _DEBUG
+					g_aimbot.draw_hitboxes( impact->m_shot->m_target, record->m_fake_bones[ fake_index ] );
+#endif
+					possible_indexes[ i1 ] = false;
+					eliminations++;
+				}
+			}
+			else if ( possible_indexes[ i1 ] )
+				any_true = true;
+			else {
+				new_possible.push_back( i1 );
+			}
+			fake_index++;
 		}
-		fake_index++;
 	}
 	if ( !any_true && !new_possible.empty( ) ) {
 		for ( auto i1 : new_possible )

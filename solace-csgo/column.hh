@@ -1,4 +1,3 @@
-#pragma once
 #include "controls/window.hh"
 #include <iostream>
 #include <fstream>

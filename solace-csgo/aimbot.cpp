@@ -126,14 +126,14 @@ void aimbot_t::get_targets() {
 }
 vec3_t get_hitbox_edge_in_dir( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, float radius ) { // i think the logic here is right??
 	vec3_t center = ( maxs + mins ) * 0.5f;
-	vec3_t dir = ( end - start ).normalized( );
+	vec3_t dir = ( start - end ).normalized( );
 
 	vec3_t dir_to_maxs = maxs - end;
-	float dir_to_maxs_dot = (-dir).dot( dir_to_maxs );
+	float dir_to_maxs_dot = (dir).dot( dir_to_maxs );
 	float dir_to_maxs_len = dir_to_maxs.normalize( );
 
 	vec3_t dir_to_mins = mins - end;
-	float dir_to_mins_dot = (-dir).dot( dir_to_mins );
+	float dir_to_mins_dot = (dir).dot( dir_to_mins );
 	float dir_to_mins_len = dir_to_mins.length( );
 
 
@@ -166,11 +166,11 @@ vec3_t get_hitbox_edge_in_dir( vec3_t start, vec3_t end, vec3_t mins, vec3_t max
 	}
 
 	if ( perpendicular == 2 ) {
-		vec3_t step = end - dir;
+		vec3_t step = end + dir;
 		float step_dist = ( hitbox_end - step ).length( );
 		float step_difference = len_to_hitbox_end - step_dist;
 		float needed_dist = len_to_hitbox_end - radius;
-		return end - ( dir * needed_dist / step_difference );
+		return end + ( dir * needed_dist / step_difference );
 	}
 	else if ( perpendicular == 0 ) {
 		vec3_t step = end - dir;
@@ -178,7 +178,7 @@ vec3_t get_hitbox_edge_in_dir( vec3_t start, vec3_t end, vec3_t mins, vec3_t max
 		float step_dist = math::minimum_distance( mins, maxs, step );
 		float step_difference = end_dist - step_dist;
 		float needed_dist = end_dist - radius;
-		return end - ( dir * needed_dist / step_difference );
+		return end + ( dir * needed_dist / step_difference );
 
 	}
 	else {
@@ -190,14 +190,14 @@ vec3_t get_hitbox_edge_in_dir( vec3_t start, vec3_t end, vec3_t mins, vec3_t max
 			step_dist = math::minimum_distance( mins, maxs, step );
 			float step_difference = end_dist - step_dist;
 			float needed_dist = end_dist - radius;
-			return end - ( dir * needed_dist / step_difference );
+			return end + ( dir * needed_dist / step_difference );
 		}
 		else {
 			step = end - dir;
 			step_dist = ( hitbox_end - step ).length( );
 			float step_difference = len_to_hitbox_end - step_dist;
 			float needed_dist = len_to_hitbox_end - radius;
-			return end - ( dir * needed_dist / step_difference );
+			return end + ( dir * needed_dist / step_difference );
 		}
 	}
 
@@ -267,14 +267,13 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 
 			break;
 		case hitbox_body:
-			// right. safe
+			// center. safe
 			point_list.m_points.emplace_back( center, mode, hitbox_num );
 
 			// back. safe
 			point_list.m_points.emplace_back( vec3_t( center.x, center.y - r * 0.5f, center.z ), mode, hitbox_num );
 
 
-			// right.
 			point_list.m_points.emplace_back( center, mode, hitbox_num );
 
 			// back.

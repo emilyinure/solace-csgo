@@ -67,7 +67,7 @@ public:
 
 		CKeyValuesSystem *system = CKeyValuesSystem::KeyValuesSystem( );
 
-		if ( !this || !system )
+		if ( !system )
 			return nullptr;
 
 		for ( KeyValues *dat = this->m_sub; dat != nullptr; dat = dat->m_peer ) {
@@ -108,7 +108,7 @@ public:
 		return !!GetInt( );
 	}
 
-	float __forceinline GetFloat( float default_value = 0.f ) const {
+	float __forceinline GetFloat( ) const {
 		switch ( this->m_data_type ) {
 		case TYPE_STRING:
 			return static_cast< float >(atof( this->m_string ));
