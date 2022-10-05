@@ -12,9 +12,15 @@ public:
 		t *ptr = nullptr;
 		c_hook *m_hook;
 	public:
-		~c_base_interface( ) { m_hook->reset( ); delete m_hook; }
-		c_base_interface( const char *lib, const char *ver, bool hook = true ) : lib( lib ), ver( ver ) { ptr = util::capture_interface< t *>( lib, ver ); if ( hook ) m_hook = new c_hook( reinterpret_cast< uintptr_t >( ptr ) ); }
-		c_base_interface( void *ptr_, bool hook = true ) { ptr = static_cast< t * >( ptr_ ); if ( hook ) m_hook = new c_hook( reinterpret_cast< uintptr_t >( ptr ) ); }
+		~c_base_interface( ) { if( m_hook ) delete m_hook; }
+		c_base_interface( const char *lib, const char *ver, bool hook = true ) : lib( lib ), ver( ver ) { 
+			ptr = util::capture_interface< t *>( lib, ver ); 
+			if ( hook ) m_hook = new c_hook( reinterpret_cast< uintptr_t >( ptr ) ); 
+		}
+		c_base_interface( void *ptr_, bool hook = true ) { 
+			ptr = static_cast< t * >( ptr_ ); 
+			if ( hook ) m_hook = new c_hook( reinterpret_cast< uintptr_t >( ptr ) ); 
+		}
 		__forceinline t *operator->( ) { return ptr; }
 		__forceinline operator t *( ) { return ptr; }
 		explicit __forceinline operator bool( ) const { return ptr; }

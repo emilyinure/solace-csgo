@@ -161,4 +161,4 @@ public:
 	bool start_move ( cmd_t *cmd );
 	void generate_shoot_position( );
 	void end_move( cmd_t *cmd );
-}; inline c_g g;
+} inline g;
