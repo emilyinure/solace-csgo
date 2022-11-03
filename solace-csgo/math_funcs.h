@@ -19,6 +19,7 @@ namespace math {
 		float m_t2;
 		custom_ray( ) : m_t1 { -1.f }, m_t2{ 1.f }, m_hitside{ -1 }, m_startsolid{ true } {}
 		custom_ray( vec3_t start, vec3_t end );
+		void init( vec3_t start, vec3_t end );
 	};
 	bool world_to_screen( const vec3_t &point, vec3_t &screen );
 	float distSegmentToSegment( const vec3_t &p1, const vec3_t &p2, const vec3_t &q1, const vec3_t &q2, float &invariant1, float &invariant2 );

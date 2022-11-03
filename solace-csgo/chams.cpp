@@ -111,7 +111,7 @@ void chams_t::player( player_t *player, uintptr_t ctx, void *state, const model_
 	}
 	
 	auto ent_info = &g_player_manager.m_ents[ player->index( ) - 1 ];
-	auto auto_draw = !ent_info->m_valid || ent_info->m_teamate || ent_info->m_records.empty( ) || !ent_info->m_records.front( )->m_setup;
+	auto auto_draw = !ent_info->m_valid || ent_info->m_teamate || ent_info->m_records.empty( ) || !ent_info->m_records.front( ) || !ent_info->m_records.front( )->m_setup;
 	if ( auto_draw ) {
 		if ( ent_info->m_teamate ) {
 			if ( settings::visuals::players::chams_team_covered != 0 ) {
@@ -165,33 +165,35 @@ void chams_t::player( player_t *player, uintptr_t ctx, void *state, const model_
 		g.m_interfaces->render_view( )->modulate_color( color( 0x81, 0xFF, 0x21 ) );
 		g.m_interfaces->render_view( )->set_blend( 1.f );
 		const auto &front = ent_info->m_records.front( );
-#ifdef _DEBUG
-		if( front && front->m_mode == resolver::RESOLVE_STAND1 || front->m_mode == resolver::RESOLVE_STAND2 ) {
-			auto current_index = ( front->m_mode == resolver::RESOLVE_STAND1
-				? ent_info->m_stand_index
-				: ent_info->m_stand2_index);
-			auto new_index = 0;
-			for ( auto i = 0; i < 7; i++ ) {
-				if ( current_index == i )
-					continue;
-				if ( ( front->m_mode == resolver::RESOLVE_STAND1
-					 ? ent_info->m_possible_stand_indexs
-					 : ent_info->m_possible_stand2_indexs )[ i ] )
-					draw_model( g.m_interfaces->model_render( ), ctx, state, info, front->m_fake_bones[ new_index ] );
-				new_index++;
-			}
-		}
-#endif
+//#ifdef _DEBUG
+//		if( front && front->m_mode == resolver::RESOLVE_STAND1 || front->m_mode == resolver::RESOLVE_STAND2 ) {
+//			auto current_index = ( front->m_mode == resolver::RESOLVE_STAND1
+//				? ent_info->m_stand_index
+//				: ent_info->m_stand2_index);
+//			auto new_index = 0;
+//			for ( auto i = 0; i < 7; i++ ) {
+//				if ( current_index == i )
+//					continue;
+//				if ( ( front->m_mode == resolver::RESOLVE_STAND1
+//					 ? ent_info->m_possible_stand_indexs
+//					 : ent_info->m_possible_stand2_indexs )[ i ] )
+//					draw_model( g.m_interfaces->model_render( ), ctx, state, info, front->m_fake_bones[ new_index ] );
+//				new_index++;
+//			}
+//		}
+//#endif
 		
-		draw_model( g.m_interfaces->model_render( ), ctx, state, info, front->m_bones );
+		if( front )
+			draw_model( g.m_interfaces->model_render( ), ctx, state, info, front->m_bones );
 		
 
 	}
 	
 	reset( );
 	
-	if ( settings::visuals::players::chams == 0 ) {
-		draw_model( g.m_interfaces->model_render( ), ctx, state, info, ent_info->m_records.front( )->m_bones );
+	if ( settings::visuals::players::chams == 0 && ent_info->m_records.size() ) {
+		if( ent_info->m_records.front( ) )
+			draw_model( g.m_interfaces->model_render( ), ctx, state, info, ent_info->m_records.front( )->m_bones );
 	}
 
 }

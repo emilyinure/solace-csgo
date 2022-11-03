@@ -157,9 +157,11 @@ bool esp_t::get_player_box( player_t *player, area_t *box ) {
 	auto &info = g_player_manager.m_ents[ player->index( ) - 1 ];
 	if ( !info.m_records.empty(  ) ) {
 		auto const &record = info.m_records[ 0 ];
-		origin = record->m_origin;
-		mins = record->m_mins;
-		maxs = record->m_maxs;
+		if ( record ) {
+			origin = record->m_origin;
+			mins = record->m_mins;
+			maxs = record->m_maxs;
+		}
 	}
 
 	// correct x and y coordinates.
@@ -264,9 +266,10 @@ void esp_t::player ( player_t *ent ) {
 	auto& info = g_player_manager.m_ents[ent->index() - 1];
 	if (!info.m_records.empty()) {
 		auto const& record = info.m_records[0];
-
-		std::string name = std::to_string(record->m_anim_velocity.length());
-		g.m_render->text(g.m_render->m_tahoma_12(), box.x + box.w / 2.f, box.y + box.h + 1, color(255, 255, 255), name.c_str(), 1);
+		if ( record ) {
+			std::string name = std::to_string( record->m_anim_velocity.length( ) );
+			g.m_render->text( g.m_render->m_tahoma_12( ), box.x + box.w / 2.f, box.y + box.h + 1, color( 255, 255, 255 ), name.c_str( ), 1 );
+		}
 	}
 }
 

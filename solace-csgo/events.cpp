@@ -72,6 +72,10 @@ void events::init ( ) {
 }
 
 void events::destroy( ) {
+	hurt_listener->~hurt_listener( );
+	impact_listener->~impact_listener( );
+	start_listener->~start_listener( );
+	end_listener->~end_listener( );
 	delete hurt_listener;
 	delete impact_listener;
 	delete start_listener;

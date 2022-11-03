@@ -14,7 +14,7 @@ class weapon_info_t;
 struct shot_record_t {
 	~shot_record_t( );
 	player_t *m_target{};
-	std::shared_ptr<player_record_t> m_record{};
+	std::shared_ptr<player_record_t> m_record = nullptr;
 	float m_time{};
 	float m_pred_time{};
 	float m_lat{};
@@ -99,6 +99,6 @@ public:
 	void resolve_hit ( impact_record_t *impact ) const;
 	void resolve_miss ( impact_record_t *impact );
 	void update_shots ( );
-	void add_shot ( ent_info_t *target, float damage, int bullets, std::shared_ptr<player_record_t> record );
+	void add_shot( ent_info_t* target, float damage, int bullets, std::shared_ptr<player_record_t> record );
 } inline g_resolver;
 

@@ -99,8 +99,15 @@ void block_bot_t::on_tick ( ) {
 	if ( target == nullptr )
 		return;
 
-	if ( target->m_records.size( ) < 3 )
+	if ( target->m_records.size( ) < 2 )
 		return;
+
+	if ( !target->m_records[ 0 ] || target->m_records[ 0 ]->m_dormant )
+		return;
+
+	if ( !target->m_records[ 1 ] || target->m_records[ 1 ]->m_dormant )
+		return;
+	
 
 	auto target_velocity = target->m_records[ 0 ]->m_velocity;
 	auto old_dir = RAD2DEG( std::atan2( target->m_records[1]->m_velocity.y, target->m_records[ 1 ]->m_velocity.x ) );

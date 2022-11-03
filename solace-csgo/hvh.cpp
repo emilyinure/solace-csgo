@@ -832,12 +832,12 @@ void hvh::AntiAim( ) {
 	else if ( settings::hvh::antiaim::fake_yaw > 0 )
 		m_direction = g.m_cmd->m_viewangles.y;
 
-	const auto stand = settings::hvh::antiaim::body_fake_stand > 0 && m_mode == AntiAimMode::STAND;
-	if(stand) {
-		if (g.m_lag > 0 && (m_breaking || (g.m_interfaces->globals()->m_curtime + g.ticks_to_time(3) >= g.m_body_pred && (stand)) || (g.m_interfaces->globals()->m_curtime + g.ticks_to_time(1) >= g.m_body_pred && (stand)))) {
-			*g.m_packet = true;
-		}
-	}
+	//const auto stand = settings::hvh::antiaim::body_fake_stand > 0 && m_mode == AntiAimMode::STAND;
+	//if(stand) {
+	//	if (g.m_lag > 0 && (m_breaking || (g.m_interfaces->globals()->m_curtime + g.ticks_to_time(3) >= g.m_body_pred && (stand)) || (g.m_interfaces->globals()->m_curtime + g.ticks_to_time(1) >= g.m_body_pred && (stand)))) {
+	//		*g.m_packet = true;
+	//	}
+	//}
 	if ( settings::hvh::antiaim::fake_yaw ) {
 		// do not allow 2 consecutive sendpacket true if faking angles.
 		if ( *g.m_packet && g.m_old_packet )

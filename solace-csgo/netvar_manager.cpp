@@ -87,11 +87,19 @@ float AssignRangeMultiplier( int nBits, double range ) {
 }
 
 void prediction_netvar_manager::init ( datamap_t *map ) {
-	float val = (1.f / AssignRangeMultiplier( 17, 8192. ));
+	float val = (1.f / AssignRangeMultiplier( 17, 4096.f - ( -4096.f ) ));
 	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_fall_velocity, val, "m_flFallVelocity" ) );
-	val = ( 1.f / AssignRangeMultiplier( 8, 1. ) );
-	vars.push_back( new shared_netvar( g.m_offsets->m_player.velocity_modifier, val, "m_velocityModifier" ) );
-	vars.push_back( new managed_vec( g.m_offsets->m_player.m_vecBaseVelocity, 0.4997258183725533f, "m_vecBaseVelocity") );
+	val = ( 1.f / AssignRangeMultiplier( 12, 2048.0f ));
+	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_max_speed, val, "view_offset_x" ) );
+	val = ( 1.f / AssignRangeMultiplier( 8, 32.0f - ( -32.0f ) ) );
+	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_view_offset, val, "view_offset_x" ) );
+	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_view_offset + 0x4, val, "view_offset_y" ) );
+	val = ( 1.f / AssignRangeMultiplier( 10, 128.f ));
+	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_surfaceFriction + 0x8, val, "view_offset_z" ) );
+	//val = ( 1.f / AssignRangeMultiplier( 8, 1. ) );
+	//vars.push_back( new shared_netvar( g.m_offsets->m_player.velocity_modifier, val, "m_velocityModifier" ) );
+	val = ( 1.f / AssignRangeMultiplier( 20, 2000 ) );
+	vars.push_back( new managed_vec( g.m_offsets->m_player.m_vecBaseVelocity, val, "m_vecBaseVelocity" ) );
 	vars.push_back(new managed_vec(g.m_offsets->m_player.m_punch_angle, 0.031250, "m_viewPunchAngle", true));
 	vars.push_back( new managed_vec( g.m_offsets->m_player.m_aim_punch_angle, 0.031250, "m_aimPunchAngle", true) );
 	vars.push_back( new managed_vec( g.m_offsets->m_player.m_aim_punch_angle_vel, 0.031250, "m_aimPunchAngleVel", true) );

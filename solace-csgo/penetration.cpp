@@ -3,6 +3,7 @@
 
 #include "includes.h"
 #include "ray_tracer.h"
+#include "thread_handler.h"
 
 using IsBreakableEntity_t = bool( __thiscall * )( entity_t * );
 bool IsBreakable( entity_t *ent ) {
@@ -156,37 +157,40 @@ bool penetration::TraceToExit( vec3_t &start, const vec3_t &dir, vec3_t &out, tr
         // set out pos.
         out = start + ( dir * dist );
 
-        if ( !first_contents )
-            first_contents = g.m_interfaces->trace(  )->get_point_contents( out, MASK_SHOT, nullptr );
+        {
+            if ( !first_contents )
+                first_contents = g.m_interfaces->trace( )->get_point_contents( out, MASK_SHOT, nullptr );
 
-        contents = g.m_interfaces->trace(  )->get_point_contents( out, MASK_SHOT, nullptr );
+            contents = g.m_interfaces->trace( )->get_point_contents( out, MASK_SHOT, nullptr );
 
-        if ( ( contents & MASK_SHOT_HULL ) && ( !( contents & CONTENTS_HITBOX ) || ( contents == first_contents ) ) )
-            continue;
+            if ( ( contents & MASK_SHOT_HULL ) && ( !( contents & CONTENTS_HITBOX ) || ( contents == first_contents ) ) )
+                continue;
 
-        // move end pos a bit for tracing.
-        new_end = out - ( dir * 4.f );
+            // move end pos a bit for tracing.
+            new_end = out - ( dir * 4.f );
 
-        // do first trace aHR0cHM6Ly9zdGVhbWNvbW11bml0eS5jb20vaWQvc2ltcGxlcmVhbGlzdGlj.
-        g.m_interfaces->trace(  )->trace_ray( ray_t( out, new_end ), MASK_SHOT, nullptr, exit_trace );
+            // do first trace aHR0cHM6Ly9zdGVhbWNvbW11bml0eS5jb20vaWQvc2ltcGxlcmVhbGlzdGlj.
+            g.m_interfaces->trace( )->trace_ray( ray_t( out, new_end ), MASK_SHOT, nullptr, exit_trace );
 
-        // note - dex; this is some new stuff added sometime around late 2017 ( 10.31.2017 update? ).
-        //static auto sv_clip_penetration_traces_to_players = g.m_interfaces->console(  )->get_convar( "sv_clip_penetration_traces_to_players" );
-        //if ( sv_clip_penetration_traces_to_players->GetBool( ) )
-        //    UTIL_ClipTraceToPlayers( out, new_end, MASK_SHOT, nullptr, exit_trace, -60.f );
 
-        // we hit an ent's hitbox, do another trace.
-        if ( exit_trace->startSolid && ( exit_trace->surface.flags & SURF_HITBOX ) ) {
-            filter.skip = exit_trace->entity;
+            // note - dex; this is some new stuff added sometime around late 2017 ( 10.31.2017 update? ).
+            //static auto sv_clip_penetration_traces_to_players = g.m_interfaces->console(  )->get_convar( "sv_clip_penetration_traces_to_players" );
+            //if ( sv_clip_penetration_traces_to_players->GetBool( ) )
+            //    UTIL_ClipTraceToPlayers( out, new_end, MASK_SHOT, nullptr, exit_trace, -60.f );
 
-            g.m_interfaces->trace(  )->trace_ray( ray_t( out, start ), MASK_SHOT_HULL, &filter, exit_trace );
+            // we hit an ent's hitbox, do another trace.
+            if ( exit_trace->startSolid && ( exit_trace->surface.flags & SURF_HITBOX ) ) {
+                filter.skip = exit_trace->entity;
 
-            if ( exit_trace->did_hit( ) && !exit_trace->startSolid ) {
-                out = exit_trace->end;
-                return true;
+                g.m_interfaces->trace( )->trace_ray( ray_t( out, start ), MASK_SHOT_HULL, &filter, exit_trace );
+
+                if ( exit_trace->did_hit( ) && !exit_trace->startSolid ) {
+                    out = exit_trace->end;
+                    return true;
+                }
+
+                continue;
             }
-
-            continue;
         }
 
         if ( !exit_trace->did_hit( ) || exit_trace->startSolid ) {
@@ -271,10 +275,7 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
     // if we are tracing from our local player perspective.
     if ( in->m_from == g.m_local ) {
         weapon_info = g.m_weapon_info;
-        if ( !in->m_resolving )
-            start = g.m_shoot_pos;
-        else
-            start = in->m_start;
+        start = in->m_start;
     }
 
     // not local player.
@@ -318,26 +319,17 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
 
     auto &cache = in->m_target->bone_cache( );
     auto *hitbox_set = studio_model->hitbox_set( in->m_target->hitbox_set( ) );
-    std::deque<RayTracer::Hitbox> hit_boxes;
-    vec3_t mins{}, maxs{};
-    for ( auto i = 0; i < hitbox_set->hitbox_count; i++ ) {
-        auto *hitbox = hitbox_set->hitbox( i );
 
-        if ( hitbox->radius > 0 ) {
-            matrix_t temp;
+    float flTraceDistance = 0;
 
-            math::AngleMatrix( hitbox->angle, &temp );
-            matrix_t bone_transform;
-            memcpy( &bone_transform, &cache.m_pCachedBones[ hitbox->bone ], sizeof( matrix_t ) );
-            if ( hitbox->angle != ang_t( ) )
-                math::ConcatTransforms( bone_transform, temp, &bone_transform );
+    float flPenMod = 0;
 
-            vec3_t vMin, vMax;
-            math::VectorTransform( hitbox->mins, bone_transform, vMin );
-            math::VectorTransform( hitbox->maxs, bone_transform, vMax );
-            hit_boxes.emplace_front( vMin, vMax, hitbox->radius );
-        }
-    }
+    float flPercentDamageChunk = 0;
+    float flPenWepMod = 0;
+
+    float flLostDamageObject = 0;
+    float lost = 0;
+
     // setup trace filter for later.
     static trace_filter filter; filter.skip = ( in->m_from );
 
@@ -350,16 +342,19 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
 
         // setup ray and trace.
         // TODO; use UTIL_TraceLineIgnoreTwoEntities?
-        g.m_interfaces->trace(  )->trace_ray( ray_t( start, end ), MASK_SHOT, &filter, &trace );
+        {
+            g.m_interfaces->trace( )->trace_ray( ray_t( start, end ), MASK_SHOT, &filter, &trace );
 
-        // check for player hitboxes extending outside their collision bounds.
-        // if no target is passed we clip the trace to a specific player, otherwise we clip the trace to any player.
 
-        if ( in->m_target ) {
-            ClipTraceToPlayer( start, end + ( dir * 40.f ), MASK_SHOT, &trace, in->m_target, -60.f );
+            // check for player hitboxes extending outside their collision bounds.
+            // if no target is passed we clip the trace to a specific player, otherwise we clip the trace to any player.
+
+            if ( in->m_target ) {
+                ClipTraceToPlayer( start, end + ( dir * 40.f ), MASK_SHOT, &trace, in->m_target, -60.f );
+            }
+            else
+                return false;// UTIL_ClipTraceToPlayers( start, end + ( dir * 40.f ), MASK_SHOT, ( trace_filter * )&filter, &trace, -60.f );
         }
-        else
-            return false;// UTIL_ClipTraceToPlayers( start, end + ( dir * 40.f ), MASK_SHOT, ( trace_filter * )&filter, &trace, -60.f );
 
 
         // calculate damage based on the distance the bullet traveled.
@@ -386,14 +381,13 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
                     out->m_damage = damage;
                     return false;
                 }
-                int group = trace.hitGroup;
 
                 // scale damage based on the hitgroup we hit.
-                player_damage = scale( in->m_target, damage, weapon_info->m_armor_ratio, in->m_simulated_shot ? hitgroup_head : group );
+                player_damage = scale( in->m_target, damage, weapon_info->m_armor_ratio, in->m_simulated_shot ? hitgroup_head : trace.hitGroup );
 
                 // set result data for when we hit a player.
                 out->m_pen = pen != 4;
-                out->m_hitgroup = group;
+                out->m_hitgroup = trace.hitGroup;
                 out->m_damage = player_damage;
                 out->m_target = in->m_target;
 
@@ -416,12 +410,11 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
                     out->m_damage = damage;
                     return false;
                 }
-                int group = trace.hitGroup;
 
-                player_damage = scale( static_cast< player_t * >(trace.entity), damage, weapon_info->m_armor_ratio, in->m_simulated_shot ? hitgroup_head : group );
+                player_damage = scale( static_cast< player_t * >(trace.entity), damage, weapon_info->m_armor_ratio, in->m_simulated_shot ? hitgroup_head : trace.hitGroup );
 
                 // set result data for when we hit a player.
-                out->m_hitgroup = group;
+                out->m_hitgroup = trace.hitGroup;
                 out->m_damage = player_damage;
                 out->m_target = static_cast< player_t * >(trace.entity);
 
@@ -506,15 +499,15 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
         }
 
         // set some local vars.
-        float flTraceDistance = ( exit_trace.end - trace.end ).length();
+        flTraceDistance = ( exit_trace.end - trace.end ).length();
 
-        float flPenMod = fmaxf( 0, ( 1 / total_pen_mod ) );
+        flPenMod = fmaxf( 0, ( 1 / total_pen_mod ) );
 
-        float flPercentDamageChunk = damage * flDamLostPercent;
-        float flPenWepMod = flPercentDamageChunk + fmaxf( 0.f,  3.f / fPenetrationPower ) * 1.25f * ( flPenMod * 3.0f );
+        flPercentDamageChunk = damage * flDamLostPercent;
+        flPenWepMod = flPercentDamageChunk + fmaxf( 0.f,  3.f / fPenetrationPower ) * 1.25f * ( flPenMod * 3.0f );
 
-        float flLostDamageObject = ( ( flPenMod * ( flTraceDistance * flTraceDistance ) ) / 24 );
-        float lost = flPenWepMod + flLostDamageObject;
+        flLostDamageObject = ( ( flPenMod * ( flTraceDistance * flTraceDistance ) ) / 24 );
+        lost = flPenWepMod + flLostDamageObject;
         //flCurrentDistance += flTraceDistance;
         //trace_len = ( exit_trace.end - trace.end ).length( );
         //modifier = fmaxf( 0.f, 1.f / total_pen_mod );

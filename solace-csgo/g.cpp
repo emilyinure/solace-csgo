@@ -17,6 +17,7 @@
 #include "predictioncopy.h"
 #include "resolver.h"
 #include "input_helper/input_helper.hh"
+#include <cassert>
 
 void c_g::init_cheat( ) {
 	m_interfaces = new interfaces_t( );
@@ -161,8 +162,8 @@ void c_g::SetAngles( ) const {
 	//m_local->m_angNetworkAngles( ) = m_rotation;
 
 	// set radar angles.
-	if ( m_interfaces->input(  )->camera_is_third_person( ) )
-		m_interfaces->prediction(  )->SetLocalViewAngles( m_radar );
+	//if ( m_interfaces->input(  )->camera_is_third_person( ) )
+	//	m_interfaces->prediction(  )->SetLocalViewAngles( m_radar );
 }
 
 void c_g::UpdateAnimations( ) const {
@@ -351,86 +352,115 @@ bool c_g::can_weapon_fire( ) const {
 
 	return false;
 }
-//
-//void UTIL_FieldHighLowTickBase(int* high, int* low, int* ideal) {
-//	auto* sv_clockcorrection_msecs = g.m_interfaces->console()->get_convar("sv_clockcorrection_msecs");
-//	float flCorrectionSeconds = std::clamp(sv_clockcorrection_msecs->GetFloat() / 1000.0f, 0.0f, 1.0f);
-//	int nCorrectionTicks = g.time_to_ticks(flCorrectionSeconds);
-//
-//	// Set the target tick flCorrectionSeconds (rounded to ticks) ahead in the future. this way the client can
-//	//  alternate around this target tick without getting smaller than gpGlobals->tickcount.
-//	// After running the commands simulation time should be equal or after current gpGlobals->tickcount, 
-//	//  otherwise the simulation time drops out of the client side interpolated var history window.
-//
-//	int	nIdealFinalTick = g.m_interfaces->globals()->m_tickcount + nCorrectionTicks;
-//	auto simulation_ticks = 1;
-//	int nEstimatedFinalTick = g.m_local->tick_base() + simulation_ticks;
-//
-//	// If client gets ahead of this, we'll need to correct
-//	int	 too_fast_limit = nIdealFinalTick + nCorrectionTicks;
-//	// If client falls behind this, we'll also need to correct
-//	int	 too_slow_limit = nIdealFinalTick - nCorrectionTicks;
-//
-//}
-//
-//void UTIL_EmplaceTickBaseShift(int command_num, int high, int low, int ideal, int ticks, int ticks2) {
-//	if (nEstimatedFinalTick > high ||
-//		nEstimatedFinalTick < low)
-//	{
-//		int nCorrectedTick = ideal - simulation_ticks + gpGlobals->simTicksThisFrame;
-//
-//		g.m_local->tick_base() = nCorrectedTick;
-//	}
-//}
-//
-void c_g::on_move ( float accumulated_extra_samples, bool bFinalTick, cl_move_t cl_move ) { // doesnt work for now, will update later
 
-	static auto *sv_maxusrcmdprocessticks = g.m_interfaces->console( )->get_convar( "sv_maxusrcmdprocessticks" );
-	const auto iProcessTicks = sv_maxusrcmdprocessticks->GetInt( );
-	auto iMaxExtraTicks = 15;
-	m_local = static_cast<player_t*>(m_interfaces->entity_list()->get_client_entity(m_interfaces->engine()->local_player_index()));
-	if (!m_local || !m_local->alive()) {
-		cl_move(accumulated_extra_samples, bFinalTick);
-		return;
-	}
-	
-	if ( iMaxExtraTicks > iProcessTicks - 1 ) {
-		iMaxExtraTicks = iProcessTicks - 1;
-	}
-	
-	if ( m_available_ticks < iMaxExtraTicks ) {
-		m_available_ticks++;
-		m_can_shift = false;
-		m_shift = false;
-		return;
-	}
-	
-	m_can_shift = true;
-	cl_move( accumulated_extra_samples, bFinalTick );
-	m_can_shift = false;
-
-	auto iExtraTicks = 0;
+void UTIL_FieldHighLowTickBase(int* high, int* low, int* ideal) {
 	static auto *frame_ticks = util::find( "engine.dll", "2B 05 ? ? ? ? 03 05 ? ? ? ? 83 CF ?" ) + 2;
 	auto iTicksThisCommand = **reinterpret_cast<int**>(frame_ticks);
-	if( m_shift )
-		for ( auto i = 1; i < m_available_ticks; i++ ) {
-			if ( iTicksThisCommand >= iProcessTicks ||
-				 iTicksThisCommand > 15 ||
-				 iExtraTicks >= 15 ) {
-				break;
-			}
-			
-			m_available_ticks--;
-			iTicksThisCommand++;
-			iExtraTicks++;
-	
-			m_shift = (iTicksThisCommand >= iProcessTicks ||
-				iTicksThisCommand > 15 ||
-				iExtraTicks >= 15);
-	
-			cl_move( accumulated_extra_samples, m_shift );
+	auto* sv_clockcorrection_msecs = g.m_interfaces->console()->get_convar("sv_clockcorrection_msecs");
+	float flCorrectionSeconds = std::clamp(sv_clockcorrection_msecs->GetFloat() / 1000.0f, 0.0f, 1.0f);
+	int nCorrectionTicks = g.time_to_ticks(flCorrectionSeconds);
+
+	// Set the target tick flCorrectionSeconds (rounded to ticks) ahead in the future. this way the client can
+	//  alternate around this target tick without getting smaller than gpGlobals->tickcount.
+	// After running the commands simulation time should be equal or after current gpGlobals->tickcount, 
+	//  otherwise the simulation time drops out of the client side interpolated var history window.
+
+	auto latency = 0.f;
+	auto* net = g.m_interfaces->engine( )->get_net_channel_info( );
+	if ( net )
+		latency += net->GetLatency( 0 );
+
+	int	nIdealFinalTick = g.m_interfaces->globals()->m_tickcount + g.time_to_ticks( latency ) + nCorrectionTicks;
+	auto simulation_ticks = g.m_interfaces->client_state()->m_choked_commands + 1;
+
+	// If client gets ahead of this, we'll need to correct
+	*high = nIdealFinalTick + nCorrectionTicks;
+	// If client falls behind this, we'll also need to correct
+	*low = nIdealFinalTick - nCorrectionTicks;
+
+	*ideal = nIdealFinalTick - simulation_ticks;
+}
+
+void UTIL_EmplaceTickBaseShift(int high, int low, int ideal) {
+	auto simulation_ticks = g.m_interfaces->client_state( )->m_choked_commands + 1;
+	int nEstimatedFinalTick = g.m_local->tick_base( ) + simulation_ticks;
+	if ( nEstimatedFinalTick > high ||
+		nEstimatedFinalTick < low ) {
+		g.m_local->tick_base( ) = ideal;
+	}
+}
+
+void c_g::add_tickbase_log( int cmd_num, int tick_base ) {
+	m_tick_base_log.emplace_back( cmd_num, tick_base );
+}
+void c_g::get_tickbase_log( int cmd_num, int *tick_base ) {
+	for ( auto& i : m_tick_base_log ) {
+		if ( i.first == cmd_num )
+			*tick_base = i.second;
+	}
+}
+
+void c_g::on_move ( float accumulated_extra_samples, bool bFinalTick, cl_move_t cl_move ) { // doesnt work for now, will update later
+
+	//static auto *sv_maxusrcmdprocessticks = g.m_interfaces->console( )->get_convar( "sv_maxusrcmdprocessticks" );
+	//const auto iProcessTicks = sv_maxusrcmdprocessticks->GetInt( );
+	//auto iMaxExtraTicks = 15;
+	//m_local = static_cast<player_t*>(m_interfaces->entity_list()->get_client_entity(m_interfaces->engine()->local_player_index()));
+	//if (!m_local || !m_local->alive()) {
+	//	cl_move(accumulated_extra_samples, bFinalTick);
+	//	return;
+	//}
+	//
+	//if ( iMaxExtraTicks > iProcessTicks - 1 ) {
+	//	iMaxExtraTicks = iProcessTicks - 1;
+	//}
+	//
+	//if ( m_available_ticks < iMaxExtraTicks ) {
+	//	m_available_ticks++;
+	//	m_can_shift = false;
+	//	m_shift = false;
+	//	return;
+	//}
+	//
+	//m_can_shift = true;
+	cl_move( accumulated_extra_samples, bFinalTick );
+
+	if ( g.m_local ) {
+		int high, low, ideal;
+		UTIL_FieldHighLowTickBase( &high, &low, &ideal );
+
+		const int iSequence = g.m_interfaces->client_state( )->m_last_outgoing_command + g.m_interfaces->client_state( )->m_choked_commands;
+		const cmd_t* const pCmd = g.m_interfaces->input( )->get_user_cmd( 0, iSequence );
+
+		assert( pCmd );
+		if ( pCmd ) {
+			//make sure we start in the right spot
+			get_tickbase_log( pCmd->m_command_number, &g.m_local->tick_base( ) );
 		}
-	m_shift = false;
+		UTIL_EmplaceTickBaseShift( high, low, ideal );
+	}
+	//m_can_shift = false;
+
+	//auto iExtraTicks = 0;
+	//if( m_shift )
+	//	for ( auto i = 1; i < m_available_ticks; i++ ) {
+	//		if ( iTicksThisCommand >= iProcessTicks ||
+	//			 iTicksThisCommand > 15 ||
+	//			 iExtraTicks >= 15 ) {
+	//			break;
+	//		}
+	//		
+	//		m_available_ticks--;
+	//		iTicksThisCommand++;
+	//		iExtraTicks++;
+	//
+	//		m_shift = (iTicksThisCommand >= iProcessTicks ||
+	//			iTicksThisCommand > 15 ||
+	//			iExtraTicks >= 15);
+	//
+	//		cl_move( accumulated_extra_samples, m_shift );
+	//	}
+	//m_shift = false;
 }
 
 void c_g::UpdateIncomingSequences( i_net_channel *net ) {
@@ -452,6 +482,7 @@ void c_g::net_data_received ( ) const {
 }
 
 bool c_g::start_move( cmd_t *cmd ) {
+	add_tickbase_log( cmd->m_command_number, g.m_local->tick_base() );
 	m_can_fire = false;
 	m_weapon = static_cast< weapon_t * >( g.m_interfaces->entity_list( )->get_client_entity_handle( m_local->active_weapon( ) ) );
 	m_origin = m_local->origin( );

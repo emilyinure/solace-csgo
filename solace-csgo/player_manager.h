@@ -17,39 +17,15 @@ public:
 	ang_t      m_abs_ang;
 
 public:
-	__forceinline void store( player_t *player ) {
-		// get bone cache ptr.
-		bone_cache_t *cache = &player->bone_cache( );
+	void store( player_t* player );
 
-		// store bone data.
-		m_bones = cache->m_pCachedBones;
-		m_bone_count = cache->m_CachedBoneCount;
-		m_origin = player->origin( );
-		m_mins = player->mins(  );
-		m_maxs = player->maxs(  );
-		m_abs_origin = player->abs_origin( );
-		m_abs_ang = player->abs_angles( );
-	}
-
-	__forceinline void restore( player_t *player ) const {
-		// get bone cache ptr.
-		bone_cache_t *cache = &player->bone_cache( );
-
-		cache->m_pCachedBones = m_bones;
-		cache->m_CachedBoneCount = m_bone_count;
-
-		player->origin( ) = m_origin;
-		player->mins(  ) = m_mins;
-		player->maxs(  ) = m_maxs;
-		player->set_abs_angles( m_abs_ang );
-		player->set_abs_origin( m_abs_origin );
-	}
+	void restore( player_t* player ) const;
 };
 struct player_record_t {
 	player_record_t( ) = default ;
 	bone_array_t *m_bones = nullptr;
 	player_t *m_ent = nullptr;
-	ent_info_t *m_info = nullptr;
+	ent_info_t* m_info = nullptr;
 	
 	bool m_setup = false;
 	bool m_ukn_vel = false;
@@ -60,6 +36,8 @@ struct player_record_t {
 	float m_sim_time = 0.0f;
 	float m_old_sim_time = 0.0f;
 	float m_anim_time = 0.0f;
+	float m_cycle = 0.f;
+	int m_sequence = 0;
 	animation_layer_t m_layers[ 15 ]{};
 	vec3_t           m_origin, m_abs_origin;
 	vec3_t           m_mins, m_maxs;
@@ -72,15 +50,20 @@ struct player_record_t {
 	bone_array_t * m_render_bones = nullptr;
 	bool m_fake_walk = false;
 	bool m_body_reliable = false;
-	ang_t m_stand1_abs_angles[11];
-	ang_t m_stand2_abs_angles[11];
-	ang_t m_lby_abs_angles[2];
-	float m_stand1_angles[11]{};
-	float m_stand2_angles[11]{};
+	
+	struct resolver_data {
+		struct dir_data {
+			dir_data( float angle ) {
+				angles = angle;
+			}
+			ang_t m_abs_angles{};
+			float angles{};
+			float poses[ 24 ]{};
+		};
+		int m_index = 0;
+		std::vector< dir_data > m_dir_data;
+	} m_resolver_data;
 
-	float m_stand1_poses[11][24]{};
-	float m_stand2_poses[11][24]{};
-	float m_lby_poses[2][24]{};
 	int m_mode = 0;
 	bool m_body_update = false;
 	float m_base_angle{};
@@ -91,7 +74,7 @@ struct player_record_t {
 	void cache ( int index = -1 ) const;
 
 	bool valid ( ) const;
-	explicit player_record_t ( ent_info_t *info, float last_sim );
+	player_record_t( ent_info_t * info, float last_sim );
 	// lagfix stuff.
 	bool   m_broke_lc = false;
 	vec3_t m_pred_origin;
@@ -131,18 +114,73 @@ struct hitbox_helper_t {
 	ent_info_t* info;
 };
 
+
+struct resolver_data {
+	resolver_data( ) {};
+	enum modes : int {
+		STAND1,
+		STAND2,
+		LBY_MOVING
+	};
+	struct mode_data {
+		struct dir_data {
+			dir_data( bool dir_enabled, bool backup_enabled ) : dir_enabled( dir_enabled ), backup_enabled( backup_enabled ) {};
+			bool dir_enabled = true;
+			bool backup_enabled = true;
+		};
+		std::vector< dir_data > m_dir_data = {};
+		int m_index = 0;
+	} m_mode_data[ 3 ];
+	std::vector<anim_state> m_states = {};
+
+	void init( ) {
+		m_missed_shots = 0;
+		m_body_update = false;
+		m_body_update_time = -1.f;
+		m_last_body_update = 0.f;
+		m_body = 0;
+		m_moved = false;
+		m_shots = 0;
+		m_old_body = 0.f;
+		float m_old_body = 0.f;
+		for ( auto i = 0; i < 3; i++ ) {
+			auto& mode_data = m_mode_data[ i ];
+
+			mode_data.m_index = 0;
+			mode_data.m_dir_data.clear( );
+			if ( i != 2 ) {
+				for ( auto k = 0; k < 11; k++ ) {
+					mode_data.m_dir_data.emplace_back( true, true );
+				}
+			}
+			else for ( auto k = 0; k < 3; k++ ) {
+				mode_data.m_dir_data.emplace_back( true, true );
+			}
+		}
+		m_states.clear( );
+		for ( auto k = 0; k < 11; k++ ) {
+			m_states.emplace_back( );
+		}
+	}
+
+	int m_missed_shots = 0;
+	bool m_body_update = false;
+	float m_body_update_time = -1.f;
+	float m_last_body_update = 0.f;
+	float m_body = 0;
+	bool m_moved = false;
+	int m_shots = 0;
+	float m_old_body = 0.f;
+};
+
 struct ent_info_t {
-	ent_info_t( ): m_missed_shots( 0 ), m_body_index( 0 ), m_stand_index( 0 ), m_stand2_index( 0 ), m_moved( false ),
-	               m_old_body( 0 ) {};
+	ent_info_t( ) {};
 
 	std::deque< std::shared_ptr< player_record_t > > m_records = {};
 	std::shared_ptr<player_record_t> m_selected_record = nullptr;
 
 	bool m_manual_update = true;
 	float m_damage = 0;
-	anim_state m_stand1_state[10];
-	anim_state m_stand2_state[10];
-	anim_state m_lby_state[2];
 	vec3_t m_shoot_pos = vec3_t();
 	using helper_array = std::vector< hitbox_helper_t >;
 	helper_array m_hitboxes = {};
@@ -150,31 +188,19 @@ struct ent_info_t {
 	bool m_fake_player = false;
 	CIKContext m_ik;
 	aim_point_t* m_aim_point{};
-	int m_shots = 0;
-	int m_missed_shots;
-	int m_body_index;
-	int m_stand_index;
-	int m_stand2_index;
 	player_record_t m_walk_record;
-	bool m_moved{};
-	float m_old_body{};
 	float m_shot_wanted{};
-	bool m_possible_stand2_indexs[ 11 ] = { true,true,true, true,true,true,true,  true,true,true, true };
-	bool m_stand2_backup_indexs[ 11 ] = {true, true, true , true,true,true,true,  true,true,true, true };
-	int m_backup_stand_index2 = 0;
-	bool m_possible_stand_indexs[11] = { true, true, true, true,true,true,true, true,true,true, true };
-	bool m_stand_backup_indexs[ 11 ] = { true, true, true , true,true,true,true, true,true,true, true };
-	int m_backup_stand_index = 0;
+
+	
+	resolver_data m_resolver_data;
+	bool build_fake_bones( std::shared_ptr<player_record_t> current );
+
 	__forceinline player_t *operator->( ) const { return m_ent; }
 	
 	bool m_valid = false;
 	bool m_teamate = false;
 	bool m_setup = false;
 	float m_spawn = -1.f;
-	bool m_body_update = false;
-	float m_body_update_time = -1;
-	float m_last_body_update = 0;
-	float m_body = 0;
 
 	bool m_dormant = false;
 	bone_array_t *m_used_bones = nullptr;

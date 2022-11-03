@@ -30,7 +30,6 @@ unsigned long _stdcall initialize ( void *instance ) {
 		std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
 	}
 
-	g.release( );
 	FreeLibraryAndExitThread( static_cast< HMODULE >(instance), 0 );
 	return TRUE;
 }

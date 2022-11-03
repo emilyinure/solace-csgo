@@ -4,15 +4,23 @@
 static auto allocate_thread_id = reinterpret_cast< void(*) ( ) >(GetProcAddress( GetModuleHandleA( "tier0.dll" ), "AllocateThreadID" ));
 static auto free_thread_id = reinterpret_cast< void(*) ( ) >(GetProcAddress( GetModuleHandleA( "tier0.dll" ), "FreeThreadID" ));
 
-void ThreadHandler::thread_fn( ) {
+void ThreadHandler::ThreadLoop( ) {
 	allocate_thread_id( );
 	while ( true ) {
-		const auto object = g_thread_handler.assign_object( );
-		if ( object ) {
-			object->run( );
-			object->handling = false;
+		std::function<void( )> job;
+		{
+			std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex2 );
+			g_thread_handler.mutex_condition.wait( lock, [] {
+				return !g_thread_handler.jobs.empty( ) || g_thread_handler.should_terminate;
+				} );
+
+			if ( g_thread_handler.should_terminate )
+				break;
+
+			job = g_thread_handler.jobs.front( );
+			g_thread_handler.jobs.pop( );
 		}
-		else break;
+		job( );
 	}
 	free_thread_id( );
 }

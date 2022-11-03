@@ -14,6 +14,7 @@
 #include "resolver.h"
 #include "windowsx.h"
 #include "input_helper/input_helper.hh"
+#include "thread_handler.h"
 
 void _stdcall paint_traverse( long panel, bool repaint, bool force ) {
 	static long tools{}, zoom{};
@@ -157,20 +158,20 @@ void __fastcall update_anims( player_t *player, uint32_t edx ) {
 		if ( g.m_running_client )
 			g.SetAngles( );
 		else {
-			vmt->get_original< void( __thiscall * ) ( player_t * ) >( 218 )( player );
+			vmt->get_original< void( __fastcall* ) ( player_t *, uint32_t ) >( 218 )( player, edx );
 			//__asm {
 			//	mov     ecx, player
 			//	call original
 			//}
 		}
 	} else if ( g_player_manager.m_animating ) {
-		vmt->get_original< void( __thiscall * ) ( player_t * ) >( 218 )( player );
+		vmt->get_original< void( __fastcall* ) ( player_t *, uint32_t ) >( 218 )( player, edx );
 		//__asm {
 		//	mov     ecx, player
 		//	call original
 		//}
 	} else if ( !g_player_manager.m_ents[ player->index(  ) - 1].m_valid ) {
-		vmt->get_original< void( __thiscall * ) ( player_t * ) >( 218 )( player );
+		vmt->get_original< void( __fastcall* ) ( player_t *, uint32_t ) >( 218 )( player, edx );
 		//__asm {
 		//	mov     ecx, player
 		//	call original
@@ -183,8 +184,9 @@ bool __fastcall setupbones( animating_t *anim, uint32_t edx, matrix_t *out, int 
 	auto *vmt = g.m_hooks->players_hook( player->index( ) - 1 );
 	auto *info = &g_player_manager.m_ents[ player->index( ) - 1 ];
 	if ( info && info->m_valid && !info->m_teamate && !info->m_records.empty(  ) ) {
-		if ( info->m_records.front( )->m_setup ) {
-			memcpy( out, info->m_records.front( )->m_bones, sizeof( matrix_t ) );
+		auto &record = info->m_records.front( );
+		if ( record && record->m_setup ) {
+			memcpy( out, record->m_bones, sizeof( matrix_t ) );
 			return true;
 		}
 	} 
@@ -268,9 +270,10 @@ void __stdcall frame_stage_notify( client_frame_stage_t stage ) {
 	g.m_interfaces->client( ).hook( )->get_original<decltype( &frame_stage_notify )>( 36 )(stage);
 	if ( stage == FRAME_NET_UPDATE_POSTDATAUPDATE_END ) {
 		g_player_manager.update( );
-	} else if ( stage == FRAME_NET_UPDATE_START ) {
-		g_esp.NoSmoke( );
-	}
+	} 
+	//else if ( stage == FRAME_NET_UPDATE_START ) {
+	//	g_esp.NoSmoke( );
+	//}
 }
 
 void __fastcall draw_model_execute( void *this_ptr, uint32_t edx, uintptr_t ctx, void *state,
@@ -322,12 +325,15 @@ void __stdcall override_view( view_setup_t *view ) {
 
 		trace_t tr;
 
-		g.m_interfaces->trace()->trace_ray(
-			ray_t( origin, origin - ( forward * offset.z ), { -16.f, -16.f, -16.f }, { 16.f, 16.f, 16.f } ),
-			MASK_NPCWORLDSTATIC,
-			&filter,
-			&tr
-		);
+		{
+			//std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex2 );
+			g.m_interfaces->trace( )->trace_ray(
+				ray_t( origin, origin - ( forward * offset.z ), { -16.f, -16.f, -16.f }, { 16.f, 16.f, 16.f } ),
+				MASK_NPCWORLDSTATIC,
+				&filter,
+				&tr
+			);
+		}
 
 		// adapt distance to travel time.
 		tr.flFraction = fminf( fmaxf( tr.flFraction, 0.f ), 1.f );
@@ -741,11 +747,16 @@ hooks_t::hooks_t( ) {
 	netvar_manager::set_proxy( fnv::hash("DT_CSPlayer"), fnv::hash( "m_flLowerBodyYawTarget"), Body_proxy, m_Body_original );
 
 	
-	//original_cl_move = reinterpret_cast< decltype( &cl_move ) >( DetourFunction(
-	//	util::find( "engine.dll", "55 8B EC 81 EC ? ? ? ? 53 56 57 8B 3D ? ? ? ? 8A F9" ),
-	//	reinterpret_cast< PBYTE >( cl_move ) ) );
+	original_cl_move = reinterpret_cast< decltype( &cl_move ) >( DetourFunction(
+		util::find( "engine.dll", "55 8B EC 81 EC ? ? ? ? 53 56 57 8B 3D ? ? ? ? 8A F9" ),
+		reinterpret_cast< PBYTE >( cl_move ) ) );
 
 	//render_view_hook( )->hook( scene_end, 9 );
 
 	//model_render_hook( )->hook( 21, &draw_model_execute );
+}
+
+hooks_t::~hooks_t( ) {
+	for ( auto& p : m_players )
+		p.reset( );
 }

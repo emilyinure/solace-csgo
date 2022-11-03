@@ -546,10 +546,16 @@ public:
 class player_t : public entity_t {
 public:
 	bool dormant( ) {
-		return networkable( )->dormant( );
+		auto networkable_ = networkable( );
+		if ( !networkable_ )
+			return false;
+		return networkable_->dormant( );
 	}
 	bool setup_bones( matrix_t *out, int max_bones, int mask, float time ) {
-		return animating( )->setup_bones( out, max_bones, mask, time );
+		auto animating_ = animating( );
+		if ( !animating_ )
+			return false;
+		return animating_->setup_bones( out, max_bones, mask, time );
 	}
 
 	void set_angles( ang_t angles ) {

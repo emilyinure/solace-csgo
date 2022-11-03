@@ -67,7 +67,7 @@ void movement::QuickStop( ) {
 	if ( !m_should_stop )
 		return;
 
-	m_should_stop = false; // this will be reset every frame anyways
+	set_should_stop( false );
 
 	if ( !g.m_interfaces->entity_list( )->get_client_entity_handle( g.m_local->m_ground_entity( ) ) )
 		return;

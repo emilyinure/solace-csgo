@@ -1,5 +1,6 @@
 #include "bones.h"
 #include "includes.h"
+#include "thread_handler.h"
 
 //template <typename T>
 //class CJobItemProcessor
@@ -149,6 +150,7 @@
 
 bool bones_t::setup( player_t *player, bone_array_t *out, std::shared_ptr<player_record_t> record, CIKContext *ipk ) {
 	// if the record isnt setup yet.
+	std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex );
 
 	// run setupbones rebuilt.
 	g.m_interfaces->mdlcache()->begin_coarse_lock();
@@ -584,30 +586,32 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
    //	ipk->ClearTargets();
    //	ipk->New();
    //}
-	m_running = true;
 
-	// set bone array for write.
-	accessor->m_pBones = out;
-	
-	auto *computed = static_cast< uint8_t * >(g.m_interfaces->mem_alloc( )->alloc( sizeof( uint8_t[0x100] ) ));
+	auto* computed = static_cast< uint8_t* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( uint8_t[ 0x100 ] ) ) );
 	std::memset( computed, 0, 0x100 );
+	{
+		m_running = true;
 
-	//target->StandardBlendingRules(hdr, pos, q, record->m_sim_time, mask);
-	if ( ipk ) {
-		ipk->Init( hdr, target->abs_angles( ), target->abs_origin( ), record->m_pred_time, g.m_interfaces->globals( )->m_tickcount, mask );
-		target->UpdateIKLocks( record->m_pred_time );
-		GetSkeleton( target, hdr, pos, q, mask, record->m_pred_time, ipk );
-		ipk->UpdateTargets( pos, q, accessor->m_pBones, &computed[ 0 ] );
-		target->CalculateIKLocks( record->m_pred_time );
-		ipk->SolveDependencies( pos, q, accessor->m_pBones, computed );
+		// set bone array for write.
+		accessor->m_pBones = out;
 
-		// target->DoExtraBoneProcessing(hdr, pos, q, accessor->m_pBones, computed, ipk);
+		//target->StandardBlendingRules(hdr, pos, q, record->m_sim_time, mask);
+		if ( ipk ) {
+			ipk->Init( hdr, target->abs_angles( ), target->abs_origin( ), record->m_pred_time, g.m_interfaces->globals( )->m_tickcount, mask );
+			target->UpdateIKLocks( record->m_pred_time );
+			GetSkeleton( target, hdr, pos, q, mask, record->m_pred_time, ipk );
+			ipk->UpdateTargets( pos, q, accessor->m_pBones, &computed[ 0 ] );
+			target->CalculateIKLocks( record->m_pred_time );
+			ipk->SolveDependencies( pos, q, accessor->m_pBones, computed );
 
+			// target->DoExtraBoneProcessing(hdr, pos, q, accessor->m_pBones, computed, ipk);
+
+		}
+		// compute and build bones.
+		Studio_BuildMatrices( hdr->m_pStudioHdr, target->abs_angles( ), target->abs_origin( ), pos, q, -1, 1, accessor->m_pBones, mask );
+
+		accessor->m_pBones = backup_matrix;
 	}
-	// compute and build bones.
-	Studio_BuildMatrices( hdr->m_pStudioHdr, target->abs_angles(  ), target->abs_origin(  ), pos, q, -1, 1, accessor->m_pBones, mask );
-
-	accessor->m_pBones = backup_matrix;
 	target->m_Ipk( ) = backup;
 	// restore original interpolated entity data.
 	target->mins( ) = mins;

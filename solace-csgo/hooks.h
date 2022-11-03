@@ -27,10 +27,7 @@ class hooks_t {
 public:
 	hooks_t( );
 
-	~hooks_t( ) {
-		for ( auto &p : m_players )
-			p.reset( );
-	}
+	~hooks_t( );
 
 	auto *players_hook( const int index ) {
 		return &m_players[ index ];

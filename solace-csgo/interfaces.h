@@ -12,7 +12,7 @@ public:
 		t *ptr = nullptr;
 		c_hook *m_hook;
 	public:
-		~c_base_interface( ) { if( m_hook ) delete m_hook; }
+		~c_base_interface( ) { if ( m_hook ) { m_hook->~c_hook(); delete m_hook; } }
 		c_base_interface( const char *lib, const char *ver, bool hook = true ) : lib( lib ), ver( ver ) { 
 			ptr = util::capture_interface< t *>( lib, ver ); 
 			if ( hook ) m_hook = new c_hook( reinterpret_cast< uintptr_t >( ptr ) ); 

@@ -13,12 +13,12 @@
 #ifdef max
 #undef max
 #endif
+#include "thread_handler.h"
 
 shot_record_t::~shot_record_t( ) { 
 }
 
 std::shared_ptr<player_record_t> resolver::FindIdealRecord( ent_info_t *data ) {
-
 	if ( data->m_records.empty( ) )
 		return nullptr;
 
@@ -27,8 +27,8 @@ std::shared_ptr<player_record_t> resolver::FindIdealRecord( ent_info_t *data ) {
 
 	// iterate records.
 	for ( const auto &it : data->m_records ) {
-		auto const current = it;
-		if ( !current->m_setup || current->m_dormant || !current->valid( ) )
+		auto const &current = it;
+		if ( !current || !current->m_setup || current->m_dormant || !current->valid( ) )
 			continue;
 
 		// get current record.
@@ -43,7 +43,7 @@ std::shared_ptr<player_record_t> resolver::FindIdealRecord( ent_info_t *data ) {
 	}
 
 	// none found above, return the first valid record if possible.
-	return ( first_valid ) ? first_valid : nullptr;
+	return first_valid;
 }
 
 void resolver::MatchShot( ent_info_t *data, std::shared_ptr<player_record_t> record ) {
@@ -121,12 +121,12 @@ void resolver::ResolveWalk( ent_info_t *data, std::shared_ptr<player_record_t> r
 	record->m_eye_angles.y = record->m_body;
 
 	// delay body update.
-	data->m_body_update_time = record->m_anim_time + 0.22f;
+	data->m_resolver_data.m_body_update_time = record->m_anim_time + 0.22f;
 
 	// reset stand and body index.
 	//data->m_stand_index = 0;
 	//data->m_stand_index2 = 0;
-	data->m_body_index = 0;
+	data->m_resolver_data.m_mode_data[ resolver_data::LBY_MOVING ].m_index = 0;
 	//for ( auto i = 0; i < 8; i++ ) {
 	//	data->m_possible_stand_indexs[ i ] = true;
 	//	data->m_possible_stand2_indexs[ i ] = true;
@@ -145,10 +145,10 @@ float resolver::GetAwayAngle(std::shared_ptr<player_record_t> record ) {
 void resolver::OnBodyUpdate(ent_info_t* player, float value) {
 	// set data.
 	player->m_manual_update = false;
-	player->m_old_body = player->m_body;
-	player->m_body = value;
-	if (!player->m_body_update) {
-		player->m_body_update = value != player->m_old_body;
+	player->m_resolver_data.m_old_body = player->m_resolver_data.m_body;
+	player->m_resolver_data.m_body = value;
+	if (!player->m_resolver_data.m_body_update) {
+		player->m_resolver_data.m_body_update = value != player->m_resolver_data.m_old_body;
 		player->m_manual_update = true;
 	}
 }
@@ -258,7 +258,7 @@ void resolver::ResolveStand( ent_info_t *data, std::shared_ptr<player_record_t> 
 
 	// pointer for easy access.
 	auto *move = &data->m_walk_record;
-	data->m_moved = false;
+	data->m_resolver_data.m_moved = false;
 
 	// we have a valid moving record.
 	if (data->m_manual_update && !record->m_ukn_vel)
@@ -275,21 +275,21 @@ void resolver::ResolveStand( ent_info_t *data, std::shared_ptr<player_record_t> 
 		// check if moving record is close.
 		if ( delta.length_sqr( ) <= 16384.f ) {
 			// indicate that we are using the moving lby.
-			data->m_moved = true;
+			data->m_resolver_data.m_moved = true;
 		}
 		
 		if (record->m_ukn_vel) 
-			data->m_body_update_time = -1;
+			data->m_resolver_data.m_body_update_time = -1;
 
-		if ( data->m_body_update_time > 0 && record->m_anim_time >= data->m_body_update_time && !record->m_ukn_vel ) {
+		if ( data->m_resolver_data.m_body_update_time > 0 && record->m_anim_time >= data->m_resolver_data.m_body_update_time && !record->m_ukn_vel ) {
 			// only shoot the LBY flick 3 times.
 			// if we happen to miss then we most likely mispredicted.
-			if ( data->m_body_index <= 2 ) {
+			if ( data->m_resolver_data.m_mode_data[resolver_data::LBY_MOVING].m_index <= 2 ) {
 				// set angles to current LBY.
 				record->m_eye_angles.y = record->m_body;
 
 				// predict next body update.
-				data->m_body_update_time = record->m_anim_time + 1.1f;
+				data->m_resolver_data.m_body_update_time = record->m_anim_time + 1.1f;
 
 				// set the resolve mode.
 				record->m_mode = Modes::RESOLVE_BODY;
@@ -299,7 +299,7 @@ void resolver::ResolveStand( ent_info_t *data, std::shared_ptr<player_record_t> 
 			}
 		}
 	}
-	if ( data->m_moved ) {
+	if ( data->m_resolver_data.m_moved ) {
 		const auto delta = record->m_anim_time - move->m_anim_time;
 
 		record->m_base_angle = move->m_body;
@@ -307,47 +307,51 @@ void resolver::ResolveStand( ent_info_t *data, std::shared_ptr<player_record_t> 
 
 		int i = 0;
 
-		record->m_stand1_angles[0] = get_freestand_yaw(data->m_ent);
-		if (data->m_stand_index == 0) 
-			record->m_eye_angles.y = get_freestand_yaw(data->m_ent);
+		auto& mode_data = data->m_resolver_data.m_mode_data[ resolver_data::STAND1 ];
+		auto& record_dir_data = record->m_resolver_data.m_dir_data;
 
-		record->m_stand1_angles[1] = move->m_body;
-		if ( data->m_stand_index == 1 )
+		record_dir_data.emplace_back( get_freestand_yaw( data->m_ent ) );
+		if ( mode_data.m_index == 0 )
+			record->m_eye_angles.y = get_freestand_yaw( data->m_ent );
+
+		record_dir_data.emplace_back( move->m_body );
+		if ( mode_data.m_index == 1 )
 			record->m_eye_angles.y = move->m_body;
 
-		record->m_stand1_angles[2] = record->m_body;
-		if ( data->m_stand_index == 2 )
+		record_dir_data.emplace_back( record->m_body );
+		if ( mode_data.m_index == 2 )
 			record->m_eye_angles.y = record->m_body;
 
-		record->m_stand1_angles[3] = away;
-		if ( data->m_stand_index == 3 )
+		record_dir_data.emplace_back( away );
+		if ( mode_data.m_index == 3 )
 			record->m_eye_angles.y = away;
-		record->m_stand1_angles[4] = record->m_body + 180.f;
-		if ( data->m_stand_index == 4 ) 
+
+		record_dir_data.emplace_back( record->m_body + 180.f );
+		if ( mode_data.m_index == 4 )
 			record->m_eye_angles.y = record->m_body + 180.f;
 
-		record->m_stand1_angles[5] = record->m_body + 135.f;
-		if (data->m_stand_index == 5)
+		record_dir_data.emplace_back( record->m_body + 135.f );
+		if ( mode_data.m_index == 5 )
 			record->m_eye_angles.y = record->m_body + 135.f;
 
-		record->m_stand1_angles[ 6 ] = record->m_body - 135.f;
-		if ( data->m_stand_index == 6 )
+		record_dir_data.emplace_back( record->m_body - 135.f );
+		if ( mode_data.m_index == 6 )
 			record->m_eye_angles.y = record->m_body - 135.f;
 
-		record->m_stand1_angles[ 7 ] = record->m_body - 90.F;
-		if ( data->m_stand_index == 7 )
+		record_dir_data.emplace_back( record->m_body - 90.F );
+		if ( mode_data.m_index == 7 )
 			record->m_eye_angles.y = record->m_body - 90.F;
 
-		record->m_stand1_angles[ 8 ] = record->m_body + 90.F;
-		if ( data->m_stand_index == 8 )
+		record_dir_data.emplace_back( record->m_body + 90.F );
+		if ( mode_data.m_index == 8 )
 			record->m_eye_angles.y = record->m_body + 90.F;
 
-		record->m_stand1_angles[ 9 ] = record->m_body - 45.F;
-		if ( data->m_stand_index == 9 )
+		record_dir_data.emplace_back( record->m_body - 45.F );
+		if ( mode_data.m_index == 9 )
 			record->m_eye_angles.y = record->m_body - 45.F;
 
-		record->m_stand1_angles[ 10 ] = record->m_body + 45.F;
-		if ( data->m_stand_index == 10 )
+		record_dir_data.emplace_back( record->m_body + 45.F );
+		if ( mode_data.m_index == 10 )
 			record->m_eye_angles.y = record->m_body + 45.F;
 		return;
 	}
@@ -357,49 +361,51 @@ void resolver::ResolveStand( ent_info_t *data, std::shared_ptr<player_record_t> 
 	record->m_base_angle = record->m_body;
 	record->m_mode = Modes::RESOLVE_STAND2;
 	int i = 0;
+	auto& mode_data = data->m_resolver_data.m_mode_data[ resolver_data::STAND2 ];
+	auto& record_dir_data = record->m_resolver_data.m_dir_data;
 
-	record->m_stand2_angles[0] = get_freestand_yaw(data->m_ent);
-	if (data->m_stand2_index == 0)
+	record_dir_data.emplace_back(get_freestand_yaw( data->m_ent ));
+	if (mode_data.m_index == 0)
 		record->m_eye_angles.y = get_freestand_yaw(data->m_ent);
 
-	record->m_stand2_angles[1] = record->m_body + 180;
-	if ( data->m_stand2_index == 1 )
+	record_dir_data.emplace_back( record->m_body + 180 );
+	if ( mode_data.m_index == 1 )
 		record->m_eye_angles.y = record->m_body + 180;
 
-	record->m_stand2_angles[2] = away;
-	if ( data->m_stand2_index == 2 )
+	record_dir_data.emplace_back( away );
+	if ( mode_data.m_index == 2 )
 		record->m_eye_angles.y = away;
 
-	record->m_stand2_angles[3] = record->m_body + 135.f;
-	if ( data->m_stand2_index == 3 )
+	record_dir_data.emplace_back( record->m_body + 135.f );
+	if ( mode_data.m_index == 3 )
 		record->m_eye_angles.y = record->m_body + 135.f;
 
-	record->m_stand2_angles[4] = record->m_body - 135.f;
-	if ( data->m_stand2_index == 4 )
+	record_dir_data.emplace_back( record->m_body - 135.f );
+	if ( mode_data.m_index == 4 )
 		record->m_eye_angles.y = record->m_body - 135.f;
 
-	record->m_stand2_angles[5] = record->m_body;
-	if (data->m_stand2_index == 5)
+	record_dir_data.emplace_back( record->m_body );
+	if (mode_data.m_index == 5)
 		record->m_eye_angles.y = record->m_body;
 
-	record->m_stand2_angles[6] = away + 180.f;
-	if (data->m_stand2_index == 6)
+	record_dir_data.emplace_back( away + 180.f );
+	if (mode_data.m_index == 6)
 		record->m_eye_angles.y = away + 180.f;
 
-	record->m_stand2_angles[ 7 ] = record->m_body - 90.F;
-	if ( data->m_stand2_index == 7 )
+	record_dir_data.emplace_back( record->m_body - 90.F);
+	if ( mode_data.m_index == 7 )
 		record->m_eye_angles.y = record->m_body - 90.F;
 
-	record->m_stand2_angles[ 8 ] = record->m_body + 90.F;
-	if ( data->m_stand2_index == 8 )
+	record_dir_data.emplace_back( record->m_body + 90.F );
+	if ( mode_data.m_index == 8 )
 		record->m_eye_angles.y = record->m_body + 90.F;
 
-	record->m_stand2_angles[ 9 ] = record->m_body - 45.F;
-	if ( data->m_stand2_index == 9 )
+	record_dir_data.emplace_back( record->m_body - 45.F );
+	if ( mode_data.m_index == 9 )
 		record->m_eye_angles.y = record->m_body - 45.F;
 
-	record->m_stand2_angles[ 10 ] = record->m_body + 45.F;
-	if ( data->m_stand2_index == 10 )
+	record_dir_data.emplace_back( record->m_body + 45.F );
+	if ( mode_data.m_index == 10 )
 		record->m_eye_angles.y = record->m_body + 45.F;
 	//record->m_eye_angles.y = record->m_body + get_rel( record, data->m_stand_index2 );
 }
@@ -427,7 +433,7 @@ void resolver::ResolveAir( ent_info_t *data, std::shared_ptr<player_record_t> re
 	// this should be a rough estimation of where he is looking.
 	const auto velyaw = RAD2DEG( std::atan2( record->m_velocity.y, record->m_velocity.x ) );
 
-	switch ( data->m_shots % 3 ) {
+	switch ( data->m_resolver_data.m_shots % 3 ) {
 	case 0:
 		record->m_eye_angles.y = velyaw + 180.f;
 		break;
@@ -469,7 +475,7 @@ void resolver::clear( ) {
 	m_impacts.clear( );
 }
 
-resolver::trace_ret check_hit( penetration::PenetrationInput_t in, ent_info_t &info, bone_array_t bones[128], bool check_hitbox = false, int hitgroup = 0 ) {
+resolver::trace_ret check_hit( penetration::PenetrationInput_t in, ent_info_t &info, bone_array_t *bones, bool check_hitbox = false, int hitgroup = 0 ) {
 	penetration::PenetrationOutput_t out;
 	trace_t trace;
 	const math::custom_ray ray{ in.m_start, in.m_pos };
@@ -480,7 +486,7 @@ resolver::trace_ret check_hit( penetration::PenetrationInput_t in, ent_info_t &i
 	//	if( !trace.entity || trace.hitGroup != hitgroup )
 	//		return resolver::trace_ret::spread;
 	//}
-	if ( !g_aimbot.collides( ray, &info, bones, 0.031250f ) )// !g_aimbot.collides( ray, info, cache->m_pCachedBones ) )
+	if ( !g_aimbot.collides( ray, &info, bones ) )// !g_aimbot.collides( ray, info, cache->m_pCachedBones ) )
 		return resolver::trace_ret::spread;
 	//if ( !penetration::run( &in, &out ) )
 	//	return resolver::trace_ret::occlusion;
@@ -710,7 +716,7 @@ void resolver::OnHurt( IGameEvent *evt ) {
 }
 int resolver::miss_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& start, vec3_t& end ) {
 	ent_info_t& data = *impact->m_shot->m_record->m_info;
-	player_record_t* record = impact->m_shot->m_record.get( );
+	std::shared_ptr<player_record_t> record = impact->m_shot->m_record;
 
 
 	penetration::PenetrationInput_t pen_in;
@@ -720,25 +726,21 @@ int resolver::miss_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& st
 	pen_in.m_pos = end;
 	pen_in.m_start = start;
 
-	int* current_index;
-	bool* possible_indexes;
-	if ( record->m_mode == RESOLVE_STAND1 ) {
-		possible_indexes = data.m_possible_stand_indexs;
-		current_index = &data.m_stand_index;
-	}
-	else {
-		possible_indexes = data.m_possible_stand2_indexs;
-		current_index = &data.m_stand2_index;
-	}
+	resolver_data::mode_data *move_data = nullptr;
+	if ( record->m_mode == RESOLVE_STAND1 )
+		move_data = &data.m_resolver_data.m_mode_data[ resolver_data::modes::STAND1 ];
+	else
+		move_data = &data.m_resolver_data.m_mode_data[ resolver_data::modes::STAND2 ];
 
 	int eliminations = 0;
 	std::vector<int> new_possible = {};
 	auto fake_index = 0;
 	auto any_true = false;
 
-	for ( auto i1 = 0; i1 < 11; i1++ ) {
-		if ( i1 == *current_index ) {
-			if ( possible_indexes[ i1 ] )
+	for ( auto i1 = 0; i1 < move_data->m_dir_data.size(); i1++ ) {
+		auto& dir_data = move_data->m_dir_data[ i1 ];
+		if ( i1 == move_data->m_index ) {
+			if ( dir_data.dir_enabled )
 				any_true = true;
 			else {
 				new_possible.push_back( i1 );
@@ -747,16 +749,16 @@ int resolver::miss_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& st
 		else {
 			auto hit_type = check_hit( pen_in, data, record->m_fake_bones[ fake_index ] );
 			if ( hit_type == trace_ret::hit ) {
-				if ( possible_indexes[ i1 ]) {
+				if ( dir_data.dir_enabled ) {
 
 #ifdef _DEBUG
 					g_aimbot.draw_hitboxes( impact->m_shot->m_target, record->m_fake_bones[ fake_index ] );
 #endif
-					possible_indexes[ i1 ] = false;
+					dir_data.dir_enabled = false;
 					eliminations++;
 				}
 			}
-			else if ( possible_indexes[ i1 ] )
+			else if ( dir_data.dir_enabled )
 				any_true = true;
 			else {
 				new_possible.push_back( i1 );
@@ -766,16 +768,16 @@ int resolver::miss_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& st
 	}
 	if ( !any_true && !new_possible.empty( ) ) {
 		for ( auto i1 : new_possible )
-			possible_indexes[ i1 ] = true;
-		data.m_stand_index = new_possible[ 0 ];
+			move_data->m_dir_data[ i1 ].dir_enabled = true;
+		move_data->m_index = new_possible[ 0 ];
 	}
 	else {
 		auto set = false;
-		for ( auto i1 = 0; i1 < 11; i1++ ) {
+		for ( auto i1 = 0; i1 < move_data->m_dir_data.size( ); i1++ ) {
 			if ( !any_true )
-				possible_indexes[ i1 ] = true;
-			if ( !set && possible_indexes[ i1 ] ) {
-				data.m_stand_index = i1;
+				move_data->m_dir_data[ i1 ].dir_enabled = true;
+			if ( !set && move_data->m_dir_data[ i1 ].dir_enabled ) {
+				move_data->m_index = i1;
 				set = true;
 			}
 		}
@@ -784,7 +786,7 @@ int resolver::miss_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& st
 }
 int resolver::hit_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& start, vec3_t& end ) const {
 	ent_info_t& data = *impact->m_shot->m_record->m_info;
-	player_record_t* record = impact->m_shot->m_record.get( );
+	std::shared_ptr<player_record_t> record = impact->m_shot->m_record;
 
 
 	penetration::PenetrationInput_t pen_in;
@@ -794,39 +796,35 @@ int resolver::hit_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& sta
 	pen_in.m_pos = end;
 	pen_in.m_start = start;
 
-	int *current_index;
-	bool *possible_indexes;
-	if ( record->m_mode == RESOLVE_STAND1 ) {
-		possible_indexes = data.m_possible_stand_indexs;
-		current_index = &data.m_stand_index;
-	}
-	else {
-		possible_indexes = data.m_possible_stand2_indexs;
-		current_index = &data.m_stand2_index;
-	}
+	resolver_data::mode_data* move_data = nullptr;
+	if ( record->m_mode == RESOLVE_STAND1 )
+		move_data = &data.m_resolver_data.m_mode_data[ resolver_data::modes::STAND1 ];
+	else
+		move_data = &data.m_resolver_data.m_mode_data[ resolver_data::modes::STAND2 ];
 
 	int eliminations = 0;
 	std::vector<int> possible_hit = {};
 	auto any_true = false;
 	auto fake_index = 0;
 
-	for ( auto i2 = 0; i2 < 11; i2++ ) {
-		auto hit_type = check_hit( pen_in, data, ( i2 == *current_index ) ? record->m_bones : record->m_fake_bones[ fake_index ], true, impact->m_group );
+	for ( auto i2 = 0; i2 < move_data->m_dir_data.size( ); i2++ ) {
+		auto& dir_data = move_data->m_dir_data[ i2 ];
+		auto hit_type = check_hit( pen_in, data, ( i2 == move_data->m_index ) ? record->m_bones : record->m_fake_bones[ fake_index ], true, impact->m_group );
 		if ( hit_type == trace_ret::spread ) {
-			if ( possible_indexes[ i2 ] ) {
+			if ( dir_data.dir_enabled ) {
 #ifdef _DEBUG
-				g_aimbot.draw_hitboxes( data.m_ent, i2 == *current_index ? record->m_bones : record->m_fake_bones[ fake_index ] );
+				//g_aimbot.draw_hitboxes( data.m_ent, i2 == *current_index ? record->m_bones : record->m_fake_bones[ fake_index ] );
 #endif
 				eliminations++;
-				possible_indexes[ i2 ] = false;
+				dir_data.dir_enabled = false;
 			}
 		}
-		else if ( possible_indexes[ i2 ] ) {
+		else if ( dir_data.dir_enabled ) {
 			possible_hit.push_back( i2 );
 		}
-		if ( possible_indexes[ i2 ] )
+		if ( dir_data.dir_enabled )
 			any_true = true;
-		if ( i2 != *current_index )
+		if ( i2 != move_data->m_index )
 			fake_index++;
 	}
 	if ( !any_true ) {
@@ -834,17 +832,17 @@ int resolver::hit_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& sta
 		if ( !possible_hit.empty( ) ) {
 			for ( auto i1 : possible_hit ) {
 				if ( !set ) {
-					*current_index = i1;
+					move_data->m_index = i1;
 					set = true;
 				}
-				possible_indexes[ i1 ] = true;
+				move_data->m_dir_data[ i1 ].dir_enabled = true;
 			}
 		}
 		else {
-			for ( auto i1 = 0; i1 < 11; i1++ ) {
-				possible_indexes[ i1 ] = true;
+			for ( auto i1 = 0; i1 < move_data->m_dir_data.size( ); i1++ ) {
+				move_data->m_dir_data[ i1 ].dir_enabled = true;
 				if ( !set ) {
-					*current_index = i1;
+					move_data->m_index = i1;
 					set = true;
 				}
 			}
@@ -852,9 +850,9 @@ int resolver::hit_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& sta
 	}
 	else {
 		auto set = false;
-		for ( auto i1 = 0; i1 < 11; i1++ ) {
-			if ( possible_indexes[ i1 ] && !set ) {
-				*current_index = i1;
+		for ( auto i1 = 0; i1 < move_data->m_dir_data.size( ); i1++ ) {
+			if ( move_data->m_dir_data[ i1 ].dir_enabled && !set ) {
+				move_data->m_index = i1;
 				set = true;
 			}
 		}
@@ -866,9 +864,6 @@ void resolver::resolve_hit ( impact_record_t *impact ) const {
 	auto &data = *impact->m_shot->m_record->m_info;
 	auto &record = impact->m_shot->m_record;
 
-	// we hit, reset missed shots counter.
-	data.m_missed_shots = 0;
-
 	size_t mode = record->m_mode;
 
 	auto start = impact->m_shot->m_pos;
@@ -878,7 +873,7 @@ void resolver::resolve_hit ( impact_record_t *impact ) const {
 	// todo; to do this properly should save the weapon range at the moment of the shot, cba..
 
 	g.m_weapon_info = impact->m_shot->m_weapon_info.get( );
-	auto end = impact->m_pos;
+	auto end = start + dir * impact->m_shot->m_weapon_info->m_range;
 
 	math::custom_ray ray( start, end );
 	std::vector<int> possible_hit = {};
@@ -924,7 +919,7 @@ void resolver::resolve_miss ( impact_record_t *impact ) {
 	in.m_target = impact->m_shot->m_target;
 	in.m_pos = end;
 	in.m_start = start;
-	record->cache( -1 );
+	//record->cache( -1 );
 
 	auto hit_type = check_hit( in, data, record->m_bones );
 
@@ -943,12 +938,20 @@ void resolver::resolve_miss ( impact_record_t *impact ) {
 	else {
 		// if we miss a shot on body update.
 		// we can chose to stop shooting at them.
-		if ( mode == Modes::RESOLVE_BODY )
-			++data.m_body_index;
-		else if ( mode == Modes::RESOLVE_STAND1 )
-			data.m_possible_stand_indexs[ data.m_stand_index ] = false;
-		else if ( mode == Modes::RESOLVE_STAND2 )
-			data.m_possible_stand2_indexs[ data.m_stand2_index ] = false;
+		if ( mode == Modes::RESOLVE_BODY ) {
+			auto& idx = data.m_resolver_data.m_mode_data[ resolver_data::modes::LBY_MOVING ].m_index;
+			++idx;
+			if ( idx > 2 )
+				idx = 0;
+		}
+		else if ( mode == Modes::RESOLVE_STAND1 ) {
+			auto& dir_data = data.m_resolver_data.m_mode_data[ resolver_data::modes::STAND1 ];
+			dir_data.m_dir_data[ dir_data.m_index ].dir_enabled = false;
+		}
+		else if ( mode == Modes::RESOLVE_STAND2 ) {
+			auto& dir_data = data.m_resolver_data.m_mode_data[ resolver_data::modes::STAND2 ];
+			dir_data.m_dir_data[ dir_data.m_index ].dir_enabled = false;
+		}
 	}
 	if ( mode == Modes::RESOLVE_STAND1 || mode == Modes::RESOLVE_STAND2 ) {
 		impact->m_resolved = true;
@@ -959,12 +962,22 @@ void resolver::resolve_miss ( impact_record_t *impact ) {
 		auto out = tfm::format( "eliminated %i resolves by miss\n", eliminations );
 		g_notification.add( out );
 	}
-	++data.m_missed_shots;
 }
 
 void resolver::update_shots( ) {
 	for ( size_t i = 0; i < m_impacts.size( ); i++ ) {
 		auto *impact = &m_impacts[ i ];
+		if ( !impact->m_shot ) {
+			m_impacts.erase( m_impacts.begin( ) + i );
+			i--;
+			continue;
+		}
+		if ( fabsf(impact->m_shot->m_time - g.ticks_to_time( g.m_local->tick_base( ) )) > 0.6f ) {
+			m_impacts.erase( m_impacts.begin( ) + i );
+			i--;
+			continue;
+		}
+
 		if ( !impact->m_shot->m_record->m_setup )
 			continue;
 		if ( impact->m_shot->m_target->health( ) <= 0 )
@@ -987,7 +1000,7 @@ void resolver::update_shots( ) {
 	m_impacts.clear( );
 }
 
-void resolver::add_shot( ent_info_t *target, float damage, int bullets, std::shared_ptr<player_record_t>  record ) {
+void resolver::add_shot( ent_info_t *target, float damage, int bullets, std::shared_ptr<player_record_t> record ) {
 
 	// iterate all bullets in this shot.
 	for ( int i{ }; i < bullets; ++i ) {
@@ -1001,7 +1014,7 @@ void resolver::add_shot( ent_info_t *target, float damage, int bullets, std::sha
 		shot.m_pos = g.m_shoot_pos;
 		shot.m_weapon_info = std::make_shared<weapon_info_t>();
 		*shot.m_weapon_info =  *g.m_weapon_info;
-		target->m_shots++;
+		target->m_resolver_data.m_shots++;
 		shot.m_updated_time = false;
 		shot.m_tick = g.m_lag;
 		// add to tracks.

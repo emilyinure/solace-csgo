@@ -169,9 +169,14 @@ void math::sin_cos ( float r, float *s, float *c ) {
 
 
 math::custom_ray::custom_ray ( vec3_t start, vec3_t end ) {
+	init( start, end );
+}
+
+void math::custom_ray::init( vec3_t start, vec3_t end ) {
 	m_start = start;
 	m_end = end;
-	m_ray_dir = (m_end - m_start).normalized( );
+	m_ray_dir = ( m_end - m_start ).normalized( );
+
 }
 
 vec3_t math::get_closest_on_line ( vec3_t start, vec3_t end, vec3_t target ) {

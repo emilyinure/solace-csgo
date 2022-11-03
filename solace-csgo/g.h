@@ -145,6 +145,9 @@ public:
 	int time_to_ticks ( float time ) const;
 	float ticks_to_time ( int ticks ) const;
 	bool can_weapon_fire ( ) const;
+	std::vector<std::pair<int, int>> m_tick_base_log;
+	void add_tickbase_log( int cmd_num, int tick_base );
+	void get_tickbase_log( int cmd_num, int* tick_base );
 	void on_move ( float, bool, cl_move_t original_cl_move );
 	void UpdateIncomingSequences ( i_net_channel *net );
 	void net_data_received ( ) const;
