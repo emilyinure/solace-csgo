@@ -1,13 +1,16 @@
 #include "netvar_manager.h"
 #include "includes.h"
 
-
+float get_new( float old, float new_, float tol ) {
+	const float delta = new_ - old;
+	if ( fabsf( delta ) <= tol )
+		return old;
+	return new_;
+}
 
 void shared_netvar::post_update ( player_t *player ) {
-	m_value = *reinterpret_cast< float * >( player + m_offset );
-	const float delta = m_value - m_old_value;
-	if ( fabsf( delta ) <= m_tolerance)
-		*reinterpret_cast< float * >( player + m_offset ) = m_old_value;
+	m_value = *reinterpret_cast< float* >( player + m_offset );
+	*reinterpret_cast< float* >( player + m_offset ) = get_new( m_old_value, m_value, m_tolerance );
 }
 
 void shared_netvar::pre_update( player_t *player ) {
@@ -21,19 +24,9 @@ void managed_vec::pre_update ( player_t *player ) {
 void managed_vec::post_update( player_t *player ) {
 	m_value = *reinterpret_cast< vec3_t * >( player + m_offset );
 
-	const float tolerance = m_tolerance;
-
-	if ( m_old_value != m_value && ( tolerance > 0.0f ) ) {
-		vec3_t delta = (m_old_value - m_value);
-
-		delta.abs();
-		
-		if ( delta.x <= tolerance &&
-			 delta.y <= tolerance &&
-			 delta.z <= tolerance ) {
-			*reinterpret_cast< vec3_t * >( player + m_offset ) = m_old_value;
-		}
-	}
+	*reinterpret_cast< float* >( player + m_offset ) = get_new( m_old_value.x, m_value.x, m_tolerance );
+	*reinterpret_cast< float* >( player + m_offset + 0x4 ) = get_new( m_old_value.y, m_value.y, m_tolerance );
+	*reinterpret_cast< float* >( player + m_offset + 0x8 ) = get_new( m_old_value.z, m_value.z, m_tolerance );
 }
 
 void prediction_netvar_manager::pre_update( player_t *player ) {
@@ -95,7 +88,7 @@ void prediction_netvar_manager::init ( datamap_t *map ) {
 	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_view_offset, val, "view_offset_x" ) );
 	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_view_offset + 0x4, val, "view_offset_y" ) );
 	val = ( 1.f / AssignRangeMultiplier( 10, 128.f ));
-	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_surfaceFriction + 0x8, val, "view_offset_z" ) );
+	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_view_offset + 0x8, val, "view_offset_z" ) );
 	//val = ( 1.f / AssignRangeMultiplier( 8, 1. ) );
 	//vars.push_back( new shared_netvar( g.m_offsets->m_player.velocity_modifier, val, "m_velocityModifier" ) );
 	val = ( 1.f / AssignRangeMultiplier( 20, 2000 ) );
