@@ -433,7 +433,7 @@ public:
 	char pad[ 4208 ] = {};
 	// You need to use this constructor, because you need to allocate memory using g_pMemAlloc exported by tier0
 	//void  operator delete( void *ptr );
-	void init( ) const;
+	void init( );
 
 	void unk_1 ( );
 

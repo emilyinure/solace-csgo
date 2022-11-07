@@ -3,11 +3,13 @@
 
 auto c_form::draw ( ) -> void {
 
-	g.m_render->filled_rect( this->area_.x - 1, this->area_.y - 1, this->area_.w + 2, this->area_.h + 2, color{ 0x30, 0x2E, 0x2C } );
+	g.m_render->filled_rect( this->area_.x - 1, this->area_.y - 1, this->area_.w + 2, this->area_.h + 2, menu.dark );
 	auto text_height = g.m_render->get_text_height( this->name_, g.m_render->m_tahoma_14( ) );
-	g.m_render->text( g.m_render->m_tahoma_14( ), this->area_.x + 7, this->area_.y + 10 - ( text_height / 2.f ), { 0xDB, 0x2E, 0x2C, 100 }, this->name_ );
-	g.m_render->filled_rect( this->area_.x, this->area_.y + 20, this->area_.w, 2, { 0xDB, 0x2E, 0x2C, 20 } );
-	g.m_render->outlined_rect( this->area_.x - 1, this->area_.y - 1, this->area_.w + 2, this->area_.h + 2, { 0xDB, 0x2E, 0x2C, 20 } );
+	g.m_render->text( g.m_render->m_tahoma_14( ), this->area_.x + 7, this->area_.y + 10 - ( text_height / 2.f ), menu.main_theme, this->name_ );
+
+	menu.dark_accent.set_a( 50 );
+	g.m_render->outlined_rect( this->area_.x - 1, this->area_.y - 1, this->area_.w + 2, this->area_.h + 2, menu.dark_accent );
+	menu.dark_accent.set_a( 255 );
 
 	// child handling.
 	if ( !this->children_.empty( ) ) {
@@ -18,7 +20,7 @@ auto c_form::draw ( ) -> void {
 			switch ( child->type ) {
 			case control_type_invalid : /* invalid control, do nothing. */ break;
 			default : {	
-				child->adjust_area( { this->area_.x, this->area_.y + 22.f, this->area_.w, this->area_.h - 22.f } );
+				child->adjust_area( { this->area_.x, this->area_.y + 20.f, this->area_.w, this->area_.h - 20.f } );
 			}
 			break;
 			}
@@ -30,7 +32,7 @@ auto c_form::draw ( ) -> void {
 			const auto name_width = g.m_render->get_text_width( child->name, g.m_render->m_constantia_12( ) );
 			text_height = g.m_render->get_text_height( this->name_, g.m_render->m_constantia_12( ) );
 			text_x -= name_width + 7.f;
-			g.m_render->text( g.m_render->m_constantia_12( ), text_x, this->area_.y + 10 - ( text_height / 2.f ), child == selected_tab ? color{ 0xDB, 0x2E, 0x2C, 100 } : color{ 240,240,240, 100 }, child->name );
+			g.m_render->text( g.m_render->m_constantia_12( ), text_x, this->area_.y + 10 - ( text_height / 2.f ), child == selected_tab ? menu.main_theme : menu.bright, child->name );
 		}
 		// draw.
 		for ( auto child : this->children_ ) {

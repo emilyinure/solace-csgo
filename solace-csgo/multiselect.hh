@@ -25,47 +25,49 @@ public:
 
 	auto draw( ) -> void override {
 		button_area_ = { this->area.x, this->area.y + this->area.h / 2.f, this->area.w, this->area.h / 2.f };
-		auto count = 0;
-		for ( auto i = 0; i < this->items_.size( ); i++ )
-			if ( *value_ & ( 1 << i ) )
-				count++;
 		std::stringstream string;
-		string << count << " items selected";
-		auto text = _strdup( string.str( ).c_str( ) );
+		bool first = true;
+		for ( auto i = 0; i < this->items_.size( ); i++ )
+			if ( *value_ & ( 1 << i ) ) {
+				if ( !first )
+					string << ", ";
+				first = false;
+				string << this->items_[ i ];
+			}
+
+		auto str = string.str( );
+		if ( str.length( ) > 20 )
+			str.substr( 0, 17 ) + "...";
+
+		auto text = _strdup( str.c_str( ) );
 
 		auto text_size = g.m_render->get_text_width( text, g.m_render->m_constantia_12( ) );
-		auto text_height = g.m_render->get_text_height( text, g.m_render->m_constantia_12( ) );
+		auto text_height = g.m_render->get_text_height( "A", g.m_render->m_constantia_12( ) );
 
-		if ( this->open_ )
-			g.m_render->filled_rect( button_area_.x + 1, button_area_.y + 1, button_area_.w - 2, button_area_.h - 2, { 0xDB, 0x2E, 0x2C, 100 } );
-		g.m_render->outlined_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h, { 240,240,240, 7 } );
+		if ( !this->open_ )
+			g.m_render->outlined_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h, { 240,240,240, 7 } );
+		else {
+			this->item_area_ = { button_area_.x, button_area_.y + button_area_.h - 1, button_area_.w, button_area_.h * static_cast< int >( this->items_.size( ) ) };
+			g.m_render->filled_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h + this->item_area_.h - 1, menu.dark );
+			g.m_render->filled_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h + this->item_area_.h - 1, { 240,240,240, 7 * 4 } );
+			g.m_render->outlined_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h + this->item_area_.h - 1, { 240,240,240, 7 } );
+		}
 
-		g.m_render->text( g.m_render->m_constantia_12( ), this->area.x, this->area.y + button_area_.h / 2 - text_height / 2.f, { 240,240,240, 100 }, this->name );
-		g.m_render->text( g.m_render->m_constantia_12( ), this->button_area_.x + 5, ( this->button_area_.y + ( this->button_area_.h / 2 ) ) - ( text_height / 2.f ), { 240,240,240, 100 }, text );
+		g.m_render->text( g.m_render->m_constantia_12( ), this->area.x, this->area.y + button_area_.h / 2 - text_height / 2.f, menu.bright, this->name );
+		g.m_render->text( g.m_render->m_constantia_12( ), this->button_area_.x + this->button_area_.w - (5 + text_size), ( this->button_area_.y + ( this->button_area_.h / 2 ) ) - ( text_height / 2.f ), menu.main_theme, text );
 
 		// item drawing.
 		if ( !this->open_ )
 			return;
-
-		this->item_area_ = { button_area_.x, button_area_.y + button_area_.h - 1, button_area_.w, button_area_.h * static_cast< int >( this->items_.size( ) ) };
-
-		g.m_render->filled_rect( this->item_area_.x, this->item_area_.y, this->item_area_.w, this->item_area_.h, { 0x30, 0x2E, 0x2C } );
-		g.m_render->filled_rect( this->item_area_.x, this->item_area_.y, this->item_area_.w, this->item_area_.h, { 240,240,240, 7 * 3} );
-		g.m_render->push_clip( this->item_area_.x, this->item_area_.y, this->item_area_.w, this->item_area_.h - 1 );
-		g.m_render->outlined_rect( this->item_area_.x, this->item_area_.y-1, this->item_area_.w, this->item_area_.h+1, { 240, 240,240, 7 } );
-		g.m_render->pop_clip( );
 
 		for ( auto i{ 0 }; i < static_cast< int >( this->items_.size( ) ); i++ ) {
 			const auto *item{ this->items_[ i ] };
 			const area_t item_area{ this->item_area_.x, this->item_area_.y + ( i * 17 ), this->item_area_.w, 17 };
 			const auto selected = *this->value_ & (1 << i);
 
-			if ( selected )
-				g.m_render->filled_rect( item_area.x + 1, item_area.y + 1, item_area.w - 2, item_area.h - 2, color{ 0xDB, 0x2E, 0x2C, 100 } );
-
 			text_size = g.m_render->get_text_width( item, g.m_render->m_constantia_12( ) );
 			text_height = g.m_render->get_text_height( item, g.m_render->m_constantia_12( ) );
-			g.m_render->text( g.m_render->m_constantia_12( ), item_area.x + 5, item_area.y + item_area.h / 2 - text_height / 2, { 240,240,240, 100 }, item );
+			g.m_render->text( g.m_render->m_constantia_12( ), item_area.x + 5, item_area.y + item_area.h / 2 - text_height / 2, selected ? menu.main_theme : menu.bright, item );
 		}
 
 		//g.m_render->outlined_rect( this->item_area_.x, this->item_area_.y, this->item_area_.w, this->item_area_.h, { 240,240,240 } );

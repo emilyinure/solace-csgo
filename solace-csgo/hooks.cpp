@@ -256,6 +256,8 @@ void hooks_t::CustomEntityListener::OnEntityDeleted ( entity_t *ent ) {
 	}
 }
 
+
+
 void __stdcall frame_stage_notify( client_frame_stage_t stage ) {
 	if ( stage != FRAME_START )
 		g.m_stage = stage;
@@ -266,6 +268,12 @@ void __stdcall frame_stage_notify( client_frame_stage_t stage ) {
 
 		// apply local player animation fix.
 		g.UpdateAnimations( );
+
+		if ( settings::visuals::world::wire_smoke ) {
+			static auto smoke_count = *reinterpret_cast< uintptr_t* >( util::find("client.dll", "A3 ? ? ? ? 57 8B CB") + 0x1 );
+			if ( smoke_count )
+				*reinterpret_cast< int* >( smoke_count ) = 0;
+		}
 	}
 	g.m_interfaces->client( ).hook( )->get_original<decltype( &frame_stage_notify )>( 36 )(stage);
 	if ( stage == FRAME_NET_UPDATE_POSTDATAUPDATE_END ) {
@@ -461,36 +469,12 @@ bool __fastcall TempEntities( client_state_t *this_ptr, uint32_t edx, void *msg 
 	if ( !g.m_running_client ) {
 		return m_cl_hook.get_original< TempEntities_t >( 36 )( this_ptr, msg );
 	}
-	
+	int backup = g.m_interfaces->client_state( )->m_nMaxClients( );
+	g.m_interfaces->client_state( )->m_nMaxClients( ) = 1;
 	const auto ret = m_cl_hook.get_original< TempEntities_t >( 36 )( this_ptr, msg );
+	g.m_interfaces->client_state( )->m_nMaxClients( ) = backup;
 
-	auto ei = g.m_interfaces->client_state(  )->m_events;
-	event_info_t *next = nullptr;
-
-	if ( !ei ) {
-		return ret;
-	}
-
-	do {
-		next = *reinterpret_cast< event_info_t ** >( reinterpret_cast< uintptr_t >( ei ) + 0x38 );
-
-		const uint16_t classID = ei->m_class_id - 1;
-
-		const auto m_pCreateEventFn = ei->m_client_class->m_pCreateEvent;
-		if ( !m_pCreateEventFn ) {
-			continue;
-		}
-
-		const auto pCE = m_pCreateEventFn( );
-		if ( !pCE ) {
-			continue;
-		}
-
-		if ( classID == 170 ) {
-			ei->m_fire_delay = 0.0f;
-		}
-		ei = next;
-	} while ( next != nullptr );
+	g.m_interfaces->engine( )->FireEvents( );
 
 	return ret;
 }
@@ -501,6 +485,17 @@ void __fastcall RenderSmokeOverlay( i_render_view *this_ptr, uint32_t edx, bool 
 	// do not render smoke overlay.
 	//if ( !settings::visuals::world::wire_smoke )
 	//	g.m_interfaces->viewrender( ).hook( )->get_original< RenderSmokeOverlay_t >( 40 )( this_ptr, unk );
+}
+
+recv_var_proxy_fn m_nSmokeEffectTickBegin_original;
+void m_nSmokeEffectTickBegin( c_recv_proxy_data* pData, void* pStruct, void* pOut ) {
+	if ( !pData || !pStruct || !pOut )
+		return;
+
+	m_nSmokeEffectTickBegin_original( pData, pStruct, pOut );
+	if ( settings::visuals::world::wire_smoke ) {
+		*reinterpret_cast< bool* >( reinterpret_cast< uintptr_t >( pOut ) + 0x1 ) = true;
+	}
 }
 
 recv_var_proxy_fn m_Body_original;
@@ -743,8 +738,9 @@ hooks_t::hooks_t( ) {
 	m_cl_hook.add( PacketStart, 5 );
 
 	//o_setupmovement = reinterpret_cast<setup_movment_t>(DetourFunction( (PBYTE)util::find("client.dll", "55 8B EC 83 E4 ? 81 EC ? ? ? ? 56 57 8B 3D ? ? ? ? 8B F1"), (PBYTE)SetUpMovement));
-	
-	netvar_manager::set_proxy( fnv::hash("DT_CSPlayer"), fnv::hash( "m_flLowerBodyYawTarget"), Body_proxy, m_Body_original );
+
+	netvar_manager::set_proxy( fnv::hash( "DT_CSPlayer" ), fnv::hash( "m_flLowerBodyYawTarget" ), Body_proxy, m_Body_original );
+	netvar_manager::set_proxy( fnv::hash( "DT_SmokeGrenadeProjectile" ), fnv::hash( "m_bDidSmokeEffect" ), m_nSmokeEffectTickBegin, m_nSmokeEffectTickBegin_original );
 
 	
 	original_cl_move = reinterpret_cast< decltype( &cl_move ) >( DetourFunction(

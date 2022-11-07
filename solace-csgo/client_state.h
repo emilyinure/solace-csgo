@@ -29,6 +29,9 @@ private:
 	PAD( 0x9C );                                // 0x0000
 
 public:
+	int& m_nMaxClients( ) {
+		return *( int* )( ( uintptr_t )this + 0x0310 );
+	}
 	i_net_channel *m_net_channel;				// 0x009C
 
 private:

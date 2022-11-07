@@ -110,6 +110,15 @@ player_record_t::player_record_t (ent_info_t * info, float last_sim ) {
 	
 	m_tick = g.m_interfaces->client_state(  )->m_server_tick;
 	m_ent->GetAnimLayers( m_layers );
+	g.m_interfaces->mdlcache( )->begin_lock( );
+	{
+		auto hdr = m_ent->GetModelPtr( );
+		for ( int i = 0; i < 15; i++ ) {
+			m_layers[ i ].m_owner = m_ent;
+			m_layers[ i ].m_pDispatchedStudioHdr = hdr;
+		}
+	}
+	g.m_interfaces->mdlcache( )->end_lock( );
 	m_ent->GetPoseParameters( m_poses );
 	m_cycle = m_ent->cycle( );
 	m_sequence = m_ent->sequence( );
@@ -507,6 +516,7 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 
 	// player respawned.
 	if ( m_ent->spawn_time( ) != m_spawn ) {
+		m_ik = CIKContext{};
 		m_ik.init( );
 		// reset animation state.
 		state->ResetAnimationState( );
@@ -551,16 +561,16 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 	// fix various issues with the game eW91dHViZS5jb20vZHlsYW5ob29r
 	// these issues can only occur when a player is choking data.
 	//if ((record->m_flags & fl_onground) && !m_teamate) {
-		g.m_interfaces->mdlcache()->begin_lock(); 
-		vec3_t w;
-		if (record->m_anim_velocity.length_2d_sqr() != 0)
-			w = record->m_anim_velocity.normalized();
-		else
-			w = { 0.5,0.5, 0 };
-		float speed = solve_velocity_len(record);
-		if( speed >= 0.f )
-			record->m_anim_velocity = vec3_t(w.x * speed, w.y * speed, record->m_anim_velocity.z);
-		g.m_interfaces->mdlcache()->end_lock();
+		//g.m_interfaces->mdlcache()->begin_lock(); 
+		//vec3_t w;
+		//if (record->m_anim_velocity.length_2d_sqr() != 0)
+		//	w = record->m_anim_velocity.normalized();
+		//else
+		//	w = { 0.5,0.5, 0 };
+		//float speed = solve_velocity_len(record);
+		//if( speed >= 0.f )
+		//	record->m_anim_velocity = vec3_t(w.x * speed, w.y * speed, record->m_anim_velocity.z);
+		//g.m_interfaces->mdlcache()->end_lock();
 	//}
 	if ( record->m_lag > 1 && !bot ) {
 		auto speed = record->m_velocity.length( );		
@@ -790,7 +800,9 @@ void ent_info_t::update( player_t *ent ) {
 
 		if ( insert ) {
 			// add new record.
-			m_records.emplace_front( std::make_shared< player_record_t >( this, 0 ) )->m_dormant = true;
+			auto rec = std::make_shared< player_record_t >( this, 0 );
+			rec->m_dormant = true;
+			m_records.push_front( rec );
 		}
 	}
 
@@ -805,7 +817,7 @@ void ent_info_t::update( player_t *ent ) {
 		m_setup = false;
 
 		//g_thread_handler.queue_mutex.lock( );
-		m_records.emplace_front( std::make_shared< player_record_t >( this, last_sim ) );
+		m_records.push_front( std::make_shared< player_record_t >( this, last_sim ) );
 		//g_thread_handler.queue_mutex.unlock( );
 
 		auto &current = m_records.front( );
@@ -821,6 +833,9 @@ void ent_info_t::update( player_t *ent ) {
 			}
 			else {
 				current->m_ent->SetAnimLayers( current->m_layers );
+				m_ent->InvalidatePhysicsRecursive( player_t::ANGLES_CHANGED );
+				m_ent->InvalidatePhysicsRecursive( player_t::ANIMATION_CHANGED );
+				m_ent->InvalidatePhysicsRecursive( player_t::SEQUENCE_CHANGED );
 				m_setup = g_bones.setup( m_ent, current->m_bones, current, &m_ik );
 			}
 			current->m_ent->SetAnimLayers( backup_layers );
@@ -883,7 +898,8 @@ void player_manager_t::update ( ) {
 			//data->m_fake_player = info.fakeplayer;
 		}
 		{
-			auto ptr = objects.emplace_back(std::make_shared<plThreadObject>( &m_ents[ i - 1 ], player ) );
+			auto ptr = std::make_shared<plThreadObject>( &m_ents[ i - 1 ], player );
+			objects.push_back( ptr );
 			g_thread_handler.QueueJob( [ ptr ] {
 				ptr->run( );
 				});
@@ -941,6 +957,9 @@ bool ent_info_t::build_fake_bones( std::shared_ptr<player_record_t> current ) {
 		//memcpy( current->m_layers, current->m_fake_layers[ i ], sizeof( animation_layer_t ) * 13 );
 		//memcpy( current->m_layers, backup_layers, sizeof( animation_layer_t ) * 13 );
 		current->m_abs_angles = record_dir_data.m_abs_angles;
+		m_ent->InvalidatePhysicsRecursive( player_t::ANGLES_CHANGED );
+		m_ent->InvalidatePhysicsRecursive( player_t::ANIMATION_CHANGED );
+		m_ent->InvalidatePhysicsRecursive( player_t::SEQUENCE_CHANGED );
 		if ( i ==  mode_data->m_index ) {
 			{
 				if ( !g_bones.setup( current->m_ent, current->m_bones, current, &m_ik ) )

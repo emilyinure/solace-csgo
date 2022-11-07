@@ -493,6 +493,54 @@ resolver::trace_ret check_hit( penetration::PenetrationInput_t in, ent_info_t &i
 	return resolver::trace_ret::hit;
 }
 
+bool get_hit_clarity( ent_info_t& info, bone_array_t *bones, vec3_t start, vec3_t end ) {
+	bool found = false;
+	auto* studio_model = info.m_ent->model( );
+	if ( !studio_model )
+		return false;
+	auto* hdr = g.m_interfaces->model_info( )->get_studio_model( studio_model );
+	if ( !hdr )
+		return false;
+	auto* hitbox_set = hdr->hitbox_set( info.m_ent->hitbox_set( ) );
+	if ( !hitbox_set )
+		return false;
+		std::vector<RayTracer::Hitbox> hit_boxes;
+		vec3_t mins{}, maxs{};
+		for ( auto i = 0; i < hitbox_set->hitbox_count; i++ ) {
+			auto* hitbox = hitbox_set->hitbox( i );
+			if ( !hitbox )
+				return false;
+
+			if ( hitbox && hitbox->radius > 0 ) {
+				vec3_t vMin, vMax;
+				math::VectorTransform( hitbox->mins, bones[ hitbox->bone ], vMin );
+				math::VectorTransform( hitbox->maxs, bones[ hitbox->bone ], vMax );
+				hit_boxes.emplace_back( vMin, vMax, hitbox->radius );
+			}
+		}
+
+		if ( !hit_boxes.empty( ) ) {
+
+			static auto surface_predicate = [ ]( const RayTracer::Hitbox& a, const RayTracer::Hitbox& b ) {
+				const float area_1 = ( M_PI * powf( a.m_radius, 2 ) * a.m_len ) + ( 4.f / 3.f * M_PI * a.m_radius );
+				const float area_2 = ( M_PI * powf( b.m_radius, 2 ) * b.m_len ) + ( 4.f / 3.f * M_PI * b.m_radius );
+
+				return area_1 < area_2;
+			};
+
+			std::sort( hit_boxes.begin( ), hit_boxes.end( ), surface_predicate );
+
+			for ( auto& box : hit_boxes ) {
+				float m1, m2;
+				const auto dist = math::distSegmentToSegment( start, end, box.m_mins, box.m_maxs, m1, m2 );
+				const auto hit_dist = math::minimum_distance( box.m_mins, box.m_maxs, end );
+				if ( hit_dist - dist > -(box.m_radius / 2.f) )
+					return true;
+			}
+		}
+	return false;
+}
+
 
 void resolver::on_impact( IGameEvent *evt ) {
 	vec3_t dir, start, end;
@@ -518,7 +566,7 @@ void resolver::on_impact( IGameEvent *evt ) {
 	g.m_interfaces->debug_overlay( )->AddBoxOverlay( pos, -vec3_t( 2, 2, 2 ), vec3_t( 2, 2, 2 ), ang_t( ), 255, 0, 0, 150, 5 );
 
 	// get prediction time at this point.
-	const auto time = g.ticks_to_time( g.m_local->tick_base( ) );
+	const auto time = g.m_interfaces->globals()->m_curtime;
 
 	// add to visual impacts if we have features that rely on it enabled.
 	// todo - dex; need to match shots for this to have proper GetShootPosition, don't really care to do it anymore.
@@ -551,7 +599,7 @@ void resolver::on_impact( IGameEvent *evt ) {
 		auto predicted = s->m_time;
 		auto *nci = g.m_interfaces->engine( )->get_net_channel_info( );
 		if ( nci ) {
-			const auto latency = nci->GetLatency( 0 );
+			const auto latency = nci->GetLatency( 2 );
 			predicted += latency;
 		}
 
@@ -788,14 +836,6 @@ int resolver::hit_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& sta
 	ent_info_t& data = *impact->m_shot->m_record->m_info;
 	std::shared_ptr<player_record_t> record = impact->m_shot->m_record;
 
-
-	penetration::PenetrationInput_t pen_in;
-
-	pen_in.m_from = g.m_local;
-	pen_in.m_target = impact->m_shot->m_target;
-	pen_in.m_pos = end;
-	pen_in.m_start = start;
-
 	resolver_data::mode_data* move_data = nullptr;
 	if ( record->m_mode == RESOLVE_STAND1 )
 		move_data = &data.m_resolver_data.m_mode_data[ resolver_data::modes::STAND1 ];
@@ -807,10 +847,17 @@ int resolver::hit_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& sta
 	auto any_true = false;
 	auto fake_index = 0;
 
+	penetration::PenetrationInput_t pen_in;
+
+	pen_in.m_from = g.m_local;
+	pen_in.m_target = impact->m_shot->m_target;
+	pen_in.m_pos = end;
+	pen_in.m_start = start;
+
 	for ( auto i2 = 0; i2 < move_data->m_dir_data.size( ); i2++ ) {
 		auto& dir_data = move_data->m_dir_data[ i2 ];
-		auto hit_type = check_hit( pen_in, data, ( i2 == move_data->m_index ) ? record->m_bones : record->m_fake_bones[ fake_index ], true, impact->m_group );
-		if ( hit_type == trace_ret::spread ) {
+		auto hit_type = check_hit( pen_in, data, record->m_fake_bones[ fake_index ] );
+		if ( hit_type != trace_ret::hit ) {
 			if ( dir_data.dir_enabled ) {
 #ifdef _DEBUG
 				//g_aimbot.draw_hitboxes( data.m_ent, i2 == *current_index ? record->m_bones : record->m_fake_bones[ fake_index ] );
@@ -873,7 +920,7 @@ void resolver::resolve_hit ( impact_record_t *impact ) const {
 	// todo; to do this properly should save the weapon range at the moment of the shot, cba..
 
 	g.m_weapon_info = impact->m_shot->m_weapon_info.get( );
-	auto end = start + dir * impact->m_shot->m_weapon_info->m_range;
+	auto end = impact->m_pos;
 
 	math::custom_ray ray( start, end );
 	std::vector<int> possible_hit = {};
@@ -910,7 +957,7 @@ void resolver::resolve_miss ( impact_record_t *impact ) {
 	// get end pos by extending direction forward.
 	// todo; to do this properly should save the weapon range at the moment of the shot, cba..
 	g.m_weapon_info = impact->m_shot->m_weapon_info.get( );
-	auto end = impact->m_pos;
+	auto end = start + dir * impact->m_shot->m_weapon_info->m_range;
 	math::custom_ray ray( start, end );
 
 	// we did not hit jackshit, or someone else.
@@ -972,7 +1019,7 @@ void resolver::update_shots( ) {
 			i--;
 			continue;
 		}
-		if ( fabsf(impact->m_shot->m_time - g.ticks_to_time( g.m_local->tick_base( ) )) > 0.6f ) {
+		if ( fabsf(impact->m_shot->m_time - g.m_interfaces->globals( )->m_curtime ) > 0.6f ) {
 			m_impacts.erase( m_impacts.begin( ) + i );
 			i--;
 			continue;
@@ -1008,7 +1055,7 @@ void resolver::add_shot( ent_info_t *target, float damage, int bullets, std::sha
 		shot_record_t shot;
 		shot.m_target = target->m_ent;
 		shot.m_record = record;
-		shot.m_time = g.ticks_to_time( g.m_local->tick_base( ) );
+		shot.m_time = g.m_interfaces->globals( )->m_curtime;
 		shot.m_lat = g.m_latency;
 		shot.m_damage = damage;
 		shot.m_pos = g.m_shoot_pos;

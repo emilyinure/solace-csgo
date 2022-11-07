@@ -347,6 +347,21 @@ public:
 		return util::get_virtual_function< update_client_side_animation_t >( this, 218 )( this );
 	}
 
+	enum InvalidatePhysicsBits_t : int {
+		POSITION_CHANGED = 0x1,
+		ANGLES_CHANGED = 0x2,
+		VELOCITY_CHANGED = 0x4,
+		ANIMATION_CHANGED = 0x8,
+		BOUNDS_CHANGED = 0x10,
+		SEQUENCE_CHANGED = 0x20
+	};
+
+	__forceinline void InvalidatePhysicsRecursive( InvalidatePhysicsBits_t bits ) {
+		using InvalidatePhysicsRecursive_t = void( __thiscall* )( decltype( this ), InvalidatePhysicsBits_t );
+		static auto addr = util::find( "client.dll", "55 8B EC 83 E4 F8 83 EC 0C 53 8B 5D 08 8B C3 56" );
+		(( InvalidatePhysicsRecursive_t ) addr )( this, bits );
+	}
+
 	float spawn_time( ) {
 		static auto SpawnTime = *( uintptr_t * )( util::find( "client.dll", "F3 0F 5C 88 ? ? ? ? 0F" ) + 4 );
 		return *(float*)( this + SpawnTime );

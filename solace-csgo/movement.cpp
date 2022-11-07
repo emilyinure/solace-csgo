@@ -360,3 +360,239 @@ void movement::auto_strafe ( ) {
 
 	m_old_yaw = g.m_view_angles.y;
 }
+
+void movement::DoPrespeed( ) {
+	if ( !settings::misc::movement::pre_speed || !( g.m_cmd->m_buttons & IN_JUMP ) ) {
+		m_circle_yaw = g.m_view_angles.y;
+		return;
+	}
+
+	if ( g.m_interfaces->entity_list( )->get_client_entity_handle( g.m_local->m_ground_entity( ) ) )
+		return;
+
+	if ( isnan( m_circle_yaw ) ) {
+		m_circle_yaw = 0.f;
+	}
+
+	float   mod, min, max, step, strafe, time, angle;
+	vec3_t  plane;
+	const auto velocity = g.m_local->velocity( );
+	const float speed = velocity.length_2d( );
+	float ideal = ( speed > 1.f ) ? RAD2DEG( std::asinf( 15.f / speed ) ) : 90.f;
+
+	if ( isnan( ideal ) ) {
+		ideal = 0.f;
+	}
+
+	m_mins = g.m_local->mins( );
+	m_maxs = g.m_local->maxs( );
+
+	m_origin = g.m_local->origin( );
+
+	// min and max values are based on 128 ticks.
+	mod = g.m_interfaces->globals()->m_interval_per_tick * 128.f;
+
+	// scale min and max based on tickrate.
+	min = 2.25f * mod;
+	max = 5.f * mod;
+
+	// compute ideal strafe angle for moving in a circle.
+	strafe = ideal * 2.f;
+
+	// clamp ideal strafe circle value to min and max step.
+	strafe = std::clamp<float> ( strafe, min, max );
+
+	// calculate time.
+	time = 320.f / speed;
+
+	// clamp time.
+	time = std::clamp<float>( time, 0.35f, 1.f );
+
+	// init step.
+	step = strafe;
+
+	while ( true ) {
+		// if we will not collide with an object or we wont accelerate from such a big step anymore then stop.
+		if ( !WillCollide( time, step, m_circle_yaw ) || max <= step )
+			break;
+
+		// if we will collide with an object with the current strafe step then increment step to prevent a collision.
+		step += 0.2f;
+	}
+
+	if ( step > max ) {
+		// reset step.
+		step = strafe;
+
+		while ( true ) {
+			// if we will not collide with an object or we wont accelerate from such a big step anymore then stop.
+			if ( !WillCollide( time, step, m_circle_yaw ) || step <= -min )
+				break;
+
+			// if we will collide with an object with the current strafe step decrement step to prevent a collision.
+			step -= 0.2f;
+		}
+
+		if ( step < -min ) {
+			if ( GetClosestPlane( plane ) ) {
+				// grab the closest object normal
+				// compute the angle of the normal
+				// and push us away from the object.
+				angle = RAD2DEG( std::atan2( plane.y, plane.x ) );
+				step = -math::normalize_angle( m_circle_yaw - angle, 180.f ) * 0.1f;
+			}
+		}
+	}
+
+	// add the computed step to the steps of the previous circle iterations.
+	m_circle_yaw = math::normalize_angle( m_circle_yaw + step, 180.f );
+
+	// apply data to usercmd.
+	g.m_view_angles.y = m_circle_yaw;
+	g.m_cmd->m_sidemove = ( step >= 0.f ) ? -450.f : 450.f;
+}
+
+inline bool movement::GetClosestPlane( vec3_t& plane ) {
+	trace_t            trace;
+	trace_world_only filter;
+	vec3_t                start{ m_origin };
+	float                 smallest{ 1.f };
+	const float		      dist{ 75.f };
+
+	// trace around us in a circle
+	for ( float step{}; step <= M_PI_2; step += ( M_PI / 10.f ) ) {
+		// extend endpoint x units.
+		vec3_t end = start;
+		end.x += std::cos( step ) * dist;
+		end.y += std::sin( step ) * dist;
+
+		g.m_interfaces->trace()->trace_ray( ray_t( start, end, m_mins, m_maxs ), CONTENTS_SOLID, &filter, &trace );
+
+		// we found an object closer, then the previouly found object.
+		if ( trace.flFraction < smallest ) {
+			// save the normal of the object.
+			plane = trace.plane.normal;
+			smallest = trace.flFraction;
+		}
+	}
+
+	// did we find any valid object?
+	return smallest != 1.f && plane.z < 0.1f;
+}
+
+void air_acceletate( vec3_t& wishdir, vec3_t &velocity, const float wishspeed, const float accel ) {
+	float wishspd = wishspeed;
+
+	// Cap speed
+	if ( wishspd > 30.f )
+		wishspd = 30.f;
+
+	// Determine veer amount
+	const float currentspeed = velocity.dot( wishdir );
+
+	// See how much to add
+	const float addspeed = wishspd - currentspeed;
+
+	// If not adding any, done.
+	if ( addspeed <= 0 )
+		return;
+
+	// Determine acceleration speed after acceleration
+	float accelspeed = accel * wishspeed * g.m_interfaces->globals( )->m_interval_per_tick;
+
+	// Cap it
+	if ( accelspeed > addspeed )
+		accelspeed = addspeed;
+
+	// Adjust pmove vel.
+	for ( int i = 0; i < 2; i++ ) {
+		velocity[ i ] += accelspeed * wishdir[ i ];
+	}
+}
+
+inline bool movement::WillCollide( float time, float change, float start ) {
+	struct PredictionData_t {
+		vec3_t start;
+		vec3_t end;
+		vec3_t velocity;
+		float  direction;
+		bool   ground;
+		float  predicted;
+	};
+
+	PredictionData_t      data;
+	trace_t            trace;
+	trace_world_only filter;
+
+	// set base data.
+	data.ground = g.m_local->flags() & fl_onground;
+	data.start = m_origin;
+	data.end = m_origin;
+	data.velocity = g.m_local->velocity( );
+	data.direction = start;
+
+	for ( data.predicted = 0.f; data.predicted < time; data.predicted += g.m_interfaces->globals()->m_interval_per_tick ) {
+		// predict movement direction by adding the direction change.
+		// make sure to normalize it, in case we go over the -180/180 turning point.
+		data.direction = math::normalize_angle( data.direction + change, 180.f );
+
+		vec3_t forward, right, up;
+		ang_t( 0, data.direction, 0 ).vectors( &forward, &right, &up );  // Determine movement angles
+
+		// Zero out z components of movement vectors
+		forward[ 2 ] = 0;
+		right[ 2 ] = 0;
+		forward.normalize( );  // Normalize remainder of vectors
+		right.normalize( );    // 
+
+		vec3_t wishvel, wishdir;
+		for ( int i = 0; i < 2; i++ )       // Determine x and y parts of velocity
+			wishvel[ i ] = right[ i ] * ( change * -450.f );
+		wishvel[ 2 ] = 0;             // Zero out z part of velocity
+
+		wishdir = wishvel;   // Determine maginitude of speed of move
+		float wishspeed = wishdir.normalize( );
+
+		//vector wishdir = wishvel;   // Determine maginitude of speed of move
+		//float wishspeed = wishdir.normalize_in_place( );
+
+		static auto sv_accelerate = g.m_interfaces->console()->get_convar( "sv_airaccelerate" );
+		air_acceletate( wishdir, data.velocity, wishspeed, sv_accelerate->GetFloat() );
+
+		// assume we bhop, set upwards impulse.
+		static auto sv_jump_impulse = g.m_interfaces->console( )->get_convar( "sv_jump_impulse" );
+		static auto sv_gravity = g.m_interfaces->console( )->get_convar( "sv_gravity" );
+		if ( data.ground )
+			data.velocity.z = sv_jump_impulse->GetFloat( );
+
+		else
+			data.velocity.z -= sv_gravity->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick;
+
+		// we adjusted the velocity for our new direction.
+		// see if we can move in this direction, predict our new origin if we were to travel at this velocity.
+		data.end += ( data.velocity * g.m_interfaces->globals( )->m_interval_per_tick );
+
+		// trace
+		g.m_interfaces->trace()->trace_ray( ray_t( data.start, data.end, m_mins, m_maxs ), MASK_PLAYERSOLID, &filter, &trace );
+
+		// check if we hit any objects.
+		if ( trace.flFraction != 1.f && trace.plane.normal.z <= 0.9f )
+			return true;
+		if ( trace.startSolid || trace.allsolid )
+			return true;
+
+		// adjust start and end point.
+		data.start = data.end = trace.end;
+
+		// move endpoint 2 units down, and re-trace.
+		// do this to check if we are on th floor.
+		g.m_interfaces->trace( )->trace_ray( ray_t( data.start, data.end - vec3_t{ 0.f, 0.f, 2.f }, m_mins, m_maxs ), MASK_PLAYERSOLID, &filter, &trace );
+
+		// see if we moved the player into the ground for the next iteration.
+		data.ground = trace.did_hit( ) && trace.plane.normal.z > 0.7f;
+	}
+
+	// the entire loop has ran
+	// we did not hit shit.
+	return false;
+}

@@ -153,12 +153,7 @@ bool bones_t::setup( player_t *player, bone_array_t *out, std::shared_ptr<player
 	std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex );
 
 	// run setupbones rebuilt.
-	g.m_interfaces->mdlcache()->begin_coarse_lock();
-	g.m_interfaces->mdlcache( )->begin_lock( );
 	record->m_setup = BuildBones( player, bone_used_by_anything, out, record, ipk );
-	// we have setup this record bones.
-	g.m_interfaces->mdlcache( )->end_lock( );
-	g.m_interfaces->mdlcache()->end_coarse_lock();
 
 	return record->m_setup;
 }
@@ -546,7 +541,13 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 	animation_layer_t backup_layers[ 15 ];
 
 	// get hdr.
+	g.m_interfaces->mdlcache( )->begin_coarse_lock( );
+	g.m_interfaces->mdlcache( )->begin_lock( );
+
 	const auto hdr = target->GetModelPtr( );
+
+	g.m_interfaces->mdlcache( )->end_lock( );
+	g.m_interfaces->mdlcache( )->end_coarse_lock( );
 	if ( !hdr ) 
 		return false;
 

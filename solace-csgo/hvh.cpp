@@ -169,9 +169,12 @@ void hvh::break_resolver() {
 		auto control = sv_stopspeed->GetFloat();
 
 		auto drop = control * friction * g.m_interfaces->globals()->m_interval_per_tick;
-		g.m_cmd->m_forwardmove = 1.1f * (m_switch *= -1);
+		m_switch++;
+		if ( m_switch > 2 )
+			m_switch = 0;
+		g.m_cmd->m_forwardmove = 1.1f * (m_switch / 2);
 
-		m_breaking = m_switch == -1;
+		m_breaking = m_switch == 0;
 	}
 }
 
@@ -467,7 +470,6 @@ void hvh::DoRealAntiAim( ) {
 		if (m_just_updated_body)
 			flLastMoveTime = time;
 		float flDistortion = ((flLastMoveTime - time) / 1.1f);
-		float flDelta = fabsf(flLastMoveYaw - g.m_cmd->m_viewangles.y);
 		auto animstate = g.m_local->get_anim_state();
 		float m_flWalkToRunTransition = 0;
 		if (animstate) {
@@ -638,20 +640,12 @@ void hvh::DoRealAntiAim( ) {
 					if (flLastMoveYaw == FLT_MAX)
 						break;
 
-					if (!bDoDistort) {
-						bGenerate = true;
-					}
 
 					// don't distort for longer than this
 
 					//if (g_Vars.antiaim.distort_twist) {
 					if (animstate) {
-						break_yaw = math::normalize_angle(animstate->m_cur_feet_yaw + std::copysignf(animstate->m_cur_feet_yaw - g.m_local->lower_body_yaw(), 100 * g.ticks_to_time(g.m_last_lag)), 180.f);
-						g.m_cmd->m_viewangles.y = break_yaw;
-						//g.m_cmd->m_viewangles.y = 90.f + g.m_local->lower_body_yaw() + (180.f * flDistortion);
-						if (flDelta < 35) {
-							g.m_cmd->m_viewangles.y += 70.f;
-						}
+						g.m_cmd->m_viewangles.y = 90.f + animstate->m_cur_feet_yaw + (360.f * flDistortion);
 					}
 				}
 				break;

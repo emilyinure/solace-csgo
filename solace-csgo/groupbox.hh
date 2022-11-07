@@ -113,17 +113,16 @@ public:
 	auto draw( ) -> void  override {
 		g.m_render->filled_rect( this->area.x, this->area.y, this->area.w, this->area.h, color{ 240,240,240,7 } );
 		auto text_height = g.m_render->get_text_height( this->name, g.m_render->m_constantia_12( ) );
-		g.m_render->text( g.m_render->m_constantia_12( ), this->area.x + 5, this->area.y + 10 - ( text_height / 2.f ), { 0xDB, 0x2E, 0x2C, 100 }, this->name );
+		g.m_render->text( g.m_render->m_constantia_12( ), this->area.x + 5, this->area.y + 10 - ( text_height / 2.f ), menu.main_theme, this->name );
 		g.m_render->outlined_rect( this->area.x, this->area.y, this->area.w, this->area.h, { 240,240,240,7 } );
-		g.m_render->filled_rect( this->area.x+1, this->area.y + 20, this->area.w-2, 2, { 0xDB, 0x2E, 0x2C, 20 } );
-		g.m_render->filled_rect( this->area.x, this->area.y + 20, this->area.w, this->area.h- 20, input_helper.hovering( this->area ) ? color{ 240,240,240, 10 } : color{ 240,240,240,7 } );
+		g.m_render->filled_rect( this->area.x, this->area.y+20, this->area.w, this->area.h-20, input_helper.hovering( this->area ) ? color{ 240,240,240, 8 } : color{ 240,240,240,7 } );
 		
 		// child handling.
 		if ( !this->children_.empty( ) ) {
 			// handle position.
 			const vector_2d child_offset{ 0, scroll_y };
 			for ( const auto &child : this->children_ ) {
-				child->adjust_area( { this->area.x, this->area.y + 20.f, this->area.w, this->area.h - 20.f } );
+				child->adjust_area( { this->area.x, this->area.y + 20, this->area.w, this->area.h - 20 } );
 				child->adjust_position( child_offset );
 			}
 
@@ -134,13 +133,13 @@ public:
 					const auto name_width = g.m_render->get_text_width( child->name, g.m_render->m_constantia_12( ) );
 					text_height = g.m_render->get_text_height( this->name, g.m_render->m_constantia_12( ) );
 					text_x -= name_width + 7.f;
-					render_t::text( g.m_render->m_constantia_12( ), text_x, this->area.y + 10 - ( text_height / 2.f ), child == selected_tab ? color{ 0xDB, 0x2E, 0x2C, 100 } : color{ 240,240,240, 100 }, child->name );
+					render_t::text( g.m_render->m_constantia_12( ), text_x, this->area.y + 10 - ( text_height / 2.f ), child == selected_tab ? menu.main_theme : menu.bright, child->name );
 				}
 			}
 			
 			// draw.
 			auto has_focus = false;
-			g.m_render->push_clip( this->area.x+1, this->area.y+22, this->area.w-2, this->area.h-23 );
+			g.m_render->push_clip( this->area.x+1, this->area.y+20, this->area.w, this->area.h-21 );
 			for ( const auto &child : this->children_ ) {
 				if ( !selected_tab )
 					selected_tab = child.get( );
@@ -166,7 +165,7 @@ public:
 			}
 		}
 		if ( input_helper.hovering( { static_cast< float >( area.x ), area.y, area.w, area.h } ) )
-			scroll_y = fminf( 0, scroll_y + input_helper.scroll( ) );
+			scroll_y = fminf( 0, roundf(scroll_y + input_helper.scroll( )) );
 		if ( this->children_.size( ) > 1 ) {
 			int text_x = this->area.x + this->area.w - 6.f;
 			for ( int i = children_.size( ) - 1; i >= 0; i-- ) {
@@ -185,7 +184,7 @@ public:
 			}
 		}
 		if ( this->selected_tab != nullptr ) {
-			if ( input_helper.hovering( { this->area.x + 1, this->area.y + 22, this->area.w - 2, this->area.h - 23.f } ) )
+			if ( input_helper.hovering( { this->area.x + 1, this->area.y + 20, this->area.w - 2, this->area.h - 21.f } ) )
 				this->selected_tab->update( );
 		}
 	}

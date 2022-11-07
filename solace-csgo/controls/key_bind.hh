@@ -43,36 +43,33 @@ public:
 		
 		button_area_ = { this->area.x, this->area.y + this->area.h / 2.f, this->area.w, this->area.h / 2.f };
 		const auto text_size = g.m_render->get_text_width( input_helper.m_key( this->value_.key ), g.m_render->m_constantia_12( ) );
-		const auto text_height = g.m_render->get_text_height( input_helper.m_key( this->value_.key ), g.m_render->m_constantia_12( ) );
+		const auto text_height = g.m_render->get_text_height( "A", g.m_render->m_constantia_12( ) );
 
-		
-		if ( this->open_ || this->capturing_ )
-			g.m_render->filled_rect( button_area_.x + 1, button_area_.y + 1, button_area_.w - 2, button_area_.h - 2, { 0xDB, 0x2E, 0x2C, 100 } );
+		if ( !this->open_ ) {
+			if ( this->capturing_ )
+				g.m_render->filled_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h, { 240,240,240, 7 } );
+			g.m_render->outlined_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h, { 240,240,240, 7 } );
+		}
+		else {
+			this->item_area_ = { button_area_.x, button_area_.y + button_area_.h - 1, button_area_.w, button_area_.h * static_cast< int >( this->key_bind_types_.size( ) ) };
+			g.m_render->filled_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h + this->item_area_.h - 1, menu.dark );
+			g.m_render->filled_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h + this->item_area_.h - 1, { 240,240,240, 7 * 4 } );
+			g.m_render->outlined_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h + this->item_area_.h - 1, { 240,240,240, 7 } );
+		}
 
-		g.m_render->outlined_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h, { 240,240,240, 7 } );
-
-		g.m_render->text( g.m_render->m_constantia_12( ), this->area.x, this->area.y + button_area_.h / 2 - text_height / 2.f, { 240,240,240, 100 }, this->name );
-		g.m_render->text( g.m_render->m_constantia_12( ), this->button_area_.x + this->button_area_.w / 2 - ( text_size / 2.f ), ( this->button_area_.y + ( this->button_area_.h / 2 ) ) - ( text_height / 2.f ), { 240,240,240, 100 }, input_helper.m_key( this->value_.key ) );
+		g.m_render->text( g.m_render->m_constantia_12( ), this->area.x, this->area.y + button_area_.h / 2 - text_height / 2.f, menu.bright, this->name );
+		g.m_render->text( g.m_render->m_constantia_12( ), this->button_area_.x + this->button_area_.w / 2 - ( text_size / 2.f ), ( this->button_area_.y + ( this->button_area_.h / 2 ) ) - ( text_height / 2.f ), menu.main_theme, input_helper.m_key( this->value_.key ) );
 
 		if ( !this->open_ )
 			return;
 
-		this->item_area_ = { button_area_.x, button_area_.y + button_area_.h, button_area_.w, button_area_.h * static_cast< int >( this->key_bind_types_.size( ) ) };
-
-
-		g.m_render->filled_rect( this->item_area_.x, this->item_area_.y, this->item_area_.w, this->item_area_.h, { 0x30, 0x2E, 0x2C } );
-		g.m_render->filled_rect( this->item_area_.x, this->item_area_.y, this->item_area_.w, this->item_area_.h, { 240,240,240, 7 * 3 } );
-		g.m_render->outlined_rect( this->item_area_.x, this->item_area_.y, this->item_area_.w, this->item_area_.h, { 240, 240,240, 7 } );
 		
 		for ( auto i{ 0 }; i < static_cast< int >( this->key_bind_types_.size( ) ); i++ ) {
 			const auto* item{ this->key_bind_types_[ i ] };
 			const area_t item_area{ this->item_area_.x, this->item_area_.y + ( i * button_area_.h ), this->item_area_.w, button_area_.h };
 			const auto selected = i == this->value_.type;
 
-			if( selected )
-				g.m_render->filled_rect( item_area.x + 1, item_area.y + 1, item_area.w - 2, item_area.h - 2, color{ 0xDB, 0x2E, 0x2C, 100 } );
-
-			g.m_render->text( g.m_render->m_constantia_12( ), item_area.x + 6, item_area.y + item_area.h / 2.f - text_height / 2.f, { 240,240,240, 100 }, item );
+			g.m_render->text( g.m_render->m_constantia_12( ), item_area.x + 6, item_area.y + item_area.h / 2.f - text_height / 2.f, selected ? menu.main_theme : menu.bright , item );
 		}
 	}
 

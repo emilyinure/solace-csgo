@@ -36,6 +36,11 @@ public:
 };
 class c_menu {
 public:
+	color main_theme = color( 0x8A, 0x86, 0xA6, 0xFF );
+	color bright = color( 0xBF,0xBE,0xBD, 0xFF );
+	color bright_accent = color( 209, 176, 194, 0xFF );
+	color dark = color( 0x1B, 0x17, 0x26, 0xFF );
+	color dark_accent = color( 0x8A, 0x86, 0xA6, 0xFF );
 	auto init( ) -> void;
 	auto draw( ) const -> void;
 	auto update( ) const -> void;
@@ -43,9 +48,9 @@ public:
 
 	std::vector< key_bind_t * > n_binds = {};
 	
-	c_base_control* focused_control;
-	c_form* focused_form;
-	std::vector<std::shared_ptr<c_form>> m_forms;
+	c_base_control* focused_control = nullptr;
+	c_form* focused_form = nullptr;
+	std::vector<std::shared_ptr<c_form>> m_forms = {};
 
 
 	void save();

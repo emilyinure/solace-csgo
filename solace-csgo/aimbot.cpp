@@ -396,107 +396,34 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 }
 
 bool aimbot_t::collides( math::custom_ray ray, ent_info_t *info, bone_array_t bones[128], float add ) {
-	RayTracer::Trace trace;
-	{
-		auto* studio_model = info->m_ent->model( );
-		if ( studio_model ) {
-
-			auto* hdr = g.m_interfaces->model_info()->get_studio_model( studio_model );
-			auto* hitbox_set = hdr->hitbox_set( info->m_ent->hitbox_set( ) );
-			std::vector<RayTracer::Hitbox> hit_boxes;
-			vec3_t mins{}, maxs{};
-			for ( auto i = 0; i < hitbox_set->hitbox_count; i++ ) {
-				auto* hitbox = hitbox_set->hitbox( i );
-
-				if ( hitbox && hitbox->radius > 0 ) {
-					vec3_t vMin, vMax;
-					math::VectorTransform( hitbox->mins, bones[ hitbox->bone ], vMin );
-					math::VectorTransform( hitbox->maxs, bones[ hitbox->bone ], vMax );
-					hit_boxes.emplace_back( vMin, vMax, hitbox->radius );
-				}
-			}
-
-			if ( !hit_boxes.empty( ) ) {
-
-				static auto surface_predicate = [ ]( const RayTracer::Hitbox& a, const RayTracer::Hitbox& b ) {
-					const float area_1 = ( M_PI * powf( a.m_radius, 2 ) * a.m_len ) + ( 4.f / 3.f * M_PI * a.m_radius );
-					const float area_2 = ( M_PI * powf( b.m_radius, 2 ) * b.m_len ) + ( 4.f / 3.f * M_PI * b.m_radius );
-
-					return area_1 < area_2;
-				};
-
-				std::sort( hit_boxes.begin( ), hit_boxes.end( ), surface_predicate );
-
-				//g.m_interfaces->trace( )->trace_ray( ray_t( ray.m_start, ray.m_end ), MASK_SHOT, &filter, &trace );
-				const RayTracer::Ray ray_1( ray.m_start, ray.m_end );
-				for ( auto& box : hit_boxes ) {
-					float m1, m2;
-					const auto dist = math::distSegmentToSegment( ray.m_start, ray.m_end, box.m_mins, box.m_maxs, m1, m2 );
-					//RayTracer::TraceHitbox( ray_1, box, trace, RayTracer::Flags_NONE );
-					if ( dist <= box.m_radius + add ) {
-						return true;
-					}
-				}
-			}
-		}
-	}
-	return false;/*
-	auto *studio_model = g.m_interfaces->model_info( )->get_studio_model( ( info )->m_ent->model( ) );
+	auto* studio_model = info->m_ent->model( );
 	if ( !studio_model )
 		return false;
-
-	auto *hitbox_set = studio_model->hitbox_set( info->m_ent->hitbox_set(  ) );
-	std::deque<hitbox_t> hit_boxes;
+	auto* hdr = g.m_interfaces->model_info( )->get_studio_model( studio_model );
+	if ( !hdr )
+		return false;
+	auto* hitbox_set = hdr->hitbox_set( info->m_ent->hitbox_set( ) );
+	if ( !hitbox_set )
+		return false;
 	vec3_t mins{}, maxs{};
 	for ( auto i = 0; i < hitbox_set->hitbox_count; i++ ) {
-		auto *hitbox = hitbox_set->hitbox( i );
+		auto* hitbox = hitbox_set->hitbox( i );
+		if ( !hitbox )
+			return false;
 
-		if ( hitbox->radius > 0 ) {
-			matrix_t temp;
-
-			math::AngleMatrix( hitbox->angle, &temp );
-			matrix_t bone_transform;
-			memcpy( &bone_transform, &bones[ hitbox->bone ], sizeof( matrix_t ) );
-			if ( hitbox->angle != ang_t( ) )
-				math::ConcatTransforms( bone_transform, temp, &bone_transform );
-
+		if ( hitbox && hitbox->radius > 0 ) {
 			vec3_t vMin, vMax;
-			math::VectorTransform( hitbox->mins, bone_transform, vMin );
-			math::VectorTransform( hitbox->maxs, bone_transform, vMax );
-			hit_boxes.emplace_front( vMin, vMax, hitbox->radius );
-		} else {
-			auto center = hitbox->maxs - hitbox->mins;
-			mins = hitbox->mins; maxs = hitbox->maxs;
-			math::VectorTransform( center, bones[ hitbox->bone ], center );
-			hit_boxes.emplace_front( hitbox->bone, math::get_bone_position( bones[ hitbox->bone ] ), mins, maxs, hitbox->angle );
-		}
-	}
-	//trace_t trace;
-	vec3_t origin;
-	
-	for ( auto &box : hit_boxes ) {
-		if ( !box.m_box ) {
-			if ( box.m_radius >= math::dist_Segment_to_Segment( ray, box.m_min, box.m_max ) ) {
-				return true;
-			}
-		} else {
-		 
-			matrix_t rot_matrix;
-			math::AngleMatrix( box.m_rot, &rot_matrix );
-			
-			// apply the rotation to the entity input space (local).
-			matrix_t matrix;
-			math::ConcatTransforms( bones[ box.m_bone ], rot_matrix, &matrix );
-			
-			// extract the compound rotation as an angle.
-			ang_t bbox_angle;
-			math::MatrixAngles( matrix, bbox_angle );
-			if ( math::IntersectRayWithOBB( ray.m_start, ray.m_ray_dir, matrix, box.m_min, box.m_max, 0.0f, &trace ) ) {
+			math::VectorTransform( hitbox->mins, bones[ hitbox->bone ], vMin );
+			math::VectorTransform( hitbox->maxs, bones[ hitbox->bone ], vMax );
+
+			float m1, m2;
+			const auto dist = math::distSegmentToSegment( ray.m_start, ray.m_end, vMin, vMax, m1, m2 );
+			if ( dist <= hitbox->radius + add ) {
 				return true;
 			}
 		}
 	}
-	return false;*/
+	return false;
 }
 
 bool aimbot_t::get_aim_matrix ( ang_t angle, bone_array_t *bones ) {
@@ -1077,6 +1004,7 @@ std::vector<ent_info_t*> aimbot_t::mp_threading( ) const {
 			ptr->run( );
 			} );
 	}
+	g.m_interfaces->mem_alloc( )->free( bones );
 
 	//while ( g_thread_handler.busy( ) )
 	//	continue;

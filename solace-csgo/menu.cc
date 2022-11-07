@@ -21,7 +21,7 @@ void test5( ) {
 }
 
 auto c_menu::init( ) -> void {
-	auto main_form = std::make_shared<c_form>( "Solace", area_t{ 200, 200, 390, 312 } );
+	auto main_form = std::make_shared<c_form>( "Solace", area_t{ 200, 400, 390, 312 } );
 	this->m_forms.push_back( main_form );
 	
 	auto aim_tab = std::make_shared<c_tab>( "rage aim" );
@@ -31,11 +31,11 @@ auto c_menu::init( ) -> void {
 			auto general_group = std::make_shared<c_group_box>( "General" );
 			{
 				auto general_tab = std::make_shared<c_group_tab>( "General" );
-				general_tab->add_child( std::make_shared<c_toggle>( "enabled", &settings::rage::general::enabled ) );
-				general_tab->add_child( std::make_shared<c_key_bind>( "key", &settings::rage::general::key ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "auto shoot", &settings::rage::general::auto_shoot ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "silent", &settings::rage::general::silent ) );
-				general_tab->add_child( std::make_shared<c_slider>( "delay shot", &settings::rage::general::delay_shot, 0, 1.f ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Enabled", &settings::rage::general::enabled ) );
+				general_tab->add_child( std::make_shared<c_key_bind>( "Key", &settings::rage::general::key ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Auto shoot", &settings::rage::general::auto_shoot ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Silent", &settings::rage::general::silent ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Delay shot", &settings::rage::general::delay_shot, 0, 1.f ) );
 				general_group->add_child( general_tab );
 			};
 			left_column->add_child( general_group );
@@ -46,14 +46,14 @@ auto c_menu::init( ) -> void {
 			auto selection_group = std::make_shared<c_group_box>( "Selection" );
 			{
 				auto general_tab = std::make_shared<c_group_tab>( "Selection" );
-				general_tab->add_child( std::make_shared<c_slider>( "fov", &settings::rage::selection::fov, 0, 180 ) );
-				general_tab->add_child( std::make_shared<c_slider>( "hitchance", &settings::rage::selection::hitchance ) );
-				general_tab->add_child( std::make_shared<c_slider>( "minimum damage", &settings::rage::selection::min_damage ) );
-				general_tab->add_child( std::make_shared<c_slider>( "extra lethal damage", &settings::rage::selection::lethal_damage ) );
-				general_tab->add_child( std::make_shared<c_multiselect>( "hitboxes", &settings::rage::selection::hitboxes, std::vector<const char *> { "head", "chest", "body", "arms", "legs" } ) );
-				general_tab->add_child( std::make_shared<c_slider>( "head scale", &settings::rage::selection::point_scale ) );
-				general_tab->add_child( std::make_shared<c_slider>( "body scale", &settings::rage::selection::body_scale ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "body-aim lethal", &settings::rage::selection::body_aim_lethal ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Fov", &settings::rage::selection::fov, 0, 180 ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Hitchance", &settings::rage::selection::hitchance ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Minimum damage", &settings::rage::selection::min_damage ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Extra lethal damage", &settings::rage::selection::lethal_damage ) );
+				general_tab->add_child( std::make_shared<c_multiselect>( "Hitboxes", &settings::rage::selection::hitboxes, std::vector<const char *> { "Head", "Chest", "Body", "Arms", "Legs" } ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Head scale", &settings::rage::selection::point_scale ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Body scale", &settings::rage::selection::body_scale ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Body-aim lethal", &settings::rage::selection::body_aim_lethal ) );
 				selection_group->add_child( general_tab );
 			}
 			right_column->add_child( selection_group );
@@ -68,24 +68,24 @@ auto c_menu::init( ) -> void {
 			auto esp_tab = std::make_shared<c_group_box>( "Players" );
 			{
 				auto general_tab = std::make_shared<c_group_tab>( "Players" );
-				general_tab->add_child( std::make_shared<c_toggle>( "box", &settings::visuals::players::box ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "team", &settings::visuals::players::team ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "name", &settings::visuals::players::name ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "health", &settings::visuals::players::health ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "weapon", &settings::visuals::players::weapon ) );
-				general_tab->add_child( std::make_shared<c_combobox>( "chams - enemy", &settings::visuals::players::chams, std::vector<const char *> {"off", "full", "flat"} ) );
-				general_tab->add_child( std::make_shared<c_combobox>( "chams - enemy covered", &settings::visuals::players::chams_covered, std::vector<const char *> {"off", "full", "flat"} ) );
-				general_tab->add_child( std::make_shared<c_combobox>( "chams - team", &settings::visuals::players::chams_team, std::vector<const char *> {"off", "full", "flat"} ) );
-				general_tab->add_child( std::make_shared<c_combobox>( "chams - team covered", &settings::visuals::players::chams_team_covered, std::vector<const char *> {"off", "full", "flat"} ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Box", &settings::visuals::players::box ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Team", &settings::visuals::players::team ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Name", &settings::visuals::players::name ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Health", &settings::visuals::players::health ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Weapon", &settings::visuals::players::weapon ) );
+				general_tab->add_child( std::make_shared<c_combobox>( "Chams - enemy", &settings::visuals::players::chams, std::vector<const char *> {"Off", "Full", "Flat"} ) );
+				general_tab->add_child( std::make_shared<c_combobox>( "Chams - enemy covered", &settings::visuals::players::chams_covered, std::vector<const char *> {"Off", "Full", "Flat"} ) );
+				general_tab->add_child( std::make_shared<c_combobox>( "Chams - team", &settings::visuals::players::chams_team, std::vector<const char *> {"Off", "Full", "Flat"} ) );
+				general_tab->add_child( std::make_shared<c_combobox>( "chams - team covered", &settings::visuals::players::chams_team_covered, std::vector<const char *> {"Off", "Full", "Flat"} ) );
 				esp_tab->add_child( general_tab );
 			}
 			left_column->add_child( esp_tab );
 			auto chams_group = std::make_shared<c_group_box>( "Weapons" );
 			{
 				auto general_tab = std::make_shared<c_group_tab>( "Players" );
-				general_tab->add_child( std::make_shared<c_toggle>( "box", &settings::visuals::weapons::box ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "name", &settings::visuals::weapons::name ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "box", &settings::visuals::weapons::noscope ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Box", &settings::visuals::weapons::box ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Name", &settings::visuals::weapons::name ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Box", &settings::visuals::weapons::noscope ) );
 				chams_group->add_child( general_tab );
 			}
 			left_column->add_child( chams_group );
@@ -97,34 +97,34 @@ auto c_menu::init( ) -> void {
 			auto world_group = std::make_shared<c_group_box>( "World" );
 			{
 				auto general_tab = std::make_shared<c_group_tab>( "Players" );
-				general_tab->add_child( std::make_shared<c_toggle>( "molotov", &settings::visuals::world::molotov ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "wireframe smoke", &settings::visuals::world::wire_smoke ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Molotov", &settings::visuals::world::molotov ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Wireframe smoke", &settings::visuals::world::wire_smoke ) );
 				world_group->add_child( general_tab );
 			}
 			right_column->add_child( world_group );
 			auto misc_group = std::make_shared<c_group_box>( "Misc" );
 			{
 				auto general_tab = std::make_shared<c_group_tab>( "Players" );
-				general_tab->add_child( std::make_shared<c_slider>( "fov", &settings::visuals::misc::fov, 0, 180 ) );
-				general_tab->add_child( std::make_shared<c_slider>( "aspect ratio", &settings::visuals::misc::aspectratio, 0, 200 ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Fov", &settings::visuals::misc::fov, 0, 180 ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Aspect ratio", &settings::visuals::misc::aspectratio, 0, 200 ) );
 				misc_group->add_child( general_tab );
 			}
 			right_column->add_child( misc_group );
 		} visual_tab->add_child( right_column );
 	}
 	main_form->add_child( visual_tab );
-	auto legit_tab = std::make_shared<c_tab>( "legit aim" );
+	auto legit_tab = std::make_shared<c_tab>( "Legit aim" );
 	{
 		auto left_column = std::make_shared<c_column>( );
 		{
 			auto general_group = std::make_shared<c_group_box>( "General" );
 			{
 				auto general_tab = std::make_shared<c_group_tab>( "Players" );
-				general_tab->add_child( std::make_shared<c_toggle>( "enabled", &settings::legit::general::enabled ) );
-				general_tab->add_child( std::make_shared<c_key_bind>( "key", &settings::legit::general::key ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "auto shoot", &settings::legit::general::auto_shoot ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "silent", &settings::legit::general::silent ) );
-				general_tab->add_child( std::make_shared<c_slider>( "smoothing", &settings::legit::general::smoothing, 0, 100 ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Enabled", &settings::legit::general::enabled ) );
+				general_tab->add_child( std::make_shared<c_key_bind>( "Key", &settings::legit::general::key ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Auto shoot", &settings::legit::general::auto_shoot ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Silent", &settings::legit::general::silent ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Smoothing", &settings::legit::general::smoothing, 0, 100 ) );
 				general_group->add_child( general_tab );
 			};
 			left_column->add_child( general_group );
@@ -134,18 +134,18 @@ auto c_menu::init( ) -> void {
 			auto selection_tab = std::make_shared<c_group_box>( "Selection" );
 			{
 				auto general_tab = std::make_shared<c_group_tab>( "Players" );
-				general_tab->add_child( std::make_shared<c_slider>( "fov", &settings::legit::selection::fov, 0, 180 ) );
-				general_tab->add_child( std::make_shared<c_slider>( "minimum damage", &settings::legit::selection::min_damage ) );
-				general_tab->add_child( std::make_shared<c_multiselect>( "hitboxes", &settings::legit::selection::hitboxes, std::vector<const char *> { "head", "chest", "body", "arms", "legs" } ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Fov", &settings::legit::selection::fov, 0, 180 ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Minimum damage", &settings::legit::selection::min_damage ) );
+				general_tab->add_child( std::make_shared<c_multiselect>( "Hitboxes", &settings::legit::selection::hitboxes, std::vector<const char *> { "Head", "Chest", "Body", "Arms", "Legs" } ) );
 				selection_tab->add_child( general_tab );
 			}
 			right_column->add_child( selection_tab );
 			auto recoil_group = std::make_shared<c_group_box>( "Recoil" );
 			{
 				auto general_tab = std::make_shared<c_group_tab>( "Players" );
-				general_tab->add_child( std::make_shared<c_toggle>( "enabled", &settings::legit::recoil::enabled ) );
-				general_tab->add_child( std::make_shared<c_slider>( "x factor", &settings::legit::recoil::x_factor ) );
-				general_tab->add_child( std::make_shared<c_slider>( "y factor", &settings::legit::recoil::y_factor ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Enabled", &settings::legit::recoil::enabled ) );
+				general_tab->add_child( std::make_shared<c_slider>( "X factor", &settings::legit::recoil::x_factor ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Y factor", &settings::legit::recoil::y_factor ) );
 				recoil_group->add_child( general_tab );
 			}
 			right_column->add_child( recoil_group );
@@ -153,7 +153,7 @@ auto c_menu::init( ) -> void {
 	}
 	main_form->add_child( legit_tab );
 
-	auto hvh_form = std::make_shared<c_tab>( "hvh" );
+	auto hvh_form = std::make_shared<c_tab>( "Hvh" );
 	{
 		auto left_column = std::make_shared<c_column>( );
 		{
@@ -161,51 +161,51 @@ auto c_menu::init( ) -> void {
 			{
 				auto stand_tab = std::make_shared<c_group_tab>( "Stand" );
 				{
-					stand_tab->add_child( std::make_shared<c_toggle>( "enabled", &settings::hvh::antiaim::enabled ) );
-					stand_tab->add_child( std::make_shared<c_combobox>( "body", &settings::hvh::antiaim::body_fake_stand, std::vector<const char *> { "off", "left", "right", "opposite", "z" } ) );
-					stand_tab->add_child( std::make_shared<c_combobox>( "fake", &settings::hvh::antiaim::fake_yaw, std::vector<const char *> { "off", "default", "relative", "relative jitter", "rotate", "random", "local view" } ) );
-					stand_tab->add_child( std::make_shared<c_slider>( "fake relative", &settings::hvh::antiaim::fake_relative, -180, 180 ) );
-					stand_tab->add_child( std::make_shared<c_slider>( "fake jitter range", &settings::hvh::antiaim::fake_jitter_range, -180, 180 ) );
-					stand_tab->add_child( std::make_shared<c_combobox>( "pitch", &settings::hvh::antiaim::pitch_stand, std::vector<const char *> { "off", "down", "up", "random", "ideal" } ) );
-					stand_tab->add_child( std::make_shared<c_combobox>( "yaw offset", &settings::hvh::antiaim::yaw_stand, std::vector<const char *> { "off", "direction", "jitter", "rotate", "random", "distort" }));
-					stand_tab->add_child( std::make_shared<c_combobox>( "yaw dir", &settings::hvh::antiaim::dir_stand, std::vector<const char *> { "direction", "backwards", "left", "right" } ) );
-					stand_tab->add_child( std::make_shared<c_slider>( "stand jitter range", &settings::hvh::antiaim::jitter_range_stand, -180, 180 ) );
-					stand_tab->add_child( std::make_shared<c_slider>( "rot range", &settings::hvh::antiaim::rot_range_stand, -180, 180 ) );
-					stand_tab->add_child( std::make_shared<c_slider>( "rot speed", &settings::hvh::antiaim::rot_speed_stand, -180, 180 ) );
-					stand_tab->add_child( std::make_shared<c_slider>( "random update speed", &settings::hvh::antiaim::rand_update_stand, -180, 180 ) );
-					stand_tab->add_child( std::make_shared<c_combobox>( "base angle", &settings::hvh::antiaim::base_angle_stand, std::vector<const char *> { "off", "static", "away crosshair", "away distance" } ) );
+					stand_tab->add_child( std::make_shared<c_toggle>( "Enabled", &settings::hvh::antiaim::enabled ) );
+					stand_tab->add_child( std::make_shared<c_combobox>( "Body", &settings::hvh::antiaim::body_fake_stand, std::vector<const char *> { "Off", "Left", "Right", "Opposite", "Z" } ) );
+					stand_tab->add_child( std::make_shared<c_combobox>( "Fake", &settings::hvh::antiaim::fake_yaw, std::vector<const char *> { "Off", "Default", "Relative", "Relative jitter", "Rotate", "Random", "Local view" } ) );
+					stand_tab->add_child( std::make_shared<c_slider>( "Fake relative", &settings::hvh::antiaim::fake_relative, -180, 180 ) );
+					stand_tab->add_child( std::make_shared<c_slider>( "Fake jitter range", &settings::hvh::antiaim::fake_jitter_range, -180, 180 ) );
+					stand_tab->add_child( std::make_shared<c_combobox>( "Pitch", &settings::hvh::antiaim::pitch_stand, std::vector<const char *> { "Off", "Down", "Up", "Random", "Ideal" } ) );
+					stand_tab->add_child( std::make_shared<c_combobox>( "Yaw offset", &settings::hvh::antiaim::yaw_stand, std::vector<const char *> { "Off", "Direction", "Jitter", "Rotate", "Random", "Distort" }));
+					stand_tab->add_child( std::make_shared<c_combobox>( "Yaw dir", &settings::hvh::antiaim::dir_stand, std::vector<const char *> { "Direction", "Backwards", "Left", "Right" } ) );
+					stand_tab->add_child( std::make_shared<c_slider>( "Stand jitter range", &settings::hvh::antiaim::jitter_range_stand, -180, 180 ) );
+					stand_tab->add_child( std::make_shared<c_slider>( "Rot range", &settings::hvh::antiaim::rot_range_stand, -180, 180 ) );
+					stand_tab->add_child( std::make_shared<c_slider>( "Rot speed", &settings::hvh::antiaim::rot_speed_stand, -180, 180 ) );
+					stand_tab->add_child( std::make_shared<c_slider>( "Random update speed", &settings::hvh::antiaim::rand_update_stand, -180, 180 ) );
+					stand_tab->add_child( std::make_shared<c_combobox>( "Base angle", &settings::hvh::antiaim::base_angle_stand, std::vector<const char *> { "Off", "Static", "Away crosshair", "Away distance" } ) );
 				} antiaim_tab->add_child( stand_tab );
 				auto move_tab = std::make_shared<c_group_tab>( "Move" );
 				{
-					move_tab->add_child( std::make_shared<c_toggle>( "enabled", &settings::hvh::antiaim::enabled ) );
-					move_tab->add_child( std::make_shared<c_combobox>( "fake", &settings::hvh::antiaim::fake_yaw, std::vector<const char *> { "off", "default", "relative", "relative jitter", "rotate", "random", "local view" } ) );
-					move_tab->add_child( std::make_shared<c_slider>( "fake relative", &settings::hvh::antiaim::fake_relative, -180, 180 ) );
-					move_tab->add_child( std::make_shared<c_slider>( "fake jitter range", &settings::hvh::antiaim::fake_jitter_range, -180, 180 ) );
-					move_tab->add_child( std::make_shared<c_combobox>( "pitch", &settings::hvh::antiaim::pitch_walk, std::vector<const char *> { "off", "down", "up", "random", "ideal" } ) );
-					move_tab->add_child( std::make_shared<c_combobox>( "yaw offset walking", &settings::hvh::antiaim::yaw_walk, std::vector<const char *> { "off", "direction", "jitter", "rotate", "random", "break" } ) );
-					move_tab->add_child( std::make_shared<c_combobox>( "yaw dir walking", &settings::hvh::antiaim::dir_walk, std::vector<const char *> { "direction", "backwards", "left", "right" } ) );
-					move_tab->add_child( std::make_shared<c_slider>( "walk jitter range", &settings::hvh::antiaim::jitter_range_walk, -180, 180 ) );
-					move_tab->add_child( std::make_shared<c_slider>( "rot range walk", &settings::hvh::antiaim::rot_range_walk, -180, 180 ) );
-					move_tab->add_child( std::make_shared<c_slider>( "rot speed walk", &settings::hvh::antiaim::rot_speed_walk, -180, 180 ) );
-					move_tab->add_child( std::make_shared<c_slider>( "random update speed walk", &settings::hvh::antiaim::rand_update_walk, -180, 180 ) );
-					move_tab->add_child( std::make_shared<c_combobox>( "base angle walk", &settings::hvh::antiaim::base_angle_walk, std::vector<const char *> { "off", "static", "away crosshair", "away distance" } ) );
+					move_tab->add_child( std::make_shared<c_toggle>( "Enabled", &settings::hvh::antiaim::enabled ) );
+					move_tab->add_child( std::make_shared<c_combobox>( "Fake", &settings::hvh::antiaim::fake_yaw, std::vector<const char *> { "Off", "Default", "Relative", "Relative jitter", "Rotate", "Random", "Local view" } ) );
+					move_tab->add_child( std::make_shared<c_slider>( "Fake relative", &settings::hvh::antiaim::fake_relative, -180, 180 ) );
+					move_tab->add_child( std::make_shared<c_slider>( "Fake jitter range", &settings::hvh::antiaim::fake_jitter_range, -180, 180 ) );
+					move_tab->add_child( std::make_shared<c_combobox>( "Pitch", &settings::hvh::antiaim::pitch_walk, std::vector<const char *> { "Off", "Down", "Up", "Random", "Ideal" } ) );
+					move_tab->add_child( std::make_shared<c_combobox>( "Yaw offset walking", &settings::hvh::antiaim::yaw_walk, std::vector<const char *> { "Off", "Direction", "Jitter", "Rotate", "Random", "Break" } ) );
+					move_tab->add_child( std::make_shared<c_combobox>( "Yaw dir walking", &settings::hvh::antiaim::dir_walk, std::vector<const char *> { "Direction", "Backwards", "Left", "Right" } ) );
+					move_tab->add_child( std::make_shared<c_slider>( "Walk jitter range", &settings::hvh::antiaim::jitter_range_walk, -180, 180 ) );
+					move_tab->add_child( std::make_shared<c_slider>( "Rot range walk", &settings::hvh::antiaim::rot_range_walk, -180, 180 ) );
+					move_tab->add_child( std::make_shared<c_slider>( "Rot speed walk", &settings::hvh::antiaim::rot_speed_walk, -180, 180 ) );
+					move_tab->add_child( std::make_shared<c_slider>( "Random update speed walk", &settings::hvh::antiaim::rand_update_walk, -180, 180 ) );
+					move_tab->add_child( std::make_shared<c_combobox>( "Base angle walk", &settings::hvh::antiaim::base_angle_walk, std::vector<const char *> { "Off", "Static", "Away crosshair", "Away distance" } ) );
 
 				} antiaim_tab->add_child( move_tab );
 				auto air_tab = std::make_shared<c_group_tab>( "Air" );
 				{
-					air_tab->add_child( std::make_shared<c_toggle>( "enabled", &settings::hvh::antiaim::enabled ) );
-					air_tab->add_child( std::make_shared<c_combobox>( "body", &settings::hvh::antiaim::body_fake_air, std::vector<const char *> { "off", "left", "right", "opposite" } ) );
-					air_tab->add_child( std::make_shared<c_combobox>( "fake", &settings::hvh::antiaim::fake_yaw, std::vector<const char *> { "off", "default", "relative", "relative jitter", "rotate", "random", "local view" } ) );
-					air_tab->add_child( std::make_shared<c_slider>( "fake relative", &settings::hvh::antiaim::fake_relative, -180, 180 ) );
-					air_tab->add_child( std::make_shared<c_slider>( "fake jitter range", &settings::hvh::antiaim::fake_jitter_range, -180, 180 ) );
-					air_tab->add_child( std::make_shared<c_combobox>( "pitch", &settings::hvh::antiaim::pitch_air, std::vector<const char *> { "off", "down", "up", "random", "ideal" } ) );
-					air_tab->add_child( std::make_shared<c_combobox>( "yaw offset", &settings::hvh::antiaim::yaw_air, std::vector<const char *> { "off", "direction", "jitter", "rotate", "random" } ) );
-					air_tab->add_child( std::make_shared<c_combobox>( "yaw dir", &settings::hvh::antiaim::dir_air, std::vector<const char *> { "direction", "backwards", "left", "right" } ) );
-					air_tab->add_child( std::make_shared<c_slider>( "air jitter range", &settings::hvh::antiaim::jitter_range_air, -180, 180 ) );
-					air_tab->add_child( std::make_shared<c_slider>( "rot range", &settings::hvh::antiaim::rot_range_air, -180, 180 ) );
-					air_tab->add_child( std::make_shared<c_slider>( "rot speed", &settings::hvh::antiaim::rot_speed_air, -180, 180 ) );
-					air_tab->add_child( std::make_shared<c_slider>( "random update speed", &settings::hvh::antiaim::rand_update_air, -180, 180 ) );
-					air_tab->add_child( std::make_shared<c_combobox>( "base angle", &settings::hvh::antiaim::base_angle_air, std::vector<const char *> { "off", "static", "away crosshair", "away distance" } ) );
+					air_tab->add_child( std::make_shared<c_toggle>( "Enabled", &settings::hvh::antiaim::enabled ) );
+					air_tab->add_child( std::make_shared<c_combobox>( "Body", &settings::hvh::antiaim::body_fake_air, std::vector<const char *> { "Off", "Left", "Right", "Opposite" } ) );
+					air_tab->add_child( std::make_shared<c_combobox>( "Fake", &settings::hvh::antiaim::fake_yaw, std::vector<const char *> { "Off", "Default", "Relative", "Relative jitter", "Rotate", "Random", "Local view" } ) );
+					air_tab->add_child( std::make_shared<c_slider>( "Fake relative", &settings::hvh::antiaim::fake_relative, -180, 180 ) );
+					air_tab->add_child( std::make_shared<c_slider>( "Fake jitter range", &settings::hvh::antiaim::fake_jitter_range, -180, 180 ) );
+					air_tab->add_child( std::make_shared<c_combobox>( "Pitch", &settings::hvh::antiaim::pitch_air, std::vector<const char *> { "Off", "Down", "Up", "Random", "Ideal" } ) );
+					air_tab->add_child( std::make_shared<c_combobox>( "Yaw offset", &settings::hvh::antiaim::yaw_air, std::vector<const char *> { "Off", "Direction", "Jitter", "Rotate", "Random" } ) );
+					air_tab->add_child( std::make_shared<c_combobox>( "Yaw dir", &settings::hvh::antiaim::dir_air, std::vector<const char *> { "Direction", "Backwards", "Left", "Right" } ) );
+					air_tab->add_child( std::make_shared<c_slider>( "Air jitter range", &settings::hvh::antiaim::jitter_range_air, -180, 180 ) );
+					air_tab->add_child( std::make_shared<c_slider>( "Rot range", &settings::hvh::antiaim::rot_range_air, -180, 180 ) );
+					air_tab->add_child( std::make_shared<c_slider>( "Rot speed", &settings::hvh::antiaim::rot_speed_air, -180, 180 ) );
+					air_tab->add_child( std::make_shared<c_slider>( "Random update speed", &settings::hvh::antiaim::rand_update_air, -180, 180 ) );
+					air_tab->add_child( std::make_shared<c_combobox>( "Base angle", &settings::hvh::antiaim::base_angle_air, std::vector<const char *> { "Off", "Static", "Away crosshair", "Away distance" } ) );
 
 				} antiaim_tab->add_child( air_tab );
 				
@@ -219,10 +219,10 @@ auto c_menu::init( ) -> void {
 			{
 				auto general_tab = std::make_shared<c_group_tab>( "" );
 				{
-					general_tab->add_child( std::make_shared<c_toggle>( "lag", &settings::hvh::antiaim::lag_enable ) );
-					general_tab->add_child( std::make_shared<c_multiselect>( "lag activation", &settings::hvh::antiaim::lag_active, std::vector<const char *> { "move", "air", "crouch" } ) );
-					general_tab->add_child( std::make_shared<c_combobox>( "lag mode", &settings::hvh::antiaim::lag_mode, std::vector<const char *> { "max", "random", "break step", "rotate", "random", "peek" } ) );
-					general_tab->add_child( std::make_shared<c_slider>( "lag limit", &settings::hvh::antiaim::lag_limit, 0, 15 ) );
+					general_tab->add_child( std::make_shared<c_toggle>( "Lag", &settings::hvh::antiaim::lag_enable ) );
+					general_tab->add_child( std::make_shared<c_multiselect>( "Lag activation", &settings::hvh::antiaim::lag_active, std::vector<const char *> { "<ove", "Air", "Crouch" } ) );
+					general_tab->add_child( std::make_shared<c_combobox>( "Lag mode", &settings::hvh::antiaim::lag_mode, std::vector<const char *> { "Max", "Random", "Break step", "Rotate", "Random", "Peek" } ) );
+					general_tab->add_child( std::make_shared<c_slider>( "Lag limit", &settings::hvh::antiaim::lag_limit, 0, 15 ) );
 				}
 				lag_tab->add_child( general_tab );
 			}
@@ -231,24 +231,25 @@ auto c_menu::init( ) -> void {
 			{
 				auto general_tab = std::make_shared<c_group_tab>( "" );
 				{
-					general_tab->add_child(std::make_shared<c_key_bind>("fake walk", &settings::hvh::antiaim::fakewalk, 1));
-					general_tab->add_child(std::make_shared<c_key_bind>("fake head", &settings::hvh::antiaim::fakehead, 1));
-					general_tab->add_child( std::make_shared<c_key_bind>( "auto peek", &settings::hvh::antiaim::auto_peek, 1 ) );
+					general_tab->add_child(std::make_shared<c_key_bind>("Fake walk", &settings::hvh::antiaim::fakewalk, 1));
+					general_tab->add_child(std::make_shared<c_key_bind>("Fake head", &settings::hvh::antiaim::fakehead, 1));
+					general_tab->add_child( std::make_shared<c_key_bind>( "Auto peek", &settings::hvh::antiaim::auto_peek, 1 ) );
 				}
 				misc_tab->add_child( general_tab );
 			} right_column->add_child( misc_tab );
 		} hvh_form->add_child( right_column );
 	} main_form->add_child( hvh_form );
 	
-	auto misc_form = std::make_shared<c_tab>( "misc");
+	auto misc_form = std::make_shared<c_tab>( "Misc");
 	{
 		auto left_column = std::make_shared<c_column>( );
 		{
 			auto movement_group = std::make_shared<c_group_box>( "Movement" );
 			{
 				auto movement_tab = std::make_shared<c_group_tab>( "Movement" );
-				movement_tab->add_child( std::make_shared<c_toggle>( "bhop", &settings::misc::movement::bhop ) );
-				movement_tab->add_child( std::make_shared<c_combobox>( "auto strafer", &settings::misc::movement::autostrafe, std::vector<const char *> { "off", "normal", "directional" } ) );
+				movement_tab->add_child( std::make_shared<c_toggle>( "Bhop", &settings::misc::movement::bhop ) );
+				movement_tab->add_child( std::make_shared<c_key_bind>( "Pre speed", &settings::misc::movement::pre_speed, key_bind_type_toggle ) );
+				movement_tab->add_child( std::make_shared<c_combobox>( "Auto Strafer", &settings::misc::movement::autostrafe, std::vector<const char *> { "Off", "Normal", "Directional" } ) );
 				movement_group->add_child( movement_tab );
 			}
 			left_column->add_child( movement_group );
@@ -265,9 +266,9 @@ auto c_menu::init( ) -> void {
 			auto misc_tab = std::make_shared<c_group_box>( "Misc" );
 			{
 				auto movement_tab = std::make_shared<c_group_tab>( "Movement" );
-				movement_tab->add_child( std::make_shared<c_toggle>( "ping exploit", &settings::misc::misc::fake_latency ) );
-				movement_tab->add_child( std::make_shared<c_slider>( "ping amount", &settings::misc::misc::fake_latency_amt, 0, 1000) );
-				movement_tab->add_child( std::make_shared<c_key_bind>( "thirdperson", &settings::misc::misc::thirdperson, 2 ) );
+				movement_tab->add_child( std::make_shared<c_toggle>( "Ping exploit", &settings::misc::misc::fake_latency ) );
+				movement_tab->add_child( std::make_shared<c_slider>( "Ping amount", &settings::misc::misc::fake_latency_amt, 0, 1000) );
+				movement_tab->add_child( std::make_shared<c_key_bind>( "Thirdperson", &settings::misc::misc::thirdperson, 2 ) );
 				misc_tab->add_child( movement_tab );
 			}
 			right_column->add_child( misc_tab );

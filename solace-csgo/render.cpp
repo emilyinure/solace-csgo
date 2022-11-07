@@ -18,7 +18,16 @@ auto render_t::create_fonts( ) -> void {
 	this->tahoma_12_.create( this->device_, "Tahoma", 12, FW_DONTCARE, fontflag_antialias | fontflag_none );
 }
 
-auto render_t::get_text_width( const char *text, font_t font ) -> int {
+RECT render_t::get_text_rect( const char* text, font_t &font ) {
+	RECT rect = { 0,0,0,0 };
+
+	if ( font.font )
+		font.font->DrawTextA( nullptr, text, strlen( text ), &rect, DT_CALCRECT, D3DCOLOR_XRGB( 0, 0, 0 ) );
+
+	return rect;
+}
+
+int render_t::get_text_width( const char *text, font_t &font )  {
 	RECT rect = { 0,0,0,0 };
 
 	if ( font.font )
@@ -27,7 +36,7 @@ auto render_t::get_text_width( const char *text, font_t font ) -> int {
 	return rect.right - rect.left;
 }
 
-auto render_t::get_text_height( const char *text, font_t font ) -> int {
+auto render_t::get_text_height( const char *text, font_t &font ) -> int {
 	RECT rect = { 0,0,0,0 };
 	
 	if ( font.font )
@@ -45,7 +54,7 @@ auto render_t::setup( IDirect3DDevice9 *device ) -> void {
 					} );
 }
 
-auto render_t::text( font_t font, float x, float y, color col, const char *text, const int centered ) -> void {
+auto render_t::text( font_t &font, float x, float y, color col, const char *text, const int centered ) -> void {
 	RECT rect = { 0, 0, 0, 0 };
 
 	auto text_size = get_text_width( text, font );
@@ -255,7 +264,7 @@ auto render_t::outlined_rect( const float x, const float y, float w, float h, co
 	this->device_->DrawPrimitiveUP( D3DPT_LINESTRIP, 4, &vertices, sizeof( vertex_t ) );
 }
 
-auto render_t::line( const float x, const float y, const float x2, const float y2, const color color, const int dwWidth = 1 ) const -> void {
+auto render_t::line( const float x, const float y, const float x2, const float y2, const color color, const int dwWidth ) const -> void {
 	static LPD3DXLINE line;
 	if ( !line )
 		D3DXCreateLine( device_, &line );

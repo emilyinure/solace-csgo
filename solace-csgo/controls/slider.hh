@@ -26,17 +26,17 @@ public:
 		
 		auto text_height = g.m_render->get_text_height( this->name, g.m_render->m_constantia_12( ) );
 
-		g.m_render->filled_rect( button_area_.x + 1, button_area_.y + 1, slider_fill, button_area_.h - 2, { 0xDB, 0x2E, 0x2C, 100 } );
-		g.m_render->outlined_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h, { 240,240,240, 7 } );
+		g.m_render->filled_rect( button_area_.x + 1.f, button_area_.y + 1.f, slider_fill, button_area_.h - 2.f, menu.main_theme );
+		g.m_render->outlined_rect( button_area_.x, button_area_.y, button_area_.w, button_area_.h, { 240,240,240, 14 } );
 
-		g.m_render->text( g.m_render->m_constantia_12( ), this->area.x, this->area.y + this->area.h/4 - text_height/2, { 240,240,240, 100 }, this->name );
+		g.m_render->text( g.m_render->m_constantia_12( ), this->area.x, this->area.y + this->area.h/4 - text_height/2, menu.bright, this->name );
 
 		// display.
 		char display[ 32 ];
 		sprintf_s( display, "%.1f / %.1f", *this->value_, this->maximum_ );
 		const auto text_size = g.m_render->get_text_width( display, g.m_render->m_constantia_12( ) );
 
-		g.m_render->text( g.m_render->m_constantia_12( ), button_area_.x + button_area_.w - ( text_size ), this->area.y + this->area.h/4 - text_height / 2, { 240,240,240, 100 }, display );
+		g.m_render->text( g.m_render->m_constantia_12( ), button_area_.x + button_area_.w - ( text_size ), this->area.y + this->area.h/4 - text_height / 2, menu.main_theme, display );
 	}
 
 	auto update( ) -> void override {

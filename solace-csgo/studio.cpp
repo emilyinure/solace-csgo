@@ -85,15 +85,14 @@ void CBoneMergeCache::CopyToFollow ( vec3_t vec3s[], quaternion_t quaternions[],
 	init( this, vec3s, quaternions, i, pos, quaternion );
 }
 
-void CIKContext::init ( ) const {
+void CIKContext::init ( ) {
 	typedef void( __thiscall *Construct ) ( void * );
 	static auto construct = reinterpret_cast< Construct >( util::find( "client.dll", "56 8B F1 6A ? 6A ? C7 86 ? ? ? ? ? ? ? ?" ) );
 
 	if ( !construct )
 		return;
 
-	auto *context = static_cast< CIKContext * >( g.m_interfaces->mem_alloc( )->alloc( 0x1070 ) );
-	construct( context );
+	construct( this );
 	return;
 }
 //void CIKContext::operator delete ( void *ptr ) {

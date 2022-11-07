@@ -120,6 +120,7 @@ namespace settings {
 	namespace misc {
 		namespace movement {
 			inline bool bhop = true;
+			inline bool pre_speed = false;
 			inline int autostrafe = 1;
 		}
 		namespace griefing {

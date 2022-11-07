@@ -21,9 +21,9 @@
 
 void c_g::init_cheat( ) {
 	m_interfaces = new interfaces_t( );
+	m_render = new render_t( );
 	m_offsets = new offsets_t( );
 	m_hooks = new hooks_t( );
-	m_render = new render_t( );
 	random_seed = reinterpret_cast< random_seed_t >( GetProcAddress( GetModuleHandleA( "vstdlib.dll" ), "RandomSeed" ) );
 	random_int = reinterpret_cast< random_int_t >( GetProcAddress( GetModuleHandleA( "vstdlib.dll" ), "RandomFloat" ) );
 	random_float = reinterpret_cast< random_float_t >( GetProcAddress( GetModuleHandleA( "vstdlib.dll" ), "RandomInt" ) );
@@ -91,10 +91,33 @@ void c_g::on_tick( cmd_t *cmd ) {
 	if ( nci )
 		m_latency = nci->GetLatency( 0 );
 
+	static auto* cl_updaterate = g.m_interfaces->console( )->get_convar( "cl_updaterate" );
+	static auto* sv_minupdaterate = g.m_interfaces->console( )->get_convar( "sv_minupdaterate" );
+	static auto* sv_maxupdaterate = g.m_interfaces->console( )->get_convar( "sv_maxupdaterate" );
+
+	static auto* sv_client_min_interp_ratio = g.m_interfaces->console( )->get_convar( "sv_client_min_interp_ratio" );
+	static auto* sv_client_max_interp_ratio = g.m_interfaces->console( )->get_convar( "sv_client_max_interp_ratio" );
+
 	static auto* cl_interp = g.m_interfaces->console( )->get_convar( "cl_interp" );
-	static auto *cl_interp_ratio = g.m_interfaces->console( )->get_convar( "cl_interp_ratio" );
-	static auto *cl_updaterate = g.m_interfaces->console( )->get_convar( "cl_updaterate" );
-	m_lerp = std::fmaxf( cl_interp->GetFloat( ), cl_interp_ratio->GetFloat( ) / cl_updaterate->GetFloat( ) );
+	static auto* cl_interp_ratio = g.m_interfaces->console( )->get_convar( "cl_interp_ratio" );
+
+	float updaterate = cl_updaterate->GetFloat( );
+
+	float minupdaterate = sv_minupdaterate->GetFloat( );
+	float maxupdaterate = sv_maxupdaterate->GetFloat( );
+
+	float min_interp = sv_client_min_interp_ratio->GetFloat( );
+	float max_interp = sv_client_max_interp_ratio->GetFloat( );
+
+	float flLerpAmount = cl_interp->GetFloat( );
+	float flLerpRatio = cl_interp_ratio->GetFloat( );
+
+	flLerpRatio = std::clamp<float>( flLerpRatio, min_interp, max_interp );
+	if ( flLerpRatio == 0.0f )
+		flLerpRatio = 1.0f;
+
+	float updateRate = std::clamp<float>( updaterate, minupdaterate, maxupdaterate );
+	m_lerp = std::fmaxf( flLerpAmount, flLerpRatio / updateRate );
 
 	if ( m_local && m_local->alive( ) ) {
 		prediction::update( );
@@ -119,6 +142,7 @@ void c_g::on_tick( cmd_t *cmd ) {
 
 	g_block_bot.on_tick( );   //run all of our movement changing code before prediction
 	g_movement.auto_strafe( );
+	g_movement.DoPrespeed( );
 	g_movement.edge_bug();
 	g_movement.bhop( );
 	g_hvh.fake_walk( );
@@ -281,6 +305,7 @@ void c_g::UpdateInformation( ) {
 	//m_animstate->update( g.m_local->eye_angles( ) );
 	if ( !g.m_real_bones )
 		g.m_real_bones = static_cast< bone_array_t * >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
+
 	g.m_interfaces->mdlcache()->begin_coarse_lock();
 	g.m_interfaces->mdlcache()->begin_lock();
 	g.m_bones_setup = g_bones.BuildBonesStripped( m_local, bone_used_by_anything, g.m_real_bones, &g.m_ipk );
@@ -327,7 +352,7 @@ void c_g::UpdateInformation( ) {
 }
 
 int c_g::time_to_ticks ( float time ) const {
-	return static_cast< int >(time / m_interfaces->globals( )->m_interval_per_tick);
+	return static_cast< int >( 0.5f + (time / m_interfaces->globals( )->m_interval_per_tick));
 }
 
 float c_g::ticks_to_time( int ticks) const {
@@ -381,8 +406,8 @@ void UTIL_FieldHighLowTickBase(int* high, int* low, int* ideal) {
 	*ideal = nIdealFinalTick - simulation_ticks;
 }
 
-void UTIL_EmplaceTickBaseShift(int high, int low, int ideal) {
-	auto simulation_ticks = g.m_interfaces->client_state( )->m_choked_commands + 1;
+void UTIL_EmplaceTickBaseShift(int high, int low, int ideal, int ticks) {
+	auto simulation_ticks = g.m_interfaces->client_state( )->m_choked_commands + ticks;
 	int nEstimatedFinalTick = g.m_local->tick_base( ) + simulation_ticks;
 	if ( nEstimatedFinalTick > high ||
 		nEstimatedFinalTick < low ) {
@@ -423,6 +448,8 @@ void c_g::on_move ( float accumulated_extra_samples, bool bFinalTick, cl_move_t 
 	//}
 	//
 	//m_can_shift = true;
+	static auto* frame_ticks = util::find( "engine.dll", "2B 05 ? ? ? ? 03 05 ? ? ? ? 83 CF ?" ) + 2;
+	auto iTicksThisCommand = **reinterpret_cast< int** >( frame_ticks );
 	cl_move( accumulated_extra_samples, bFinalTick );
 
 	if ( g.m_local ) {
@@ -435,9 +462,10 @@ void c_g::on_move ( float accumulated_extra_samples, bool bFinalTick, cl_move_t 
 		assert( pCmd );
 		if ( pCmd ) {
 			//make sure we start in the right spot
+
 			get_tickbase_log( pCmd->m_command_number, &g.m_local->tick_base( ) );
 		}
-		UTIL_EmplaceTickBaseShift( high, low, ideal );
+		UTIL_EmplaceTickBaseShift( high, low, ideal, iTicksThisCommand + 1 );
 	}
 	//m_can_shift = false;
 

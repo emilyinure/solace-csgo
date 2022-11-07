@@ -113,6 +113,7 @@ class render_t {
 
 	auto create_fonts( ) -> void;
 
+
 public:
 	void on_lost_device() {
 		if (tahoma_14_.font)
@@ -169,49 +170,48 @@ public:
 	};
 	
 	auto setup( IDirect3DDevice9 *device ) -> void;
-	static auto get_text_width( const char *text, font_t font ) -> int;
-	static auto get_text_height ( const char *text, font_t font ) -> int;
-	static auto text( font_t font, float x, float y, color col, const char *text, int centered = 0 ) -> void;
-	bool draw_rounded_box ( int x, int y, int width, int height, int precision, int offset_x, int offset_y,
-	                        color col ) const;
+	static RECT get_text_rect( const char* text, font_t& font );
+	static int get_text_width( const char* text, font_t& font );
+	static auto get_text_height( const char* text, font_t& font ) -> int;
+	static auto text( font_t& font, float x, float y, color col, const char* text, const int centered = 0) -> void;
+	bool draw_rounded_box( int x, int y, int width, int height, int precision, int offset_x, int offset_y, color col ) const;
 	static void DrawLine ( long Xa, long Ya, long Xb, long Yb, DWORD dwWidth, color Color );
-	void DrawLine ( long Xa, long Ya, long Xb, long Yb, DWORD dwWidth, D3DCOLOR Color );
 	void rounded ( int x, int y, int w, int h, int iSmooth, color Color );
 	void rounded ( int x, int y, int w, int h, int iSmooth, D3DCOLOR Color );
-	auto render_triangle( vertex_t *vert, int count ) const -> void;
-	auto render_lines ( vertex_t *vert, int count ) const -> void;
-	auto filled_rect( float x, float y, float w, float h, color col ) const -> void;
-	auto outlined_rect( float x, float y, float w, float h, color col ) const -> void;
-	auto line( float x, float y, float x2, float y2, color color, int dwWidth ) const -> void;
-	auto gradient( float x, float y, float w, float h, color col, color col2, bool vertical = true ) const -> void;
-	auto push_clip( float x, float y, float w, float h ) -> void;
-	auto push_clip ( area_t area ) -> void;
+	auto render_triangle( vertex_t* vert, int count ) const -> void;
+	auto render_lines( vertex_t* vert, int count ) const -> void;
+	auto filled_rect( const float x, const float y, const float w, const float h, const color col ) const -> void;
+	auto outlined_rect( const float x, const float y, float w, float h, const color col ) const -> void;
+	auto line( const float x, const float y, const float x2, const float y2, const color color, const int dwWidth = 1) const -> void;
+	auto gradient( const float x, const float y, const float w, const float h, const color col, const color col2, const bool vertical = 0 ) const -> void;
+	auto push_clip( const float x, const float y, const float w, const float h ) -> void;
+	auto push_clip( area_t area ) -> void;
 	auto pop_clip( ) -> void;
 	auto start( ) -> void;
 	auto finish( ) const -> void;
 
 	[[nodiscard]] auto is_steam_overlay( ) const -> bool;
 
-	[[nodiscard]] auto m_tahoma_14( ) const -> font_t {
+	[[nodiscard]] font_t& m_tahoma_14( ) {
 		return this->tahoma_14_;
 	}
 
-	[[nodiscard]] auto m_segoe_ui_13( ) const -> font_t {
+	[[nodiscard]] font_t& m_segoe_ui_13( ) {
 		return this->segoe_ui_13_;
 	}
 	
-	[[nodiscard]] auto m_courier_new_13( ) const -> font_t {
+	[[nodiscard]] font_t& m_courier_new_13( ) {
 		return this->courier_new_13_;
 	}
 
-	[[nodiscard]] auto m_tahoma_12( ) const -> font_t {
+	[[nodiscard]] font_t& m_tahoma_12( ) {
 		return this->tahoma_12_;
 	}
-	[[nodiscard]] auto m_constantia_12( ) const -> font_t {
+	[[nodiscard]] font_t& m_constantia_12( ) {
 		return this->constantia_12_;
 	}
 
-	[[nodiscard]] auto m_screen_size( ) const -> D3DVIEWPORT9 {
+	[[nodiscard]] D3DVIEWPORT9& m_screen_size( ) {
 		return this->screen_size_;
 	}
 };

@@ -6,6 +6,10 @@
 class movement {
 	bool m_force_strafe = false;
 	bool m_should_stop = false;
+	float m_circle_yaw = 0.f;
+	vec3_t m_origin;
+	vec3_t m_mins;
+	vec3_t m_maxs;
 public:
 	void set_should_stop( bool state ) { m_should_stop = state; };
 	void set_force_strafe( bool state ) { m_force_strafe = state; };
@@ -23,5 +27,10 @@ public:
 	bool m_invert;
 	vec3_t m_stop_pos;
 	float m_time_left;
+
+
+	void DoPrespeed( );
+	bool GetClosestPlane( vec3_t& plane );
+	bool WillCollide( float time, float change, float start );
 } inline g_movement;
 
