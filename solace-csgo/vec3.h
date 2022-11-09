@@ -113,7 +113,18 @@ public:
 
 class quaternion_t {
 public:
-	float x, y, z, w;
+	float x = 0, y = 0, z = 0, w = 0;
+	void init( float x, float y, float z, float w ) {
+		this->x = ( x );
+		this->y = ( y );
+		this->z = ( z );
+		this->w = ( w );
+	}
+	quaternion_t( ) {};
+	quaternion_t( float x, float y, float z, float w ) : x( x ), y( y ), z( z ), w( w ) {}
+	void operator=( quaternion_t& other ) 		{
+		init( other.x, other.y, other.z, other.w );
+	}
 };
 
 class vec3_t {

@@ -29,6 +29,13 @@ float math::distSegmentToSegment(
 	const vec3_t &p1, const vec3_t &p2,
 	const vec3_t &q1, const vec3_t &q2,
 	float &invariant1, float &invariant2 ) {
+	return sqrtf( distSegmentToSegmentSqr(p1, p2, q1, q2, invariant1, invariant2 ) );
+}
+
+float math::distSegmentToSegmentSqr(
+	const vec3_t& p1, const vec3_t& p2,
+	const vec3_t& q1, const vec3_t& q2,
+	float& invariant1, float& invariant2 ) {
 
 	static const auto kSmallNumber = 0.0001f;
 	const auto u = p2 - p1;
@@ -53,7 +60,8 @@ float math::distSegmentToSegment(
 		t1 = e;
 		t2 = c;
 
-	} else {
+	}
+	else {
 		s1 = ( b * e - c * d );
 		t1 = ( a * e - b * d );
 		if ( s1 < 0.0 ) {
@@ -61,7 +69,8 @@ float math::distSegmentToSegment(
 			t1 = e;
 			t2 = c;
 
-		} else if ( s1 > s2 ) {
+		}
+		else if ( s1 > s2 ) {
 			s1 = s2;
 			t1 = e + b;
 			t2 = c;
@@ -82,7 +91,8 @@ float math::distSegmentToSegment(
 
 		}
 
-	} else if ( t1 > t2 ) {
+	}
+	else if ( t1 > t2 ) {
 		t1 = t2;
 		if ( ( -d + b ) < 0.0f )
 			s1 = 0;
@@ -93,10 +103,10 @@ float math::distSegmentToSegment(
 			s2 = a;
 		}
 	}
-	invariant1 = ( (std::abs( s1 ) < kSmallNumber) ? 0.0f : s1 / s2 );
+	invariant1 = ( ( std::abs( s1 ) < kSmallNumber ) ? 0.0f : s1 / s2 );
 	invariant2 = ( std::abs( t1 ) < kSmallNumber ? 0.0f : t1 / t2 );
 
-	return ( w + ( u * invariant1 ) - ( v * invariant2 ) ).length( );
+	return ( w + ( u * invariant1 ) - ( v * invariant2 ) ).length_sqr( );
 
 }
 void math::correct_movement( cmd_t *cmd ) {

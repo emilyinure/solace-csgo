@@ -9,7 +9,6 @@ player_record_t::~player_record_t ( ) {
 	g.m_interfaces->mem_alloc( )->free( m_bones );
 	for ( auto i = 0; i < 10; i++ )
 		g.m_interfaces->mem_alloc( )->free( m_fake_bones[ i ] );
-	g.m_interfaces->mem_alloc( )->free( m_fake_bones );
 }
 
 void player_record_t::cache ( int index ) const {
@@ -34,7 +33,7 @@ bool player_record_t::valid() const {
 	if (!g.m_interfaces->client_state()->m_net_channel)
 		return false;
 	// use prediction curtime for this.
-	float curtime = g.ticks_to_time(g.m_local->tick_base() + 1);
+	float curtime = g.ticks_to_time(g.m_local->tick_base());
 
 	// correct is the amount of time we have to correct game time,
 	float correct = g.m_lerp;
@@ -42,14 +41,14 @@ bool player_record_t::valid() const {
 	// stupid fake latency goes into the incoming latency.
 	auto* nci = g.m_interfaces->engine()->get_net_channel_info();
 	if (nci)
-		correct += nci->GetLatency(2);
+		correct += nci->GetLatency(1);
 	// check bounds [ 0, sv_maxunlag ]
 	static auto* sv_maxunlag = g.m_interfaces->console()->get_convar("sv_maxunlag");
 	correct = std::clamp<float>(correct, 0.f, sv_maxunlag->GetFloat());
 
 	// calculate difference between tick sent by player and our latency based tick.
 	// ensure this record isn't too old.
-	return std::abs(correct - (curtime - m_pred_time)) < 0.195f;
+	return std::fabsf(correct - (curtime - m_pred_time)) < 0.2f;
 }
 
 //bool player_record_t::valid() const {
@@ -124,9 +123,8 @@ player_record_t::player_record_t (ent_info_t * info, float last_sim ) {
 	m_sequence = m_ent->sequence( );
 
 	m_bones = static_cast< bone_array_t * >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
-	m_fake_bones = static_cast< bone_array_t** >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t* ) * 10 ) );
 	for ( auto i = 0; i < 10; i++ )
-		m_fake_bones[ i ] = static_cast< bone_array_t* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
+		m_fake_bones.at( i ) = static_cast< bone_array_t* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
 }
 
 template <class T>
@@ -516,7 +514,7 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 
 	// player respawned.
 	if ( m_ent->spawn_time( ) != m_spawn ) {
-		m_ik = CIKContext{};
+		memset( &m_ik, 0, sizeof( CIKContext ) );
 		m_ik.init( );
 		// reset animation state.
 		state->ResetAnimationState( );
@@ -960,6 +958,25 @@ bool ent_info_t::build_fake_bones( std::shared_ptr<player_record_t> current ) {
 		m_ent->InvalidatePhysicsRecursive( player_t::ANGLES_CHANGED );
 		m_ent->InvalidatePhysicsRecursive( player_t::ANIMATION_CHANGED );
 		m_ent->InvalidatePhysicsRecursive( player_t::SEQUENCE_CHANGED );
+		auto* weapon = static_cast< weapon_t* >( g.m_interfaces->entity_list( )->get_client_entity_handle(
+			m_ent->active_weapon( ) ) );
+		weapon_world_model_t* weapon_world_model = nullptr;
+		if ( weapon ) {
+			weapon_world_model = static_cast< weapon_world_model_t* >( g.m_interfaces->entity_list( )->get_client_entity_handle(
+				weapon->weapon_model( ) ) );
+			if ( weapon_world_model ) {
+
+				const auto weapon_studio_hdr = weapon_world_model->GetModelPtr( );
+				if ( weapon_studio_hdr ) {
+					for ( auto i = 0; i < 15; i++ ) {
+						auto* pLayer = &m_ent->anim_overlay( )[ i ];
+						if ( pLayer->m_sequence <= 1 || pLayer->m_cycle <= 0.f ) {
+							m_ent->UpdateDispatchLayer( pLayer, weapon_studio_hdr, pLayer->m_sequence );
+						}
+					}
+				}
+			}
+		}
 		if ( i ==  mode_data->m_index ) {
 			{
 				if ( !g_bones.setup( current->m_ent, current->m_bones, current, &m_ik ) )

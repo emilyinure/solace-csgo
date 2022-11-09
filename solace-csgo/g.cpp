@@ -296,6 +296,25 @@ void c_g::UpdateInformation( ) {
 	bool bStrafeBackward = (m_flSpeedAsPortionOfWalkTopSpeed >= 0.65f && moveBackward && !moveForward && flVelToForwardDot > 0.55f);
 	*(bool*)(g.m_local + 14816) = (bStrafeRight || bStrafeLeft || bStrafeForward || bStrafeBackward);
 	g.m_hooks->players_hook( g.m_local->index( ) - 1 )->get_original< void( __thiscall * ) ( player_t * ) >( 218 )( g.m_local );
+
+	weapon_world_model_t* weapon_world_model = nullptr;
+	if ( g.m_weapon ) {
+		weapon_world_model = static_cast< weapon_world_model_t* >( g.m_interfaces->entity_list( )->get_client_entity_handle(
+			g.m_weapon->weapon_model( ) ) );
+		if ( weapon_world_model ) {
+
+			const auto weapon_studio_hdr = weapon_world_model->GetModelPtr( );
+			if ( weapon_studio_hdr ) {
+				for ( auto i = 0; i < 15; i++ ) {
+					auto* pLayer = &g.m_local->anim_overlay( )[ i ];
+					if ( pLayer->m_sequence <= 1 || pLayer->m_cycle <= 0.f ) {
+						g.m_local->UpdateDispatchLayer( pLayer, weapon_studio_hdr, pLayer->m_sequence );
+					}
+				}
+			}
+		}
+	}
+
 	//if (state->m_ground) {
 	//	if (state->m_land) {
 	//		

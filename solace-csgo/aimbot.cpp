@@ -63,9 +63,9 @@ void hcThreadObject::run ( ) {
 		for ( auto& box : hit_boxes ) {
 			RayTracer::Trace trace;
 			float m1, m2;
-			auto dist = math::distSegmentToSegment( ray.m_start, ray.m_end, box.m_mins, box.m_maxs, m1, m2 );
+			auto dist = math::distSegmentToSegmentSqr( ray.m_start, ray.m_end, box.m_mins, box.m_maxs, m1, m2 );
 			//RayTracer::TraceHitbox( ray_1, box, trace, RayTracer::Flags_NONE );
-			if ( dist <= box.m_radius ) {
+			if ( dist <= box.m_radius * box.m_radius ) {
 				total_hits++; 
 				finished = true;
 				break;
@@ -205,7 +205,9 @@ vec3_t get_hitbox_edge_in_dir( vec3_t start, vec3_t end, vec3_t mins, vec3_t max
 }
 void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 	info->m_hitboxes.clear( );
-	
+	vec3_t center;
+	int mode;
+	float r;
 	for ( auto hitbox_num = hitboxes::hitbox_max - 1; hitbox_num >= 0; hitbox_num-- ) {
 		auto* hitbox = studio_model->hitbox_set( info->m_ent->hitbox_set( ) )->hitbox( hitbox_num );
 		if ( !hitbox )
@@ -243,73 +245,16 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 		default:
 			continue;
 		}
+
 		if ( select == -1 || !( settings::rage::selection::hitboxes & ( 1 << select ) ) )
 			continue;
+
 		hitbox_helper_t point_list{ hitbox_num };
 
-		auto center = ( hitbox->mins + hitbox->maxs ) / 2.f;
+		center = ( hitbox->mins + hitbox->maxs ) / 2.f;
 
-		auto mode = settings::rage::selection::body_aim_lethal ? lethal : 0;
-		const auto r = hitbox->radius * ( scale / 100.f );
-		constexpr const auto rotation = 0.70710678f;
-		switch ( hitbox_num ) {
-		case hitbox_head:
-
-			// top/back 45 deg.
-			// this is the best spot to shoot at.
-			point_list.m_points.emplace_back( hitbox->maxs, 0, hitbox_num );
-
-			point_list.m_points.emplace_back( hitbox->maxs, 0, hitbox_num );
-			point_list.m_points.emplace_back( hitbox->mins, 0, hitbox_num );
-
-			point_list.m_points.emplace_back( center, 0, hitbox_num );
-
-			// back.
-			point_list.m_points.emplace_back( vec3_t( hitbox->maxs.x, hitbox->maxs.y - r, hitbox->maxs.z ), 0, hitbox_num );
-
-			break;
-		case hitbox_body:
-			// center. safe
-			point_list.m_points.emplace_back( center, mode, hitbox_num );
-
-			// back. safe
-			point_list.m_points.emplace_back( vec3_t( center.x, center.y - r * 0.5f, center.z ), mode, hitbox_num );
-
-			break;
-		case hitbox_pelvis:
-		case hitbox_upper_chest:
-			// center. safe
-			point_list.m_points.emplace_back( center, mode, hitbox_num );
-
-			// back. safe
-			point_list.m_points.emplace_back( vec3_t( center.x, center.y - r * 0.5f, center.z ), mode, hitbox_num );
-
-			point_list.m_points.emplace_back( hitbox->mins, 0, hitbox_num );
-			break;
-		case hitbox_thorax:
-		case hitbox_chest:
-			point_list.m_points.emplace_back( center, mode, hitbox_num );
-			point_list.m_points.emplace_back( hitbox->mins, 0, hitbox_num );
-			// add center.
-
-			if ( g.m_interfaces->globals( )->m_frametime < 1. / 60. )
-				point_list.m_points.emplace_back( vec3_t{ center.x, center.y - r * 0.5f, center.z }, 0, hitbox_num );
-			break;
-		case hitbox_r_calf:
-		case hitbox_l_calf:
-			point_list.m_points.emplace_back( center, mode, hitbox_num );
-			break;
-		case hitbox_r_thigh:case hitbox_l_thigh:
-			point_list.m_points.emplace_back( center, mode, hitbox_num );
-			break;
-
-			// arms get only one point.
-		case hitbox_r_upper_arm:case hitbox_l_upper_arm:
-			point_list.m_points.emplace_back( center, mode, hitbox_num );
-			break;
-		default:;
-			break;
-		}
+		mode = settings::rage::selection::body_aim_lethal ? lethal : 0;
+		r = hitbox->radius * ( scale / 100.f );
 
 		matrix_t bone_transform;
 		memcpy( &bone_transform, &info->m_selected_record->m_bones[ hitbox->bone ], sizeof( matrix_t ) );
@@ -319,59 +264,91 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 			math::AngleMatrix( hitbox->angle, &temp );
 			math::ConcatTransforms( bone_transform, temp, &bone_transform );
 		}
-		for ( int i = 0; i < point_list.m_points.size(); i++ ) {
-			math::VectorTransform( point_list.m_points[i].m_point, bone_transform, point_list.m_points[i].m_point );
+
+
+		ang_t view = g.m_shoot_pos.look( center );
+		vec3_t right;
+		view.vectors( nullptr, &right, nullptr );
+		vec3_t point;
+		switch ( hitbox_num ) {
+		case hitbox_head:
+
+			// top/back 45 deg.
+			// this is the best spot to shoot at.
+			math::VectorTransform( hitbox->maxs, bone_transform, point );
+			point.z += r;
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+
+			math::VectorTransform( hitbox->maxs, bone_transform, point );
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+
+			math::VectorTransform( hitbox->maxs, bone_transform, point );
+			point += right * r;
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+
+			math::VectorTransform( hitbox->maxs, bone_transform, point );
+			point += right * -r;
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+			break;
+		case hitbox_body:
+
+			math::VectorTransform( center, bone_transform, point );
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+
+			math::VectorTransform( center, bone_transform, point );
+			point += right * r;
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+
+			math::VectorTransform( center, bone_transform, point );
+			point += right * -r;
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+
+			break;
+		case hitbox_pelvis:
+		case hitbox_upper_chest:
+			math::VectorTransform( center, bone_transform, point );
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+
+			math::VectorTransform( center, bone_transform, point );
+			point += right * r;
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+
+			math::VectorTransform( center, bone_transform, point );
+			point += right * -r;
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+			break;
+		case hitbox_thorax:
+		case hitbox_chest:
+			point = center;
+			math::VectorTransform( center, bone_transform, point );
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+
+			math::VectorTransform( center, bone_transform, point );
+			point += right * r;
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+
+			math::VectorTransform( center, bone_transform, point );
+			point += right * -r;
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
+			break;
+		case hitbox_r_calf:
+		case hitbox_l_calf:
+			math::VectorTransform( center, bone_transform, point );
+			point_list.m_points.emplace_back( point, mode, hitbox_num );
+			break;
+		case hitbox_r_thigh:case hitbox_l_thigh:
+			math::VectorTransform( center, bone_transform, point );
+			point_list.m_points.emplace_back( point, mode, hitbox_num );
+			break;
+
+			// arms get only one point.
+		case hitbox_r_upper_arm:case hitbox_l_upper_arm:
+			math::VectorTransform( center, bone_transform, point );
+			point_list.m_points.emplace_back( point, mode, hitbox_num );
+			break;
+		default:;
+			break;
 		}
-		if ( hitbox_num == hitbox_head ) {
-			point_list.m_points[ 0 ].m_point.z += r;
-
-			const auto resolve_mode = info->m_selected_record->m_mode;
-			if ( resolve_mode == resolver::RESOLVE_STAND1 || resolve_mode == resolver::RESOLVE_STAND2 || resolve_mode == resolver::RESOLVE_WALK || resolve_mode == resolver::RESOLVE_BODY )
-				for ( auto i = 0; i < 2; i++ ) {
-					int hitbox_count = 1;
-					vec3_t temp_point = point_list.m_points[ hitbox_count ].m_point;
-					vec3_t accumulated_point = temp_point;
-					int acum_count = 0;
-					resolver_data::mode_data* mode_data = nullptr;
-					if ( resolve_mode == resolver::RESOLVE_STAND1 )
-						mode_data = &info->m_resolver_data.m_mode_data[ resolver_data::STAND1 ];
-					if ( resolve_mode == resolver::RESOLVE_STAND2 )
-						mode_data = &info->m_resolver_data.m_mode_data[ resolver_data::STAND2 ];
-					if ( ( !info->m_selected_record->m_body_reliable && resolve_mode == resolver::RESOLVE_BODY ) || resolve_mode == resolver::RESOLVE_WALK )
-						mode_data = &info->m_resolver_data.m_mode_data[ resolver_data::LBY_MOVING ];
-					if ( resolve_mode == resolver::RESOLVE_STAND1 ) {
-						for ( auto i1 = 0; i1 < mode_data->m_dir_data.size(); i1++ ) {
-							if ( i1 == mode_data->m_index )
-								continue;
-							auto& dir_data = mode_data->m_dir_data[ i1 ];
-							if ( !dir_data.dir_enabled )
-								continue;
-							vec3_t new_avg_point = temp_point;
-							math::VectorTransform( new_avg_point, bone_transform, new_avg_point );
-							if ( hitbox_num == hitbox_head && hitbox_count == 1 )
-								new_avg_point.z += r;
-							accumulated_point += new_avg_point;
-							acum_count++;
-						}
-					}
-
-					math::VectorTransform( temp_point, bone_transform, temp_point );
-					if ( hitbox_num == hitbox_head && hitbox_count == 1 )
-						temp_point.z += r;
-
-					accumulated_point /= acum_count;
-					accumulated_point -= temp_point;
-					float len = math::minimum_distance( hitbox->mins, hitbox->maxs, accumulated_point );
-					if ( len > r )
-						point_list.m_points[ hitbox_count ].m_point = get_hitbox_edge_in_dir( temp_point, accumulated_point, hitbox->mins, hitbox->maxs, r );
-					else
-						point_list.m_points[ hitbox_count ].m_point = temp_point + accumulated_point;
-					hitbox_count++;
-				}
-		}
-		
-
-
 
 		point_list.hdr = studio_model;
 		point_list.info = info;
@@ -417,8 +394,8 @@ bool aimbot_t::collides( math::custom_ray ray, ent_info_t *info, bone_array_t bo
 			math::VectorTransform( hitbox->maxs, bones[ hitbox->bone ], vMax );
 
 			float m1, m2;
-			const auto dist = math::distSegmentToSegment( ray.m_start, ray.m_end, vMin, vMax, m1, m2 );
-			if ( dist <= hitbox->radius + add ) {
+			const auto dist = math::distSegmentToSegmentSqr( ray.m_start, ray.m_end, vMin, vMax, m1, m2 );
+			if ( dist <= hitbox->radius * hitbox->radius ) {
 				return true;
 			}
 		}
@@ -797,9 +774,9 @@ bool aimbot_t::check_hitchance( ent_info_t *info, ang_t &view, std::shared_ptr<p
 		for ( auto &box : hit_boxes ) {
 			RayTracer::Trace trace;
 			float m1, m2;
-			auto dist = math::distSegmentToSegment( ray.m_start, ray.m_end, box.m_mins, box.m_maxs, m1, m2 );
+			auto dist = math::distSegmentToSegmentSqr( ray.m_start, ray.m_end, box.m_mins, box.m_maxs, m1, m2 );
 			//RayTracer::TraceHitbox( ray_1, box, trace, RayTracer::Flags_NONE );
-			if ( dist <= box.m_radius ) {
+			if ( dist <= box.m_radius * box.m_radius ) {
 				total_hits++;
 				break;
 			}

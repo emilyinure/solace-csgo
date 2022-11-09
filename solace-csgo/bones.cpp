@@ -150,8 +150,8 @@
 
 bool bones_t::setup( player_t *player, bone_array_t *out, std::shared_ptr<player_record_t> record, CIKContext *ipk ) {
 	// if the record isnt setup yet.
-	std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex );
 
+	std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex );
 	// run setupbones rebuilt.
 	record->m_setup = BuildBones( player, bone_used_by_anything, out, record, ipk );
 
@@ -163,15 +163,21 @@ class PoseDebugger;
 
 class _BoneSetup {
 public:
-	_BoneSetup( const CStudioHdr *pStudioHdr, int boneMask, const float poseParameter[ ], PoseDebugger *pPoseDebugger = nullptr ) {
+	void init( const CStudioHdr* pStudioHdr, int boneMask, const float poseParameter[ ], PoseDebugger* pPoseDebugger = nullptr ) {
+		m_boneMask = boneMask;
+		m_flPoseParameters = poseParameter;
+		m_pStudioHdr = pStudioHdr;
+		m_pPoseDebugger = pPoseDebugger;
+	}
+	_BoneSetup( const CStudioHdr* pStudioHdr, int boneMask, const float poseParameter[ ], PoseDebugger* pPoseDebugger = nullptr ) {
 		m_boneMask = boneMask;
 		m_flPoseParameters = poseParameter;
 		m_pStudioHdr = pStudioHdr;
 		m_pPoseDebugger = pPoseDebugger;
 	}
 
-	void InitPose( vec3_t *pos, quaternion_t *q ) const {
-		static void *fn = nullptr;
+	void InitPose( vec3_t* pos, quaternion_t* q ) const {
+		static void* fn = nullptr;
 		if ( !fn ) fn = util::find( "server.dll", "55 8B EC 83 EC 10 53 8B D9 89 55" );
 
 		auto studioHdr = m_pStudioHdr;
@@ -194,8 +200,8 @@ public:
 		}
 	}
 
-	void AccumulatePose( vec3_t pos[ ], quaternion_t q[ ], int iSequence, float flCycle, float flWeight, float flTime, CIKContext *pIKContext ) const {
-	#ifdef _DEBUG
+	void AccumulatePose( vec3_t pos[ ], quaternion_t q[ ], int iSequence, float flCycle, float flWeight, float flTime, CIKContext* pIKContext ) const {
+#ifdef _DEBUG
 		//Remove breakpoint when debugger is attached
 		static bool onceOnly = false;
 		if ( !onceOnly ) {
@@ -208,9 +214,9 @@ public:
 				VirtualProtect( pattern, 1, oldProt, &oldProt );
 			}
 		}
-	#endif
+#endif
 
-		static void *fn = nullptr;
+		static void* fn = nullptr;
 		if ( !fn ) fn = ( util::find( "server.dll", "B8 ? ? ? ? E8 ? ? ? ? A1 ? ? ? ? 56 57 8B F9 B9" ) - 0x6 );
 
 		__asm
@@ -233,10 +239,10 @@ public:
 		}
 	}
 
-	void CalcAutoplaySequences( vec3_t pos[ ], quaternion_t q[ ], float flRealTime, CIKContext *pIKContext ) const {
-		static void *fn = nullptr;
+	void CalcAutoplaySequences( vec3_t pos[ ], quaternion_t q[ ], float flRealTime, CIKContext* pIKContext ) const {
+		static void* fn = nullptr;
 		if ( !fn ) fn = ( util::find( "server.dll", "55 8B EC 83 EC 10 53 56 57 8B 7D 10" ) );
-		auto *globals = g.m_interfaces->globals(  ).operator void *(  );
+		auto* globals = g.m_interfaces->globals( ).operator void* ( );
 		__asm
 		{
 			mov     eax, globals
@@ -244,16 +250,16 @@ public:
 			push    0
 			push    q
 			push    pos
-			movss   xmm3, dword ptr[ eax + 10h ]; a3
+			movss   xmm3, flRealTime
 			call    fn
 		}
 	}
 
-	void CalcBoneAdj( vec3_t pos[ ], quaternion_t q[ ], const float *encodedControllerArray ) const {
-		static void *fn = nullptr;
+	void CalcBoneAdj( vec3_t pos[ ], quaternion_t q[ ], const float* encodedControllerArray ) const {
+		static void* fn = nullptr;
 		if ( !fn ) fn = ( util::find( "server.dll", "55 8B EC 83 E4 F8 81 EC ? ? ? ? 8B C1 89" ) );
 
-		const auto *studioHdr = m_pStudioHdr;
+		const auto* studioHdr = m_pStudioHdr;
 		auto boneMask = m_boneMask;
 
 		__asm
@@ -275,10 +281,10 @@ public:
 
 	}
 
-	const CStudioHdr *m_pStudioHdr;
+	const CStudioHdr* m_pStudioHdr;
 	int m_boneMask;
-	const float *m_flPoseParameters;
-	PoseDebugger *m_pPoseDebugger;
+	const float* m_flPoseParameters;
+	PoseDebugger* m_pPoseDebugger;
 };
 
 
@@ -286,10 +292,11 @@ public:
 class BoneSetup {
 public:
 	BoneSetup( const CStudioHdr *pStudioHdr, int boneMask, const float *poseParameter ) {
-		m_pBoneSetup = new _BoneSetup( pStudioHdr, boneMask, poseParameter );
+		m_pBoneSetup = ( _BoneSetup* )malloc( sizeof( _BoneSetup ) );
+		m_pBoneSetup->init( pStudioHdr, boneMask, poseParameter );
 	}
 	~BoneSetup( ) {
-		delete m_pBoneSetup;
+		free( m_pBoneSetup );
 	}
 	void InitPose( vec3_t *pos, quaternion_t *q ) const {
 		m_pBoneSetup->InitPose( pos, q );
@@ -369,9 +376,10 @@ void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaterni
 				if ( pLayer->m_sequence <= 1 || pLayer->m_cycle <= 0.f ) {
 					//if ( weapon_studio_hdr->m_pVModel )
 					//	seq_count = ((CUtlVector< virtualsequence_t > *)(weapon_studio_hdr->m_pVModel + 20))->Count( );
-					player->UpdateDispatchLayer( pLayer, weapon_studio_hdr, pLayer->m_sequence );
 
-					if ( pLayer->m_nDispatchedDst > 0 && pLayer->m_nDispatchedDst < studioHdr->GetNumSeq(  ) ) {
+					if ( pLayer->m_nDispatchedDst <= 0 || pLayer->m_nDispatchedDst >= studioHdr->GetNumSeq( ) ) {
+						boneSetup.AccumulatePose( pos, q, pLayer->m_sequence, pLayer->m_cycle, pLayer->m_weight, sim_time, ik );
+					} else {
 						weapon_world_model->m_pBoneMergeCache( )->CopyFromFollow( pos, q, BONE_USED_BY_BONE_MERGE, weaponPos, weaponQ );
 
 						if ( ik ) {
@@ -384,7 +392,6 @@ void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaterni
 						weapon_world_model->m_pBoneMergeCache( )->CopyToFollow( weaponPos, weaponQ, BONE_USED_BY_BONE_MERGE, pos, q );
 
 						weaponIK.CopyTo( ik, *( int * )( weapon_world_model->m_pBoneMergeCache( ) + 160 ) );
-						continue;
 					}
 				}
 				boneSetup.AccumulatePose( pos, q, pLayer->m_sequence, pLayer->m_cycle, pLayer->m_weight, sim_time, ik );

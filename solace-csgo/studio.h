@@ -3,7 +3,6 @@
 #include "memory_shit.h"
 #include "vec3.h"
 
-using quaternion = float[4];
 using rad_euler = float[3];
 
 #define MAX_QPATH  260
@@ -122,14 +121,14 @@ struct studio_bone_t {
 	int bone_controller[6];
 
 	vec3_t pos;
-	quaternion quat;
+	quaternion_t quat;
 	rad_euler rotation;
 
 	vec3_t pos_scale;
 	vec3_t rot_scale;
 
 	matrix_t pose_to_bone;
-	quaternion quat_alignement;
+	quaternion_t quat_alignement;
 	int flags;
 	int proc_type;
 	int proc_index;

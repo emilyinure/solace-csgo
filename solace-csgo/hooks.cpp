@@ -594,7 +594,8 @@ void __stdcall PostNetworkDataReceived( int commands_acknowledged ) {
 				map->m_num_fields++;
 				map->m_packed_size = 0;
 				g.m_map_setup = CPredictionCopy::PrepareDataMap( map );
-				g_pred_manager.init( map );
+				if( g.m_map_setup )
+					g_pred_manager.init( map );
 			}
 		}
 	}

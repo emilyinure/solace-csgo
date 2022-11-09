@@ -36,7 +36,7 @@ void hvh::fake_walk () const {
 	if ( !map ) return;
 
 	const auto size = std::max( map->m_packed_size, 4 );
-	const auto pre_pred = new byte[ size ];
+	const auto pre_pred = (byte*)malloc(sizeof(byte)*size);
 	memset( pre_pred, 0, size );
 
 	auto CopyHelper = CPredictionCopy( PC_EVERYTHING, static_cast< byte * >( pre_pred ), true, reinterpret_cast< const byte * >( g.m_local ), false, CPredictionCopy::TRANSFERDATA_COPYONLY );
@@ -88,7 +88,7 @@ void hvh::fake_walk () const {
 	prediction::end( );
 	CopyHelper = CPredictionCopy( PC_EVERYTHING, reinterpret_cast< byte * >( g.m_local ), false, static_cast< const byte * >( pre_pred ), true, CPredictionCopy::TRANSFERDATA_COPYONLY );
 	CopyHelper.TransferData( "Post_Fakewalk", g.m_local->index( ), map );
-	delete[] pre_pred;
+	free(pre_pred);
 	
 
 	g.m_cmd->m_forwardmove = backup_fmove;

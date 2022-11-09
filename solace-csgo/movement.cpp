@@ -64,7 +64,7 @@ void movement::bhop( ) {
 }
 
 void movement::QuickStop( ) {
-	if ( !m_should_stop )
+	if ( !m_should_stop || settings::hvh::antiaim::auto_peek )
 		return;
 
 	set_should_stop( false );
@@ -153,7 +153,7 @@ void movement::auto_peek( ) {
 			m_time_left = 0;
 		}
 			
-		if ( g.m_old_shot )
+		if ( m_should_stop )
 			m_invert = true;
 		 
 		if ( m_invert ) {
@@ -165,6 +165,7 @@ void movement::auto_peek( ) {
 		m_invert = false;
 	}
 	last = settings::hvh::antiaim::auto_peek;
+	set_should_stop( false );
 }
 
 void movement::move_to(vec3_t target_origin) const {

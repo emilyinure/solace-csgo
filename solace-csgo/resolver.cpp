@@ -641,6 +641,7 @@ void resolver::on_impact( IGameEvent *evt ) {
 		if ( impact->m_tick == g.m_local->tick_base( ) ) {
 			m_impacts.erase( m_impacts.begin( ) + i );
 			i--;
+			continue;
 		}
 	}
 

@@ -41,6 +41,7 @@ void notification::think ( ) {
 
 		if ( delta_time <= 0.f ) {
 			m_notify_text.erase( m_notify_text.begin( ) + i );
+			i--;
 		}
 	}
 
