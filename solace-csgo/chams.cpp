@@ -157,7 +157,7 @@ void chams_t::player( player_t *player, uintptr_t ctx, void *state, const model_
 		
 		g.m_interfaces->render_view( )->set_blend( 0.5f );
 		auto const record = g_aimbot.last_record( ent_info );
-		if ( record )
+		if ( record && record->m_setup )
 			draw_model( g.m_interfaces->model_render( ), ctx, state, info, record->m_bones );
 	}
 
@@ -174,7 +174,7 @@ void chams_t::player( player_t *player, uintptr_t ctx, void *state, const model_
 				draw_model( g.m_interfaces->model_render( ), ctx, state, info, i );
 #endif
 		
-		if( front )
+		if( front && front->m_setup )
 			draw_model( g.m_interfaces->model_render( ), ctx, state, info, front->m_bones );
 		
 
