@@ -111,10 +111,7 @@ void chams_t::player( player_t *player, uintptr_t ctx, void *state, const model_
 	}
 	
 	auto ent_info = &g_player_manager.m_ents[ player->index( ) - 1 ];
-	auto auto_draw = !ent_info->m_valid || ent_info->m_teamate;
-	if ( !auto_draw && ent_info->m_records.empty( ) ) {
-		auto_draw = !ent_info->m_records.front( ) || !ent_info->m_records.front( )->m_setup;
-	}
+	auto auto_draw = !ent_info->m_valid || ent_info->m_teamate || ent_info->m_records.empty( ) || !ent_info->m_records.front( ) || !ent_info->m_records.front( )->m_setup;
 	if ( auto_draw ) {
 		if ( ent_info->m_teamate ) {
 			if ( settings::visuals::players::chams_team_covered != 0 ) {
@@ -157,7 +154,7 @@ void chams_t::player( player_t *player, uintptr_t ctx, void *state, const model_
 		
 		g.m_interfaces->render_view( )->set_blend( 0.5f );
 		auto const record = g_aimbot.last_record( ent_info );
-		if ( record && record->m_setup )
+		if ( record )
 			draw_model( g.m_interfaces->model_render( ), ctx, state, info, record->m_bones );
 	}
 
@@ -174,7 +171,7 @@ void chams_t::player( player_t *player, uintptr_t ctx, void *state, const model_
 				draw_model( g.m_interfaces->model_render( ), ctx, state, info, i );
 #endif
 		
-		if( front && front->m_setup )
+		if( front )
 			draw_model( g.m_interfaces->model_render( ), ctx, state, info, front->m_bones );
 		
 
