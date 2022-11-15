@@ -49,9 +49,6 @@
     <Filter Include="helpers\render\input_helper">
       <UniqueIdentifier>{95b148f5-21c0-4016-adf1-3585633b059d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="sdk\misc">
-      <UniqueIdentifier>{960802ac-c9e4-4a2c-a8aa-06ebcb118946}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="address.h">
@@ -111,13 +108,7 @@
     <ClInclude Include="render.h">
       <Filter>helpers\render</Filter>
     </ClInclude>
-    <ClInclude Include="fire.h">
-      <Filter>sdk\entities</Filter>
-    </ClInclude>
     <ClInclude Include="math_funcs.h">
-      <Filter>sdk\valve\math</Filter>
-    </ClInclude>
-    <ClInclude Include="delaunator.hpp">
       <Filter>sdk\valve\math</Filter>
     </ClInclude>
     <ClInclude Include="esp.h">
@@ -258,9 +249,6 @@
     <ClInclude Include="notification.h">
       <Filter>g\features</Filter>
     </ClInclude>
-    <ClInclude Include="stack.h">
-      <Filter>helpers</Filter>
-    </ClInclude>
     <ClInclude Include="tfm.h">
       <Filter>helpers</Filter>
     </ClInclude>
@@ -270,22 +258,15 @@
     <ClInclude Include="memory_shit.h">
       <Filter>sdk\valve\structures</Filter>
     </ClInclude>
-    <ClInclude Include="buy_bot.h" />
     <ClInclude Include="netvar_manager.h">
       <Filter>g\features</Filter>
     </ClInclude>
-    <ClInclude Include="job_thread.h">
-      <Filter>sdk\misc</Filter>
-    </ClInclude>
-    <ClInclude Include="ray_tracer.h">
-      <Filter>helpers</Filter>
-    </ClInclude>
     <ClInclude Include="checksum_crc.h" />
-    <ClInclude Include="server_animstate.h">
-      <Filter>sdk\misc</Filter>
-    </ClInclude>
     <ClInclude Include="thread_handler.h">
       <Filter>g</Filter>
+    </ClInclude>
+    <ClInclude Include="buy_bot.h">
+      <Filter>g\features</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -371,19 +352,15 @@
     <ClCompile Include="predictioncopy.cpp">
       <Filter>sdk\valve\structures</Filter>
     </ClCompile>
-    <ClCompile Include="buy_bot.cpp" />
     <ClCompile Include="netvar_manager.cpp">
       <Filter>g\features</Filter>
     </ClCompile>
-    <ClCompile Include="ray_tracer.cpp">
-      <Filter>helpers</Filter>
-    </ClCompile>
     <ClCompile Include="checksum_crc.cpp" />
-    <ClCompile Include="server_animstate.cpp">
-      <Filter>sdk\misc</Filter>
-    </ClCompile>
     <ClCompile Include="thread_hander.cpp">
       <Filter>g</Filter>
+    </ClCompile>
+    <ClCompile Include="buy_bot.cpp">
+      <Filter>g\features</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

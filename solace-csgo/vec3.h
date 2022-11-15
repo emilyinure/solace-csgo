@@ -231,6 +231,9 @@ public:
 	[[nodiscard]] float length( void ) const {
 		const auto sqsr = length_sqr( );
 
+		if ( sqsr == 0 )
+			return 0.f;
+
 		return sqrt( sqsr );
 	}
 	[[nodiscard]] float length_2d_sqr() const {
@@ -243,8 +246,10 @@ public:
 	}
 
 	[[nodiscard]] float length_2d( ) const {
-
-		return sqrt(length_2d_sqr());
+		float len = length_2d_sqr();
+		if ( isnan( len ) || len == 0 )
+			return 0.f;
+		return sqrt( len );
 	}
 
 	[[nodiscard]] float length_sqr( ) const {
@@ -258,7 +263,7 @@ public:
 
 	float normalize( ) {
 		const float ln = length( );
-		if (isnan(ln))
+		if (isnan(ln) || ln == 0)
 			return 0;
 		x /= ln;
 		y /= ln;
@@ -268,12 +273,9 @@ public:
 	
 	vec3_t normalized( ) const {
 		float len = length();
-		if (len == 0)
-			return vec3_t(0, 0, 0);
-		if (isnan(len)) {
-			return *this;
-		}
-		return ( *this ) / length( );
+		if ( isnan( len ) || len == 0 )
+			return vec3_t(0,0,0 );
+		return ( *this ) / len;
 	}
 
 	[[nodiscard]] ang_t look( vec3_t target ) const {

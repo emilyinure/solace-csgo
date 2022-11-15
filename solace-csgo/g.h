@@ -5,7 +5,6 @@
 
 #include "hvh.h"
 #include "vec3.h"
-#include "server_animstate.h"
 
 class cmd_t;
 class interfaces_t;
@@ -55,7 +54,6 @@ public:
 
 	bool m_running_client = false;
 	float spawn_time = 0;
-	server_anim_state* m_animstate = nullptr;
 	
 	bool m_in_pred = false;
 	ang_t m_view_angles = ang_t();

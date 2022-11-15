@@ -7,8 +7,8 @@
 player_record_t::~player_record_t ( ) {
 	// free heap allocated game mem.
 	g.m_interfaces->mem_alloc( )->free( m_bones );
-	for ( auto i = 0; i < 10; i++ )
-		g.m_interfaces->mem_alloc( )->free( m_fake_bones[ i ] );
+	for( auto &i : m_fake_bones )
+		g.m_interfaces->mem_alloc( )->free( i );
 }
 
 void player_record_t::cache ( int index ) const {
@@ -123,8 +123,6 @@ player_record_t::player_record_t (ent_info_t * info, float last_sim ) {
 	m_sequence = m_ent->sequence( );
 
 	m_bones = static_cast< bone_array_t * >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
-	for ( auto i = 0; i < 10; i++ )
-		m_fake_bones.at( i ) = static_cast< bone_array_t* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
 }
 
 template <class T>
@@ -549,9 +547,21 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 	if ( record->m_lag > 0 && record->m_lag < 16 && m_records.size( ) >= 2 ) {
 		// get pointer to previous record.
 		auto const &previous = m_records[ 1 ];
-	
-		if ( previous && !previous->m_dormant )
+
+		if ( previous && !previous->m_dormant ) {
 			record->m_velocity = ( record->m_origin - previous->m_origin ) * ( 1.f / g.ticks_to_time( record->m_lag ) );
+			//float m_flAccelerationWeight = record->m_layers[ 12 ].m_weight;
+			//float prev = previous->m_origin.length_sqr();
+			//float weapon_speed = 260.f;
+			//auto weapon = static_cast< weapon_t* >( g.m_interfaces->entity_list( )->get_client_entity_handle( m_ent->active_weapon( ) ) );;
+			//if ( weapon ) {
+			//	weapon_speed = max( 0.001, weapon->get_max_speed( ) );
+			//}
+			//if ( m_flAccelerationWeight != 0 ) {
+			//	auto dir = record->m_velocity - previous->m_velocity;
+			//	record->m_velocity = record->m_velocity.normalized( ) * ( sqrtf( prev ) + sqrtf( 1040 * fminf( 0.1f, record->m_sim_time - record->m_old_sim_time ) * weapon_speed * m_flAccelerationWeight + prev ) ) * 0.5f;
+			//}
+		}
 	}
 	// set this fucker, it will get overriden.
 	record->m_anim_velocity = record->m_velocity;
@@ -648,115 +658,96 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 	//
 	m_ent->eye_angles( ) = record->m_eye_angles;
 	m_ent->client_side_anim( ) = true;
-	if (!m_teamate) {
-		state->feetYawRate = 0.f;
+	{
+		std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex );
+		// backup curtime.
+		const auto curtime = g.m_interfaces->globals( )->m_curtime;
+		const auto frametime = g.m_interfaces->globals( )->m_frametime;
 
-		resolver_data::mode_data* mode_data = nullptr;
-		bool lby_or_move = ( !record->m_body_reliable && record->m_mode == resolver::RESOLVE_BODY ) || record->m_mode == resolver::RESOLVE_WALK;
-		if ( lby_or_move ) {
-			mode_data = &m_resolver_data.m_mode_data[ resolver_data::LBY_MOVING ];
-			float val = 35.f;
-			if ( record->m_mode == resolver::RESOLVE_WALK )
-				val = ( 30.f + 20.0f * state->m_flWalkToRunTransition ) * g.ticks_to_time( record->m_lag );
+		g.m_interfaces->globals( )->m_curtime = record->m_anim_time;
+		g.m_interfaces->globals( )->m_frametime = g.m_interfaces->globals( )->m_curtime;
 
-			record->m_resolver_data.m_dir_data.emplace_back( record->m_body );
-			record->m_resolver_data.m_dir_data.emplace_back( record->m_body + val );
-			record->m_resolver_data.m_dir_data.emplace_back( record->m_body - val );
-		}
-		else if ( record->m_mode == resolver::RESOLVE_STAND1 )
-			mode_data = &m_resolver_data.m_mode_data[ resolver_data::STAND1 ];
-		else if ( record->m_mode == resolver::RESOLVE_STAND2 )
-			mode_data = &m_resolver_data.m_mode_data[ resolver_data::STAND2 ];
+		if ( !m_teamate ) {
+			state->feetYawRate = 0.f;
 
-		anim_state backup_anim_state{};
-		std::memcpy( &backup_anim_state, state, sizeof( anim_state ) );
-		anim_state* index_state = nullptr;
-		if ( mode_data && record->m_resolver_data.m_dir_data.size() == mode_data->m_dir_data.size( ) ) {
-			auto new_index = 0;
-			for ( auto i = 0; i < mode_data->m_dir_data.size(); i++ ) {
-				if ( m_resolver_data.m_states[ i ].m_frame >= g.m_interfaces->globals( )->m_framecount )
-					m_resolver_data.m_states[ i ].m_frame = g.m_interfaces->globals( )->m_framecount - 1;
-				auto& record_dir_data = record->m_resolver_data.m_dir_data[ i ];
-				std::memcpy( state, &m_resolver_data.m_states[ i ], sizeof( anim_state ) );
-				state->feetYawRate = 0.f;
-				m_ent->eye_angles( ).y = math::normalize_angle( record_dir_data.angles, 180 );
-				{
-					std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex );
-					// backup curtime.
-					const auto curtime = g.m_interfaces->globals( )->m_curtime;
-					const auto frametime = g.m_interfaces->globals( )->m_frametime;
+			resolver_data::mode_data* mode_data = nullptr;
+			bool lby_or_move = ( !record->m_body_reliable && record->m_mode == resolver::RESOLVE_BODY ) || record->m_mode == resolver::RESOLVE_WALK;
+			if ( lby_or_move ) {
+				mode_data = &m_resolver_data.m_mode_data[ resolver_data::LBY_MOVING ];
+				float val = 30.f;
+				if ( record->m_mode == resolver::RESOLVE_WALK )
+					val += 20.f;
 
-					g.m_interfaces->globals( )->m_curtime = record->m_anim_time;
-					g.m_interfaces->globals( )->m_frametime = g.m_interfaces->globals( )->m_curtime;
+				record->m_resolver_data.m_dir_data.emplace_back( record->m_body );
+				record->m_resolver_data.m_dir_data.emplace_back( record->m_body + val );
+				record->m_resolver_data.m_dir_data.emplace_back( record->m_body - val );
+			}
+			else if ( record->m_mode == resolver::RESOLVE_STAND1 )
+				mode_data = &m_resolver_data.m_mode_data[ resolver_data::STAND1 ];
+			else if ( record->m_mode == resolver::RESOLVE_STAND2 )
+				mode_data = &m_resolver_data.m_mode_data[ resolver_data::STAND2 ];
+
+			anim_state backup_anim_state{};
+			std::memcpy( &backup_anim_state, state, sizeof( anim_state ) );
+			anim_state* index_state = nullptr;
+			if ( mode_data && record->m_resolver_data.m_dir_data.size( ) == mode_data->m_dir_data.size( ) ) {
+				auto new_index = 0;
+				for ( auto i = 0; i < mode_data->m_dir_data.size( ); i++ ) {
+					auto& record_dir_data = record->m_resolver_data.m_dir_data[ i ];
+					std::memcpy( state, &m_resolver_data.m_states[ i ], sizeof( anim_state ) );
+
+					m_ent->eye_angles( ).y = math::normalize_angle( record_dir_data.angles, 180 );
+
+					if ( state->m_frame >= g.m_interfaces->globals( )->m_framecount )
+						state->m_frame = g.m_interfaces->globals( )->m_framecount - 1;
 
 					m_ent->update_client_side_animation( );
 
-					g.m_interfaces->globals( )->m_curtime = curtime;
-					g.m_interfaces->globals( )->m_frametime = frametime;
+					m_ent->GetPoseParameters( record_dir_data.poses );
+					record_dir_data.m_abs_angles = m_ent->abs_angles( );
+
+					std::memcpy( &m_resolver_data.m_states[ i ], state, sizeof( anim_state ) );
+
+					if ( mode_data->m_index == i ) {
+						record->m_abs_angles = m_ent->abs_angles( );
+						index_state = &m_resolver_data.m_states[ i ];
+						memcpy( record->m_poses, record_dir_data.poses, sizeof( float ) * 24 );
+					}
+
+					memcpy( state, &backup_anim_state, sizeof( anim_state ) );
+					m_ent->SetPoseParameters( backup.m_poses );
+					m_ent->SetAnimLayers( backup.m_layers );
 				}
-				m_ent->GetPoseParameters( record_dir_data.poses );
-				record_dir_data.m_abs_angles = m_ent->abs_angles( );
-				std::memcpy( &m_resolver_data.m_states[ i ], state, sizeof( anim_state ) );
-				if ( mode_data->m_index == i ) {
-					record->m_abs_angles = m_ent->abs_angles( );
-					index_state = &m_resolver_data.m_states[ i ];
-					memcpy(record->m_poses, record_dir_data.poses, sizeof( float) * 24);
-				}
-				memcpy( state, &backup_anim_state, sizeof( anim_state ) );
-				m_ent->SetPoseParameters( backup.m_poses );
+			}
+			if ( index_state )
+				std::memcpy( state, index_state, sizeof( anim_state ) );
+			else {
+				m_ent->eye_angles( ) = record->m_eye_angles;
+				if ( state->m_frame >= g.m_interfaces->globals( )->m_framecount )
+					state->m_frame = g.m_interfaces->globals( )->m_framecount - 1;
+
+				m_ent->update_client_side_animation( );
+				record->m_abs_angles = m_ent->abs_angles( );
+				// store updated/animated poses and rotation in lagrecord.
+				m_ent->GetPoseParameters( record->m_poses );
 				m_ent->SetAnimLayers( backup.m_layers );
 			}
 		}
-		if ( index_state )
-			std::memcpy( state, index_state, sizeof( anim_state ) );
 		else {
 			m_ent->eye_angles( ) = record->m_eye_angles;
-			state->feetYawRate = 0.f;
-			//m_ent->get_anim_state( )->m_goal_feet_yaw = m_ent->eye_angles( ).y;
-			if ( m_ent->get_anim_state( )->m_frame >= g.m_interfaces->globals( )->m_framecount )
-				m_ent->get_anim_state( )->m_frame = g.m_interfaces->globals( )->m_framecount - 1;
-			{
-				std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex );
-				// backup curtime.
-				const auto curtime = g.m_interfaces->globals( )->m_curtime;
-				const auto frametime = g.m_interfaces->globals( )->m_frametime;
+			if ( state->m_frame >= g.m_interfaces->globals( )->m_framecount )
+				state->m_frame = g.m_interfaces->globals( )->m_framecount - 1;
 
-				g.m_interfaces->globals( )->m_curtime = record->m_anim_time;
-				g.m_interfaces->globals( )->m_frametime = g.m_interfaces->globals( )->m_curtime;
 
-				m_ent->update_client_side_animation( );
-
-				g.m_interfaces->globals( )->m_curtime = curtime;
-				g.m_interfaces->globals( )->m_frametime = frametime;
-			}
+			m_ent->update_client_side_animation( );
 			record->m_abs_angles = m_ent->abs_angles( );
 			// store updated/animated poses and rotation in lagrecord.
 			m_ent->GetPoseParameters( record->m_poses );
+			m_ent->SetAnimLayers( backup.m_layers );
 		}
-	}
-	else {
-		m_ent->eye_angles( ) = record->m_eye_angles;
-		state->feetYawRate = 0.f;
-		//m_ent->get_anim_state( )->m_goal_feet_yaw = m_ent->eye_angles( ).y;
-		if ( m_ent->get_anim_state( )->m_frame >= g.m_interfaces->globals( )->m_framecount )
-			m_ent->get_anim_state( )->m_frame = g.m_interfaces->globals( )->m_framecount - 1;
-		{
-			std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex );
-			// backup curtime.
-			const auto curtime = g.m_interfaces->globals( )->m_curtime;
-			const auto frametime = g.m_interfaces->globals( )->m_frametime;
 
-			g.m_interfaces->globals( )->m_curtime = record->m_anim_time;
-			g.m_interfaces->globals( )->m_frametime = g.m_interfaces->globals( )->m_curtime;
-
-			m_ent->update_client_side_animation( );
-
-			g.m_interfaces->globals( )->m_curtime = curtime;
-			g.m_interfaces->globals( )->m_frametime = frametime;
-		}
-		record->m_abs_angles = m_ent->abs_angles( );
-		// store updated/animated poses and rotation in lagrecord.
-		m_ent->GetPoseParameters( record->m_poses );
+		g.m_interfaces->globals( )->m_curtime = curtime;
+		g.m_interfaces->globals( )->m_frametime = frametime;
 	}
 	m_ent->client_side_anim( ) = false;
 	//}
@@ -823,6 +814,25 @@ void ent_info_t::update( player_t *ent ) {
 		UpdateAnimations( current );
 		
 		if ( !m_teamate ) {
+			auto* weapon = static_cast< weapon_t* >( g.m_interfaces->entity_list( )->get_client_entity_handle(
+				m_ent->active_weapon( ) ) );
+			weapon_world_model_t* weapon_world_model = nullptr;
+			if ( weapon ) {
+				weapon_world_model = static_cast< weapon_world_model_t* >( g.m_interfaces->entity_list( )->get_client_entity_handle(
+					weapon->weapon_model( ) ) );
+				if ( weapon_world_model ) {
+
+					const auto weapon_studio_hdr = weapon_world_model->GetModelPtr( );
+					if ( weapon_studio_hdr ) {
+						for ( auto i = 0; i < 15; i++ ) {
+							auto* pLayer = &current->m_layers[ i ];
+							if ( pLayer->m_sequence <= 1 || pLayer->m_cycle <= 0.f ) {
+								m_ent->UpdateDispatchLayer( pLayer, weapon_studio_hdr, pLayer->m_sequence );
+							}
+						}
+					}
+				}
+			}
 			animation_layer_t backup_layers[ 15 ];
 			memcpy( backup_layers, current->m_layers, sizeof( current->m_layers ) );
 
@@ -831,9 +841,6 @@ void ent_info_t::update( player_t *ent ) {
 			}
 			else {
 				current->m_ent->SetAnimLayers( current->m_layers );
-				m_ent->InvalidatePhysicsRecursive( player_t::ANGLES_CHANGED );
-				m_ent->InvalidatePhysicsRecursive( player_t::ANIMATION_CHANGED );
-				m_ent->InvalidatePhysicsRecursive( player_t::SEQUENCE_CHANGED );
 				m_setup = g_bones.setup( m_ent, current->m_bones, current, &m_ik );
 			}
 			current->m_ent->SetAnimLayers( backup_layers );
@@ -955,28 +962,6 @@ bool ent_info_t::build_fake_bones( std::shared_ptr<player_record_t> current ) {
 		//memcpy( current->m_layers, current->m_fake_layers[ i ], sizeof( animation_layer_t ) * 13 );
 		//memcpy( current->m_layers, backup_layers, sizeof( animation_layer_t ) * 13 );
 		current->m_abs_angles = record_dir_data.m_abs_angles;
-		m_ent->InvalidatePhysicsRecursive( player_t::ANGLES_CHANGED );
-		m_ent->InvalidatePhysicsRecursive( player_t::ANIMATION_CHANGED );
-		m_ent->InvalidatePhysicsRecursive( player_t::SEQUENCE_CHANGED );
-		auto* weapon = static_cast< weapon_t* >( g.m_interfaces->entity_list( )->get_client_entity_handle(
-			m_ent->active_weapon( ) ) );
-		weapon_world_model_t* weapon_world_model = nullptr;
-		if ( weapon ) {
-			weapon_world_model = static_cast< weapon_world_model_t* >( g.m_interfaces->entity_list( )->get_client_entity_handle(
-				weapon->weapon_model( ) ) );
-			if ( weapon_world_model ) {
-
-				const auto weapon_studio_hdr = weapon_world_model->GetModelPtr( );
-				if ( weapon_studio_hdr ) {
-					for ( auto i = 0; i < 15; i++ ) {
-						auto* pLayer = &m_ent->anim_overlay( )[ i ];
-						if ( pLayer->m_sequence <= 1 || pLayer->m_cycle <= 0.f ) {
-							m_ent->UpdateDispatchLayer( pLayer, weapon_studio_hdr, pLayer->m_sequence );
-						}
-					}
-				}
-			}
-		}
 		if ( i ==  mode_data->m_index ) {
 			{
 				if ( !g_bones.setup( current->m_ent, current->m_bones, current, &m_ik ) )
@@ -985,7 +970,8 @@ bool ent_info_t::build_fake_bones( std::shared_ptr<player_record_t> current ) {
 		}
 		else {
 			{
-				if ( !g_bones.setup( current->m_ent, current->m_fake_bones[ bone_ix ], current, &m_ik ) )
+				current->m_fake_bones.push_back( static_cast< bone_array_t* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) ) );
+				if ( !g_bones.setup( current->m_ent, current->m_fake_bones.back(), current, &m_ik ) )
 					all_setup = false;
 			}
 			bone_ix++;

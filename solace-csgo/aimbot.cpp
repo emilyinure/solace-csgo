@@ -4,115 +4,114 @@
 #include "bones.h"
 #include "hooks.h"
 #include "penetration.h"
-#include "ray_tracer.h"
 #include "resolver.h"
 #include "thread_handler.h"
 
-class hcThreadObject {
-public:
-	bool ret_state = false;
-	bool read = false;
-	weapon_t* weapon;
-	ang_t view;
-	int id = 0;
-	bool finished = false;
-
-	std::vector<RayTracer::Hitbox> hit_boxes = {};
-	void run( );
-	hcThreadObject( weapon_t* weapon_, ang_t view_, int id_, std::vector<RayTracer::Hitbox> hitboxes_ ) {
-		weapon = weapon_;
-		view = view_;
-		id = id_;
-		hit_boxes = hitboxes_;
-	}
-};
-
-void hcThreadObject::run ( ) {
-	size_t     total_hits{ };
-	const auto needed_hits{ static_cast< size_t >( ( settings::rage::selection::hitchance * 255 / 100.f ) ) };
-
-	const auto inaccuracy = g.m_weapon->inaccuracy( );
-	const auto spread = g.m_weapon->get_spread( );
-	const auto start{ g.m_shoot_pos };
-
-	static auto surface_predicate = [ ]( const RayTracer::Hitbox& a, const RayTracer::Hitbox& b ) {
-		const float area_1 = ( M_PI * powf( a.m_radius, 2 ) * a.m_len ) + ( 4.f / 3.f * M_PI * a.m_radius );
-		const float area_2 = ( M_PI * powf( b.m_radius, 2 ) * b.m_len ) + ( 4.f / 3.f * M_PI * b.m_radius );
-
-		return area_1 < area_2;
-	};
-	std::sort( hit_boxes.begin( ), hit_boxes.end( ), surface_predicate );
-
-
-	vec3_t forward{}, right{}, up{};
-
-	view.vectors( &forward, &right, &up );
-
-	vec3_t origin;
-	ang_t angles;
-	for ( auto i = 0; i < 255; i++ ) {
-		const auto weapon_spread = math::calculate_spread( g.m_weapon, i, inaccuracy, spread, false );
-
-		auto dir = ( forward + ( right * weapon_spread.x ) + ( up * weapon_spread.y ) );
-		dir /= dir.length( );
-		const auto end = start + ( dir * g.m_weapon_info->m_range );
-
-		math::custom_ray ray( g.m_shoot_pos, end );
-
-		RayTracer::Ray ray_1( ray.m_start, ray.m_end );
-		for ( auto& box : hit_boxes ) {
-			RayTracer::Trace trace;
-			float m1, m2;
-			auto dist = math::distSegmentToSegmentSqr( ray.m_start, ray.m_end, box.m_mins, box.m_maxs, m1, m2 );
-			//RayTracer::TraceHitbox( ray_1, box, trace, RayTracer::Flags_NONE );
-			if ( dist <= box.m_radius * box.m_radius ) {
-				total_hits++; 
-				finished = true;
-				break;
-			}
-			//RayTracer::TraceHitbox( ray_1, box, trace, RayTracer::Flags_NONE );
-			//if ( trace.m_hit ) {
-			//	total_hits++;
-			//	break;
-			//}
-		}
-		//for ( auto &box : hit_boxes ) {
-		//	trace_t trace;
-		//	if ( !box.m_box ) {
-		//		if ( box.m_radius >= math::dist_Segment_to_Segment( ray, box.m_min, box.m_max ) ) {
-		//			total_hits++;
-		//			break;
-		//		}
-		//	}
-		//	else {
-		//
-		//		matrix_t rot_matrix;
-		//		math::AngleMatrix( box.m_rot, &rot_matrix );
-		//
-		//		// apply the rotation to the entity input space (local).
-		//		matrix_t matrix;
-		//		math::ConcatTransforms( record->m_bones[ box.m_bone ], rot_matrix, &matrix );
-		//		
-		//		if ( math::IntersectRayWithOBB( ray.m_start, ray.m_ray_dir, matrix, box.m_min, box.m_max, 0.0f, &trace ) ) {
-		//			total_hits++;
-		//			break;
-		//		}
-		//	}
-		//}
-		if ( total_hits >= needed_hits ) {
-			ret_state = true;
-			finished = true;
-			return;
-		}
-		if ( ( ( 255 - i ) + total_hits ) < needed_hits ) {
-			ret_state = false;
-			finished = true;
-			return;
-		}
-	}
-	ret_state = false;
-	finished = true;
-}
+//class hcThreadObject {
+//public:
+//	bool ret_state = false;
+//	bool read = false;
+//	weapon_t* weapon;
+//	ang_t view;
+//	int id = 0;
+//	bool finished = false;
+//
+//	std::vector<RayTracer::Hitbox> hit_boxes = {};
+//	void run( );
+//	hcThreadObject( weapon_t* weapon_, ang_t view_, int id_, std::vector<RayTracer::Hitbox> hitboxes_ ) {
+//		weapon = weapon_;
+//		view = view_;
+//		id = id_;
+//		hit_boxes = hitboxes_;
+//	}
+//};
+//
+//void hcThreadObject::run ( ) {
+//	size_t     total_hits{ };
+//	const auto needed_hits{ static_cast< size_t >( ( settings::rage::selection::hitchance * 255 / 100.f ) ) };
+//
+//	const auto inaccuracy = g.m_weapon->inaccuracy( );
+//	const auto spread = g.m_weapon->get_spread( );
+//	const auto start{ g.m_shoot_pos };
+//
+//	static auto surface_predicate = [ ]( const RayTracer::Hitbox& a, const RayTracer::Hitbox& b ) {
+//		const float area_1 = ( M_PI * powf( a.m_radius, 2 ) * a.m_len ) + ( 4.f / 3.f * M_PI * a.m_radius );
+//		const float area_2 = ( M_PI * powf( b.m_radius, 2 ) * b.m_len ) + ( 4.f / 3.f * M_PI * b.m_radius );
+//
+//		return area_1 < area_2;
+//	};
+//	std::sort( hit_boxes.begin( ), hit_boxes.end( ), surface_predicate );
+//
+//
+//	vec3_t forward{}, right{}, up{};
+//
+//	view.vectors( &forward, &right, &up );
+//
+//	vec3_t origin;
+//	ang_t angles;
+//	for ( auto i = 0; i < 255; i++ ) {
+//		const auto weapon_spread = math::calculate_spread( g.m_weapon, i, inaccuracy, spread, false );
+//
+//		auto dir = ( forward + ( right * weapon_spread.x ) + ( up * weapon_spread.y ) );
+//		dir /= dir.length( );
+//		const auto end = start + ( dir * g.m_weapon_info->m_range );
+//
+//		math::custom_ray_t ray( g.m_shoot_pos, end );
+//
+//		RayTracer::Ray ray_1( ray.m_start, ray.m_end );
+//		for ( auto& box : hit_boxes ) {
+//			RayTracer::Trace trace;
+//			float m1, m2;
+//			auto dist = math::distSegmentToSegmentSqr( ray.m_start, ray.m_end, box.m_mins, box.m_maxs, m1, m2 );
+//			//RayTracer::TraceHitbox( ray_1, box, trace, RayTracer::Flags_NONE );
+//			if ( dist <= box.m_radius * box.m_radius ) {
+//				total_hits++; 
+//				finished = true;
+//				break;
+//			}
+//			//RayTracer::TraceHitbox( ray_1, box, trace, RayTracer::Flags_NONE );
+//			//if ( trace.m_hit ) {
+//			//	total_hits++;
+//			//	break;
+//			//}
+//		}
+//		//for ( auto &box : hit_boxes ) {
+//		//	trace_t trace;
+//		//	if ( !box.m_box ) {
+//		//		if ( box.m_radius >= math::dist_Segment_to_Segment( ray, box.m_min, box.m_max ) ) {
+//		//			total_hits++;
+//		//			break;
+//		//		}
+//		//	}
+//		//	else {
+//		//
+//		//		matrix_t rot_matrix;
+//		//		math::AngleMatrix( box.m_rot, &rot_matrix );
+//		//
+//		//		// apply the rotation to the entity input space (local).
+//		//		matrix_t matrix;
+//		//		math::ConcatTransforms( record->m_bones[ box.m_bone ], rot_matrix, &matrix );
+//		//		
+//		//		if ( math::IntersectRayWithOBB( ray.m_start, ray.m_ray_dir, matrix, box.m_min, box.m_max, 0.0f, &trace ) ) {
+//		//			total_hits++;
+//		//			break;
+//		//		}
+//		//	}
+//		//}
+//		if ( total_hits >= needed_hits ) {
+//			ret_state = true;
+//			finished = true;
+//			return;
+//		}
+//		if ( ( ( 255 - i ) + total_hits ) < needed_hits ) {
+//			ret_state = false;
+//			finished = true;
+//			return;
+//		}
+//	}
+//	ret_state = false;
+//	finished = true;
+//}
 
 bool aimbot_t::valid(ent_info_t *ent) {
 	return ent->m_ent && ent->m_valid && !ent->m_teamate && !ent->m_dormant && !ent->m_ent->gun_game_immunity( );
@@ -125,84 +124,7 @@ void aimbot_t::get_targets() {
 			m_targets.push_back( &ent );
 	}
 }
-vec3_t get_hitbox_edge_in_dir( vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, float radius ) { // i think the logic here is right??
-	vec3_t center = ( maxs + mins ) * 0.5f;
-	vec3_t dir = ( start - end ).normalized( );
 
-	vec3_t dir_to_maxs = maxs - end;
-	float dir_to_maxs_dot = (dir).dot( dir_to_maxs );
-	float dir_to_maxs_len = dir_to_maxs.normalize( );
-
-	vec3_t dir_to_mins = mins - end;
-	float dir_to_mins_dot = (dir).dot( dir_to_mins );
-	float dir_to_mins_len = dir_to_mins.length( );
-
-
-	vec3_t hitbox_end;
-	float len_to_hitbox_end = 0.f;
-	int perpendicular = 0;
-	float greater_dot = 0.f;
-
-	if ( dir_to_maxs_dot > dir_to_mins_dot ) { // select the hitbox end that has the dir coming towards it 
-		len_to_hitbox_end = dir_to_maxs_len;
-		greater_dot = dir_to_maxs_dot;
-		hitbox_end = maxs;
-		perpendicular = 1;
-	}
-	else if ( dir_to_mins_dot > dir_to_maxs_dot ) {
-		len_to_hitbox_end = dir_to_mins_len;
-		greater_dot = dir_to_mins_dot;
-		hitbox_end = mins;
-		perpendicular = 1;
-	}
-	else if( dir_to_maxs_len > dir_to_mins_len ) {
-		len_to_hitbox_end = dir_to_mins_len;
-		hitbox_end = mins;
-		perpendicular = 2;
-	}
-	else if ( dir_to_maxs_len < dir_to_mins_len ) {
-		len_to_hitbox_end = dir_to_maxs_len;
-		hitbox_end = maxs;
-		perpendicular = 2;
-	}
-
-	if ( perpendicular == 2 ) {
-		vec3_t step = end + dir;
-		float step_dist = ( hitbox_end - step ).length( );
-		float step_difference = len_to_hitbox_end - step_dist;
-		float needed_dist = len_to_hitbox_end - radius;
-		return end + ( dir * needed_dist / step_difference );
-	}
-	else if ( perpendicular == 0 ) {
-		vec3_t step = end - dir;
-		float end_dist = math::minimum_distance( mins, maxs, end );
-		float step_dist = math::minimum_distance( mins, maxs, step );
-		float step_difference = end_dist - step_dist;
-		float needed_dist = end_dist - radius;
-		return end + ( dir * needed_dist / step_difference );
-
-	}
-	else {
-		vec3_t step = end + (-dir * greater_dot);
-		float step_dist = math::minimum_distance( mins, maxs, step );
-		if ( step_dist < radius ) {
-			step = end - dir;
-			float end_dist = math::minimum_distance( mins, maxs, end );
-			step_dist = math::minimum_distance( mins, maxs, step );
-			float step_difference = end_dist - step_dist;
-			float needed_dist = end_dist - radius;
-			return end + ( dir * needed_dist / step_difference );
-		}
-		else {
-			step = end - dir;
-			step_dist = ( hitbox_end - step ).length( );
-			float step_difference = len_to_hitbox_end - step_dist;
-			float needed_dist = len_to_hitbox_end - radius;
-			return end + ( dir * needed_dist / step_difference );
-		}
-	}
-
-}
 void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 	info->m_hitboxes.clear( );
 	vec3_t center;
@@ -372,7 +294,7 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 	}
 }
 
-bool aimbot_t::collides( math::custom_ray ray, ent_info_t *info, bone_array_t bones[128], float add ) {
+bool aimbot_t::collides( math::custom_ray_t ray, ent_info_t *info, bone_array_t bones[128], float add ) {
 	auto* studio_model = info->m_ent->model( );
 	if ( !studio_model )
 		return false;
@@ -440,12 +362,11 @@ bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &ey
 	int max_safe_points;
 	hitbox_helper_t* box;
 	ang_t new_look;
-	bool found_match;
 	float max_weight = 0.f;
 	auto* const bone_cache = &g.m_local->bone_cache( );
 	float weight;
 	int safe_points;
-	math::custom_ray ray;
+	math::custom_ray_t ray;
 	penetration::PenetrationInput_t in;
 	g.m_interfaces->engine( )->get_view_angles( view );
 	int bone_index;
@@ -457,6 +378,7 @@ bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &ey
 		box = &info->m_hitboxes[ i ];
 		for ( auto& point : box->m_points ) {
 			new_look = eye.look( point.m_point );
+			/// It turns out, source doesn't actually force animations and bonesetup when shooting, last update is fine
 			//if ( !found_match ) {
 			//if ( get_aim_matrix( g.m_shoot_pos.look( point.m_point ) - g.m_local->aim_punch() * 2, bones ) ) {
 			//	auto *const bone_cache = &g.m_local->bone_cache( );
@@ -478,36 +400,21 @@ bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &ey
 			if ( ( !info->m_selected_record->m_body_reliable && info->m_selected_record->m_mode == resolver::RESOLVE_BODY ) || info->m_selected_record->m_mode == resolver::RESOLVE_WALK ) {
 				ray.init( eye, point.m_point );
 
-				//vec3_t mins = hitbox->mins; vec3_t maxs = hitbox->maxs;
-				//math::VectorTransform( mins, info->m_selected_record->m_fake_bones_1[hitbox->bone], mins );
-				//math::VectorTransform( maxs, info->m_selected_record->m_fake_bones_1[ hitbox->bone ], maxs );
+				bool should_continue = false;
+				for( auto &i : info->m_selected_record->m_fake_bones )
+					if ( !collides( ray, info, i ) ) {
+						if ( info->m_selected_record->m_mode == resolver::RESOLVE_WALK )
+							safe_points++;
+						else {
+							should_continue = true;
+							break;
+						}
+					}
 
-				//if ( math::intersects_capsule( ray, mins, maxs, hitbox->radius ) ) {
-				//	safe_points++;
-				//} else if ( info->m_selected_record->m_body_update )
-				//	continue;
-				if ( !collides( ray, info, info->m_selected_record->m_fake_bones[ 0 ] ) ) {
-					if ( info->m_selected_record->m_mode == resolver::RESOLVE_WALK )
-						safe_points++;
-					else continue;
-				}
+				if ( should_continue )
+					continue;
 
-				//mins = hitbox->mins; maxs = hitbox->maxs;
-				//math::VectorTransform( mins, info->m_selected_record->m_fake_bones_2[hitbox->bone], mins );
-				//math::VectorTransform( maxs, info->m_selected_record->m_fake_bones_2[hitbox->bone], maxs );
-
-				//if ( math::intersects_capsule( ray, mins, maxs, hitbox->radius ) ) {
-				//	safe_points++;
-				//} else if ( info->m_selected_record->m_body_update )
-				//	continue;
-
-
-				if ( !collides( ray, info, info->m_selected_record->m_fake_bones[ 1 ] ) ) {
-					if ( info->m_selected_record->m_mode == resolver::RESOLVE_WALK )
-						safe_points++;
-					else continue;
-				}
-				weight += static_cast< float >( safe_points ) / 2.f;
+				weight += static_cast< float >( safe_points ) / info->m_selected_record->m_fake_bones.size();
 			}
 
 
@@ -543,18 +450,6 @@ bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &ey
 			if ( run( &in, &out ) ) {
 				if ( out.m_target != in.m_target || in.m_damage > out.m_damage )
 					continue;
-				//if ( point.m_mode & prefer ) {
-				//	selected_eye = eye;
-				//	selected_point = &point;
-				//	max_damage = out.m_damage;
-				//	break;
-				//}
-				//if ( ( point.m_mode & lethal ) && ( static_cast<float>( info->m_ent->health( ) ) <= info->m_damage ) ) {
-				//	selected_eye = eye;
-				//	selected_point = &point;
-				//	max_damage = out.m_damage;
-				//	break;
-				//}
 
 				if ( selected_point )
 					continue;
@@ -578,18 +473,10 @@ bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &ey
 				selected_point = &point;
 				max_damage = out.m_damage;
 			}
-			//else if ( out.m_damage <= -50.f ) {
-			//	skip_player = true;
-			//	break;
-			//}
 		}
-		//if ( skip_player < -100.f ) {
-		//	skip_player = true;
-		//	break;
-		//}
 	}
-	info->m_aim_point = selected_point;
 	if ( selected_point ) {
+		info->m_aim_point = selected_point;
 		info->m_damage = max_damage;
 		selected_point->m_shoot_pos = selected_eye;
 		return true;
@@ -607,19 +494,16 @@ bool aimbot_t::best_target( ent_info_t *&info ) const {
 	return false;
 }
 
-void aimbot_t::apply( ) const {
+void aimbot_t::apply( ) {
 	if ( m_best_target == nullptr || m_best_target->m_aim_point == nullptr )
 		return;
 	if ( m_best_target != m_last_target )
 		m_best_target->m_shot_wanted = g.m_interfaces->globals( )->m_curtime;
 	g.m_shoot_pos = m_best_target->m_aim_point->m_shoot_pos;
 	auto look = g.m_shoot_pos.look( m_best_target->m_aim_point->m_point );
-	//if ( m_best_target->m_shot_wanted + settings::rage::general::delay_shot > g.m_interfaces->globals( )->m_curtime )
-	//	return;
-	
-	//if ( !check_hitchance( m_best_target, look, m_best_target->m_selected_record ) ) {
-	//	return;
-	//}
+	if ( !check_hitchance( m_best_target, look, m_best_target->m_selected_record, m_best_target->m_aim_point ) )
+		return;
+
 	draw_hitboxes( );
 	g.m_cmd->m_tick_count = g.time_to_ticks(m_best_target->m_selected_record->m_pred_time + g.m_lerp);
 	g.m_cmd->m_viewangles = look - g.m_local->aim_punch( ) * 2;
@@ -682,16 +566,13 @@ void aimbot_t::draw_hitboxes( player_t *player, bone_array_t * bones ) const {
 	}
 }
 
-bool aimbot_t::check_hitchance( ent_info_t *info, ang_t &view, std::shared_ptr<player_record_t> record, aim_point_t &point) {
+bool aimbot_t::check_hitchance( ent_info_t *info, ang_t &view, std::shared_ptr<player_record_t> record, aim_point_t *point) {
 	size_t     total_hits{ };
 	const auto needed_hits{ static_cast< size_t >((settings::rage::selection::hitchance * 255 / 100.f )) };
 
 	const auto inaccuracy = g.m_weapon->inaccuracy( );
 	const auto spread = g.m_weapon->get_spread( );
 	const auto start{ g.m_shoot_pos };
-	vec3_t forward{}, right{}, up{};
-	
-	view.vectors( &forward, &right, &up );
 
 
 	auto *studio_model = g.m_interfaces->model_info( )->get_studio_model( ( info )->m_ent->model( ) );
@@ -699,11 +580,11 @@ bool aimbot_t::check_hitchance( ent_info_t *info, ang_t &view, std::shared_ptr<p
 		return false;
 
 	auto *hitbox_set = studio_model->hitbox_set( info->m_ent->hitbox_set( ) );
-	std::vector<RayTracer::Hitbox> hit_boxes;
+	std::vector<math::hitbox_t> hit_boxes;
 	vec3_t mins{}, maxs{};
 	
 	for ( auto i = 0; i < hitbox_set->hitbox_count; i++ ) {
-		if (i != point.m_hitbox)
+		if (i != point->m_hitbox)
 			continue;
 		auto *hitbox = hitbox_set->hitbox( i );
 
@@ -725,54 +606,32 @@ bool aimbot_t::check_hitchance( ent_info_t *info, ang_t &view, std::shared_ptr<p
 	}
 	if ( hit_boxes.empty( ) )
 		return false;
-	static auto surface_predicate = [ ]( const RayTracer::Hitbox &a, const RayTracer::Hitbox &b ) {
-		const float area_1 = ( M_PI * powf( a.m_radius, 2 ) * a.m_len ) + ( 4.f / 3.f * M_PI * a.m_radius );
-		const float area_2 = ( M_PI * powf( b.m_radius, 2 ) * b.m_len ) + ( 4.f / 3.f * M_PI * b.m_radius );
+
+	static auto surface_predicate = [ ]( const math::hitbox_t& a, const math::hitbox_t& b ) {
+		const float area_1 = ( M_PI * powf( a.m_radius, 2 ) * a.m_len_sqr ) + ( 4.f / 3.f * M_PI * a.m_radius );
+		const float area_2 = ( M_PI * powf( b.m_radius, 2 ) * b.m_len_sqr ) + ( 4.f / 3.f * M_PI * b.m_radius );
 
 		return area_1 < area_2;
 	};
-	std::sort( hit_boxes.begin( ), hit_boxes.end( ), surface_predicate );
-	//std::deque<hitbox_t> hit_boxes;
-	//vec3_t mins{}, maxs{};
-	//for ( auto i = 0; i < hitbox_set->hitbox_count; i++ ) {
-	//	auto *hitbox = hitbox_set->hitbox( i );
-	//
-	//	if ( hitbox->radius > 0 ) {
-	//		matrix_t temp;
-	//
-	//		math::AngleMatrix( hitbox->angle, &temp );
-	//		matrix_t bone_transform;
-	//		memcpy( &bone_transform, &record->m_bones[ hitbox->bone ], sizeof( matrix_t ) );
-	//		if ( hitbox->angle != ang_t( ) )
-	//			math::ConcatTransforms( bone_transform, temp, &bone_transform );
-	//
-	//		vec3_t vMin, vMax;
-	//		math::VectorTransform( hitbox->mins, bone_transform, vMin );
-	//		math::VectorTransform( hitbox->maxs, bone_transform, vMax );
-	//		hit_boxes.emplace_front( vMin, vMax, hitbox->radius );
-	//	} else {
-	//		auto center = hitbox->maxs - hitbox->mins;
-	//		mins = hitbox->mins; maxs = hitbox->maxs;
-	//		math::VectorTransform( center, record->m_bones[ hitbox->bone ], center );
-	//		hit_boxes.emplace_front( hitbox->bone, math::get_bone_position( record->m_bones[ hitbox->bone ] ), mins, maxs, hitbox->angle );
-	//	}
-	//}
 
+	std::sort( hit_boxes.begin( ), hit_boxes.end( ), surface_predicate );
+	vec3_t forward{}, right{}, up{};
+
+	view.vectors( &forward, &right, &up );
 
 	vec3_t origin;
 	ang_t angles;
 	for ( auto i = 0; i < 255; i++ ) {
 		const auto weapon_spread = math::calculate_spread( g.m_weapon, i, inaccuracy, spread, false );
 
-		auto dir = (forward + (right * weapon_spread.x) + (up * weapon_spread.y));
+		vec3_t dir = ( forward + ( right * weapon_spread.x ) + ( up * weapon_spread.y ) );
 		dir /= dir.length( );
-		const auto end = start + (dir * g.m_weapon_info->m_range);
-		
-		math::custom_ray ray( g.m_shoot_pos, end );
+		const auto end = start + ( dir * g.m_weapon_info->m_range );
 
-		RayTracer::Ray ray_1( ray.m_start, ray.m_end );
-		for ( auto &box : hit_boxes ) {
-			RayTracer::Trace trace;
+		math::custom_ray_t ray( g.m_shoot_pos, end );
+
+		math::custom_ray_t ray_1( ray.m_start, ray.m_end );
+		for ( auto& box : hit_boxes ) {
 			float m1, m2;
 			auto dist = math::distSegmentToSegmentSqr( ray.m_start, ray.m_end, box.m_mins, box.m_maxs, m1, m2 );
 			//RayTracer::TraceHitbox( ray_1, box, trace, RayTracer::Flags_NONE );
@@ -780,40 +639,13 @@ bool aimbot_t::check_hitchance( ent_info_t *info, ang_t &view, std::shared_ptr<p
 				total_hits++;
 				break;
 			}
-			//RayTracer::TraceHitbox( ray_1, box, trace, RayTracer::Flags_NONE );
-			//if ( trace.m_hit ) {
-			//	total_hits++;
-			//	break;
-			//}
 		}
-		//for ( auto &box : hit_boxes ) {
-		//	trace_t trace;
-		//	if ( !box.m_box ) {
-		//		if ( box.m_radius >= math::dist_Segment_to_Segment( ray, box.m_min, box.m_max ) ) {
-		//			total_hits++;
-		//			break;
-		//		}
-		//	}
-		//	else {
-		//
-		//		matrix_t rot_matrix;
-		//		math::AngleMatrix( box.m_rot, &rot_matrix );
-		//
-		//		// apply the rotation to the entity input space (local).
-		//		matrix_t matrix;
-		//		math::ConcatTransforms( record->m_bones[ box.m_bone ], rot_matrix, &matrix );
-		//		
-		//		if ( math::IntersectRayWithOBB( ray.m_start, ray.m_ray_dir, matrix, box.m_min, box.m_max, 0.0f, &trace ) ) {
-		//			total_hits++;
-		//			break;
-		//		}
-		//	}
-		//}
-		if ( total_hits >= needed_hits )
+		if ( total_hits >= needed_hits ) {
 			return true;
-
-		if ( ( (255 - i) + total_hits ) < needed_hits )
+		}
+		if ( ( ( 255 - i ) + total_hits ) < needed_hits ) {
 			return false;
+		}
 	}
 	return false;
 }
@@ -861,44 +693,47 @@ void aimbot_t::backup_players( const bool restore ) {
 	}
 }
 
-bool add_to_threads( std::vector<std::shared_ptr<hcThreadObject>> &objects, ent_info_t* info, int id ) {
-	if ( !info->m_aim_point )
-		return false;
-	auto look = g.m_shoot_pos.look( info->m_aim_point->m_point );
-	auto* studio_model = g.m_interfaces->model_info( )->get_studio_model( ( info )->m_ent->model( ) );
-	if ( !studio_model )
-		return false;
-	auto* hitbox_set = studio_model->hitbox_set( info->m_ent->hitbox_set( ) );
-	std::vector<RayTracer::Hitbox> hit_boxes;
-	vec3_t mins{}, maxs{};
+//			Scrapping this since it ended up causing more lag than it was worth
+//			Just check best target that we can find
 
-	for ( auto i = 0; i < hitbox_set->hitbox_count; i++ ) {
-		if ( i != info->m_aim_point->m_hitbox )
-			continue;
-		auto* hitbox = hitbox_set->hitbox( i );
-
-		if ( hitbox && hitbox->radius > 0 ) {
-			matrix_t bone_transform;
-			memcpy( &bone_transform, &info->m_selected_record->m_bones[ hitbox->bone ], sizeof( matrix_t ) );
-			if ( hitbox->angle != ang_t( ) ) {
-				matrix_t temp;
-
-				math::AngleMatrix( hitbox->angle, &temp );
-				math::ConcatTransforms( bone_transform, temp, &bone_transform );
-			}
-
-			vec3_t vMin, vMax;
-			math::VectorTransform( hitbox->mins, bone_transform, vMin );
-			math::VectorTransform( hitbox->maxs, bone_transform, vMax );
-			hit_boxes.emplace_back( vMin, vMax, hitbox->radius );
-		}
-	}
-	if ( hit_boxes.empty( ) )
-		return false;
-	//g_thread_handler.wait( ); // wait until all threads are finished
-	objects.emplace_back( std::make_shared<hcThreadObject>(g.m_weapon, look, id, hit_boxes) );
-	return true;
-}
+//bool add_to_threads( std::vector<std::shared_ptr<hcThreadObject>> &objects, ent_info_t* info, int id ) {
+//	if ( !info->m_aim_point )
+//		return false;
+//	auto look = g.m_shoot_pos.look( info->m_aim_point->m_point );
+//	auto* studio_model = g.m_interfaces->model_info( )->get_studio_model( ( info )->m_ent->model( ) );
+//	if ( !studio_model )
+//		return false;
+//	auto* hitbox_set = studio_model->hitbox_set( info->m_ent->hitbox_set( ) );
+//	std::vector<math::hitbox_t> hit_boxes;
+//	vec3_t mins{}, maxs{};
+//
+//	for ( auto i = 0; i < hitbox_set->hitbox_count; i++ ) {
+//		if ( i != info->m_aim_point->m_hitbox )
+//			continue;
+//		auto* hitbox = hitbox_set->hitbox( i );
+//
+//		if ( hitbox && hitbox->radius > 0 ) {
+//			matrix_t bone_transform;
+//			memcpy( &bone_transform, &info->m_selected_record->m_bones[ hitbox->bone ], sizeof( matrix_t ) );
+//			if ( hitbox->angle != ang_t( ) ) {
+//				matrix_t temp;
+//
+//				math::AngleMatrix( hitbox->angle, &temp );
+//				math::ConcatTransforms( bone_transform, temp, &bone_transform );
+//			}
+//
+//			vec3_t vMin, vMax;
+//			math::VectorTransform( hitbox->mins, bone_transform, vMin );
+//			math::VectorTransform( hitbox->maxs, bone_transform, vMax );
+//			hit_boxes.emplace_back( vMin, vMax, hitbox->radius );
+//		}
+//	}
+//	if ( hit_boxes.empty( ) )
+//		return false;
+//	//g_thread_handler.wait( ); // wait until all threads are finished
+//	objects.emplace_back( std::make_shared<hcThreadObject>(g.m_weapon, look, id, hit_boxes) );
+//	return true;
+//}
 
 class mpThreadObject {
 public:
@@ -959,38 +794,35 @@ std::vector<ent_info_t*> aimbot_t::mp_threading( ) const {
 	std::vector< std::shared_ptr< mpThreadObject > > objects = {};
 
 	g_thread_handler.start( );
-	ang_t look;
-	auto bones = static_cast< bone_array_t* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
-	vec3_t eye;
-	bone_array_t* backup_cache;
+
+	//auto bones = static_cast< bone_array_t* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
+	//vec3_t eye;
+	//bone_array_t* backup_cache;
+
 	for ( auto& info : m_targets ) {
-		look = g.m_shoot_pos.look( info->m_ent->world_space_center( ) );
-		if ( get_aim_matrix( look - g.m_local->aim_punch( ) * 2, bones ) ) {
-			auto bone_cache = &g.m_local->bone_cache( );
-			if ( bone_cache ) {
-				backup_cache = bone_cache->m_pCachedBones;
-				int backup_bone_count = bone_cache->m_CachedBoneCount;
-				bone_cache->m_pCachedBones = bones;
-				g.m_local->get_eye_pos( &eye );
-				bone_cache->m_pCachedBones = backup_cache;
-				bone_cache->m_CachedBoneCount = backup_bone_count;
-			}
-		}
-		auto ptr = objects.emplace_back( std::make_shared<mpThreadObject>( info, eye ) );
+		//look = g.m_shoot_pos.look( info->m_ent->world_space_center( ) );
+		//if ( get_aim_matrix( look - g.m_local->aim_punch( ) * 2, bones ) ) {
+		//	auto bone_cache = &g.m_local->bone_cache( );
+		//	if ( bone_cache ) {
+		//		backup_cache = bone_cache->m_pCachedBones;
+		//		int backup_bone_count = bone_cache->m_CachedBoneCount;
+		//		bone_cache->m_pCachedBones = bones;
+		//		g.m_local->get_eye_pos( &eye );
+		//		bone_cache->m_pCachedBones = backup_cache;
+		//		bone_cache->m_CachedBoneCount = backup_bone_count;
+		//	}
+		//}
+		auto ptr = objects.emplace_back( std::make_shared<mpThreadObject>( info, g.m_shoot_pos ) );
 		g_thread_handler.QueueJob( [ ptr ] { 
 			ptr->run( );
 			} );
 	}
-	g.m_interfaces->mem_alloc( )->free( bones );
 
-	//while ( g_thread_handler.busy( ) )
-	//	continue;
+	//g.m_interfaces->mem_alloc( )->free( bones );
+
 	while ( g_thread_handler.busy( ) );
 
 	g_thread_handler.stop( );
-
-	//for ( auto& i : g_thread_handler.objects )
-	//	i->run( );
 
 	{
 		bool all_finished = true;
@@ -1011,7 +843,7 @@ std::vector<ent_info_t*> aimbot_t::mp_threading( ) const {
 
 void aimbot_t::on_tick ( ) {
 	m_list_eye_pos.clear();
-	g.m_cmd->m_viewangles -= g.m_local->aim_punch( ) * 2;
+	//g.m_cmd->m_viewangles -= g.m_local->aim_punch( ) * 2;
 	if ( !settings::rage::general::enabled )
 		return;
 
@@ -1049,42 +881,45 @@ void aimbot_t::on_tick ( ) {
 	if ( valid_targets.size() > 0 )
 		g_movement.set_should_stop( true );
 
-	g_thread_handler.start( );
-
-	std::vector<std::shared_ptr<hcThreadObject>> objects = {};
-	for ( auto i = 0; i < valid_targets.size( ); i++ ) {
-		if ( add_to_threads( objects, valid_targets[ i ], i ) ) // this is a very jank thread hander, will update soon
-		{
-			auto ptr = objects.back( );
-			g_thread_handler.QueueJob( [ ptr ] {
-				ptr->run( ); 
-				} );
-		}
+	for ( auto& i : valid_targets ) {
+		if ( best_target( i ) ) // only set if the player is the best overall target
+			m_best_target = i;
 	}
-	
-	while ( g_thread_handler.busy( ) );
 
-	g_thread_handler.stop( );
+	//g_thread_handler.start( );
+	//
+	//std::vector<std::shared_ptr<hcThreadObject>> objects = {};
+	//for ( auto i = 0; i < valid_targets.size( ); i++ ) {
+	//	if ( add_to_threads( objects, valid_targets[ i ], i ) ) // this is a very jank thread hander, will update soon
+	//	{
+	//		auto ptr = objects.back( );
+	//		g_thread_handler.QueueJob( [ ptr ] {
+	//			ptr->run( ); 
+	//			} );
+	//	}
+	//}
+	//
+	//while ( g_thread_handler.busy( ) );
+	//
+	//g_thread_handler.stop( );
 
 	//for ( auto &i : g_thread_handler.objects )
 	//	i->run( );
 
-	{
-		bool all_finished = true;
-		while ( !all_finished ) {
-			all_finished = true;
-			for ( auto &i : objects )
-				if ( !i->finished )
-					all_finished = false;
-		}
-
-		for ( const auto& object : objects ) {
-			if ( object->ret_state ) // did the player pass?
-				if ( best_target( valid_targets[ object->id ] ) ) // only set if the player is the best overall target
-					m_best_target = valid_targets[ object->id ];
-		}
-
-	}
+	//{
+	//	bool all_finished = true;
+	//	while ( !all_finished ) {
+	//		all_finished = true;
+	//		for ( auto &i : objects )
+	//			if ( !i->finished )
+	//				all_finished = false;
+	//	}
+	//
+	//	for ( const auto& object : objects ) {
+	//		if ( object->ret_state ) // did the player pass?
+	//	}
+	//
+	//}
 
 	apply( ); // look and shoot at the best point
 

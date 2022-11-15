@@ -65,7 +65,7 @@ void notification::think ( ) {
 			color.set_a( static_cast< int >(f * 255.f) );
 
 			if ( i == 0 && f < 0.2f )
-				y -= size * (1.f - f / 0.2f);
+				y -= size * int(1.f - f / 0.2f);
 		}
 
 		else

@@ -48,7 +48,7 @@ public:
 	bool m_just_updated_body;
 	int m_switch = 1;
 	int m_lby_side = 1;
-	int m_side = 1;
+	int m_side = 1.f;
 	void fake_walk ( ) const;
 	void break_resolver();
 	static void IdealPitch ( );

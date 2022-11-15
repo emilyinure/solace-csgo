@@ -86,10 +86,20 @@ void resolver::MatchShot( ent_info_t *data, std::shared_ptr<player_record_t> rec
 }
 
 void resolver::update_shot_timing ( int sent_tick ) {
-	for ( auto &i : g_resolver.m_shots ) {
-		if ( !i->m_updated_time ) {
-			i->m_time += g.ticks_to_time( sent_tick - i->m_tick );
-			i->m_updated_time = true;
+	for ( int i = 0; i < m_shots.size(); i++ ) {
+		
+		const auto delta = g.m_interfaces->globals()->m_curtime - m_shots[ i ]->m_time;
+
+		// fuck this.
+		if ( delta > 2.f ) {
+			m_shots.erase( m_shots.begin( ) + i );
+			i--;
+			continue;
+		}
+		auto& shot = m_shots[ i ];
+		if ( !shot->m_updated_time ) {
+			shot->m_time += g.ticks_to_time( sent_tick - shot->m_tick );
+			shot->m_updated_time = true;
 		}
 	}
 }
@@ -478,7 +488,7 @@ void resolver::clear( ) {
 resolver::trace_ret check_hit( penetration::PenetrationInput_t in, ent_info_t &info, bone_array_t *bones, bool check_hitbox = false, int hitgroup = 0 ) {
 	penetration::PenetrationOutput_t out;
 	trace_t trace;
-	const math::custom_ray ray{ in.m_start, in.m_pos };
+	const math::custom_ray_t ray{ in.m_start, in.m_pos };
 	in.m_resolving = true;
 	//if (check_hitbox) {
 	//	static trace_filter_one_entity filter; filter.pEntity = info.m_ent;
@@ -491,54 +501,6 @@ resolver::trace_ret check_hit( penetration::PenetrationInput_t in, ent_info_t &i
 	//if ( !penetration::run( &in, &out ) )
 	//	return resolver::trace_ret::occlusion;
 	return resolver::trace_ret::hit;
-}
-
-bool get_hit_clarity( ent_info_t& info, bone_array_t *bones, vec3_t start, vec3_t end ) {
-	bool found = false;
-	auto* studio_model = info.m_ent->model( );
-	if ( !studio_model )
-		return false;
-	auto* hdr = g.m_interfaces->model_info( )->get_studio_model( studio_model );
-	if ( !hdr )
-		return false;
-	auto* hitbox_set = hdr->hitbox_set( info.m_ent->hitbox_set( ) );
-	if ( !hitbox_set )
-		return false;
-		std::vector<RayTracer::Hitbox> hit_boxes;
-		vec3_t mins{}, maxs{};
-		for ( auto i = 0; i < hitbox_set->hitbox_count; i++ ) {
-			auto* hitbox = hitbox_set->hitbox( i );
-			if ( !hitbox )
-				return false;
-
-			if ( hitbox && hitbox->radius > 0 ) {
-				vec3_t vMin, vMax;
-				math::VectorTransform( hitbox->mins, bones[ hitbox->bone ], vMin );
-				math::VectorTransform( hitbox->maxs, bones[ hitbox->bone ], vMax );
-				hit_boxes.emplace_back( vMin, vMax, hitbox->radius );
-			}
-		}
-
-		if ( !hit_boxes.empty( ) ) {
-
-			static auto surface_predicate = [ ]( const RayTracer::Hitbox& a, const RayTracer::Hitbox& b ) {
-				const float area_1 = ( M_PI * powf( a.m_radius, 2 ) * a.m_len ) + ( 4.f / 3.f * M_PI * a.m_radius );
-				const float area_2 = ( M_PI * powf( b.m_radius, 2 ) * b.m_len ) + ( 4.f / 3.f * M_PI * b.m_radius );
-
-				return area_1 < area_2;
-			};
-
-			std::sort( hit_boxes.begin( ), hit_boxes.end( ), surface_predicate );
-
-			for ( auto& box : hit_boxes ) {
-				float m1, m2;
-				const auto dist = math::distSegmentToSegment( start, end, box.m_mins, box.m_maxs, m1, m2 );
-				const auto hit_dist = math::minimum_distance( box.m_mins, box.m_maxs, end );
-				if ( hit_dist - dist > -(box.m_radius / 2.f) )
-					return true;
-			}
-		}
-	return false;
 }
 
 
@@ -923,7 +885,7 @@ void resolver::resolve_hit ( impact_record_t *impact ) const {
 	g.m_weapon_info = impact->m_shot->m_weapon_info.get( );
 	auto end = impact->m_pos;
 
-	math::custom_ray ray( start, end );
+	math::custom_ray_t ray( start, end );
 	std::vector<int> possible_hit = {};
 
 	penetration::PenetrationInput_t in;
@@ -959,7 +921,7 @@ void resolver::resolve_miss ( impact_record_t *impact ) {
 	// todo; to do this properly should save the weapon range at the moment of the shot, cba..
 	g.m_weapon_info = impact->m_shot->m_weapon_info.get( );
 	auto end = start + dir * impact->m_shot->m_weapon_info->m_range;
-	math::custom_ray ray( start, end );
+	math::custom_ray_t ray( start, end );
 
 	// we did not hit jackshit, or someone else.
 	penetration::PenetrationInput_t in;

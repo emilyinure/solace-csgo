@@ -8,8 +8,7 @@ class weapon_t;
 class vec3_t;
 struct matrix_t;
 namespace math {
-	class custom_ray {
-	public:
+	struct custom_ray_t {
 		vec3_t m_ray_dir;
 		vec3_t m_start;
 		vec3_t m_end;
@@ -17,32 +16,33 @@ namespace math {
 		float m_t1;
 		int m_hitside;
 		float m_t2;
-		custom_ray( ) : m_t1 { -1.f }, m_t2{ 1.f }, m_hitside{ -1 }, m_startsolid{ true } {}
-		custom_ray( vec3_t start, vec3_t end );
+		custom_ray_t( ) : m_t1 { -1.f }, m_t2{ 1.f }, m_hitside{ -1 }, m_startsolid{ true } {}
+		custom_ray_t( vec3_t start, vec3_t end );
 		void init( vec3_t start, vec3_t end );
+	};
+	struct hitbox_t {
+		vec3_t m_mins, m_maxs;
+		float m_radius, m_len_sqr;
+		hitbox_t( vec3_t mins, vec3_t maxs, float radius ) : m_mins( mins ), m_maxs( maxs ), m_radius( radius ) {
+			m_len_sqr = ( maxs - mins ).length_2d_sqr( );
+		}
 	};
 	bool world_to_screen( const vec3_t &point, vec3_t &screen );
 	float distSegmentToSegment( const vec3_t &p1, const vec3_t &p2, const vec3_t &q1, const vec3_t &q2, float &invariant1, float &invariant2 );
 	float distSegmentToSegmentSqr( const vec3_t& p1, const vec3_t& p2, const vec3_t& q1, const vec3_t& q2, float& invariant1, float& invariant2 );
 	void correct_movement( cmd_t *cmd );
 	float minimum_distance( vec3_t v, vec3_t w, vec3_t p );
-	inline float normalize_angle( float ang, float max ) {
-		while ( ang > max )
-			ang -= max * 2;
-		while ( ang < -max )
-			ang += max * 2;
-		return ang;
-	}
+	float normalize_angle( float ang, float max );
 
 	void sin_cos ( float r, float *s, float *c );
 
 	vec3_t get_closest_on_line ( vec3_t start, vec3_t end, vec3_t target );
 
-	vec3_t closest_to_point ( const custom_ray &ray, const vec3_t &point );
+	vec3_t closest_to_point ( const custom_ray_t &ray, const vec3_t &point );
 
-	float dist_Segment_to_Segment( const custom_ray &ray, const vec3_t &min, const vec3_t &max );
+	float dist_Segment_to_Segment( const custom_ray_t &ray, const vec3_t &min, const vec3_t &max );
 
-	bool intersects_capsule( const custom_ray &ray, const vec3_t &min, const vec3_t &max, const float &radius );
+	bool intersects_capsule( const custom_ray_t &ray, const vec3_t &min, const vec3_t &max, const float &radius );
 
 	float RandomFloat( float fMin, float fMax );
 	float RandomInt( int fMin, int fMax );
@@ -70,8 +70,8 @@ namespace math {
 	void MatrixMultiply( matrix_t &src1, matrix_t &src2, matrix_t &dst );
 	bool IntersectRayWithOBB( const vec3_t &start, const vec3_t &delta, matrix_t &obb_to_world, const vec3_t &mins, const vec3_t &maxs, float
 	                          tolerance, trace_t *out_tr );
-	bool IntersectRayWithOBB( custom_ray ray, const vec3_t &vecBoxOrigin, const ang_t &angBoxRotation, const vec3_t &vecOBBMins, const vec3_t &
+	bool IntersectRayWithOBB( custom_ray_t ray, const vec3_t &vecBoxOrigin, const ang_t &angBoxRotation, const vec3_t &vecOBBMins, const vec3_t &
 	                          vecOBBMaxs, float flTolerance, trace_t *pTrace );
-	bool IntersectRayWithBox( const vec3_t &start, const vec3_t &delta, const vec3_t &mins, const vec3_t &maxs, float tolerance, custom_ray *
+	bool IntersectRayWithBox( const vec3_t &start, const vec3_t &delta, const vec3_t &mins, const vec3_t &maxs, float tolerance, custom_ray_t *
 	                          out_info );
 }

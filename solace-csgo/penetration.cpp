@@ -2,7 +2,6 @@
 
 
 #include "includes.h"
-#include "ray_tracer.h"
 #include "thread_handler.h"
 
 using IsBreakableEntity_t = bool( __thiscall * )( entity_t * );
@@ -312,7 +311,6 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
     dir = ( in->m_pos - start );
     dir /= dir.length( );
 
-    RayTracer::Trace trace_1;
     auto *studio_model = g.m_interfaces->model_info( )->get_studio_model( in->m_target->model( ) );
     if ( !studio_model )
         return false;

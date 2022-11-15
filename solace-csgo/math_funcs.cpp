@@ -169,6 +169,14 @@ float math::minimum_distance( vec3_t v, vec3_t w, vec3_t p ) {
 	return ( p - projection ).length( );
 }
 
+float math::normalize_angle( float ang, float max ) {
+	while ( ang > max )
+		ang -= max * 2;
+	while ( ang < -max )
+		ang += max * 2;
+	return ang;
+}
+
 void math::sin_cos ( float r, float *s, float *c ) {
 	*s = std::sin( r );
 	*c = std::cos( r );
@@ -178,11 +186,11 @@ void math::sin_cos ( float r, float *s, float *c ) {
 
 
 
-math::custom_ray::custom_ray ( vec3_t start, vec3_t end ) {
+math::custom_ray_t::custom_ray_t ( vec3_t start, vec3_t end ) {
 	init( start, end );
 }
 
-void math::custom_ray::init( vec3_t start, vec3_t end ) {
+void math::custom_ray_t::init( vec3_t start, vec3_t end ) {
 	m_start = start;
 	m_end = end;
 	m_ray_dir = ( m_end - m_start ).normalized( );
@@ -201,13 +209,13 @@ vec3_t math::get_closest_on_line ( vec3_t start, vec3_t end, vec3_t target ) {
 	return start + line_delta * fraction;
 }
 
-vec3_t math::closest_to_point ( const custom_ray &ray, const vec3_t &point ) {
+vec3_t math::closest_to_point ( const custom_ray_t &ray, const vec3_t &point ) {
 	const auto delta = point - ray.m_start;
 	const auto magnitude = delta.dot( ray.m_ray_dir );
 
 	return ray.m_ray_dir * magnitude + ray.m_start;
 }
-float math::dist_Segment_to_Segment( const custom_ray &ray, const vec3_t &min, const vec3_t &max ) {
+float math::dist_Segment_to_Segment( const custom_ray_t &ray, const vec3_t &min, const vec3_t &max ) {
 	const auto u = max - min;
 	const auto v = ray.m_end - ray.m_start;
 	const auto w = min - ray.m_start;
@@ -270,7 +278,7 @@ float math::dist_Segment_to_Segment( const custom_ray &ray, const vec3_t &min, c
 
 	return dP.length(  );
 }
-bool math::intersects_capsule ( const custom_ray &ray, const vec3_t &min, const vec3_t &max,
+bool math::intersects_capsule ( const custom_ray_t &ray, const vec3_t &min, const vec3_t &max,
                                 const float &radius ) {
 	const auto RC = ray.m_start - min;
 	const auto axis = max - min;
@@ -570,7 +578,7 @@ float math::get_fov ( const ang_t &view_angles, const vec3_t &start, const vec3_
 	// get the angle between the view angles forward directional vector and the target location.
 	return max( RAD2DEG( std::acos( fw.dot( dir ) ) ), 0.f );
 }
-bool math::IntersectRayWithBox( const vec3_t &start, const vec3_t &delta, const vec3_t &mins, const vec3_t &maxs, float tolerance, custom_ray *out_info ) {
+bool math::IntersectRayWithBox( const vec3_t &start, const vec3_t &delta, const vec3_t &mins, const vec3_t &maxs, float tolerance, custom_ray_t *out_info ) {
 	int   i;
 	float d1, d2, f;
 
@@ -622,7 +630,7 @@ bool math::IntersectRayWithBox( const vec3_t &start, const vec3_t &delta, const 
 }
 
 bool math::IntersectRayWithBox( const vec3_t &start, const vec3_t &delta, const vec3_t &mins, const vec3_t &maxs, float tolerance, trace_t *out_tr, float *fraction_left_solid ) {
-	custom_ray box_tr;
+	custom_ray_t box_tr;
 
 	// note - dex; this is Collision_ClearTrace.
 	out_tr->start = start;
@@ -817,7 +825,7 @@ bool math::IntersectRayWithOBB( const vec3_t &start, const vec3_t &delta, matrix
 
 	return true;
 }
-bool math::IntersectRayWithOBB( custom_ray ray,
+bool math::IntersectRayWithOBB( custom_ray_t ray,
 						  const vec3_t &vecBoxOrigin, const ang_t &angBoxRotation,
 						  const vec3_t &vecOBBMins, const vec3_t &vecOBBMaxs, float flTolerance, trace_t *pTrace ) {
 	if ( angBoxRotation == ang_t{} ) {

@@ -649,7 +649,7 @@ void __fastcall PacketStart( client_state_t *this_ptr, void *edx, int incoming_s
 
 float __fastcall Hook_GetScreenAspectRatio( void *pEcx, void *pEdx, int32_t iWidth, int32_t iHeight ) {
 	if( settings::visuals::misc::aspectratio != 0 )
-		iWidth *= ( settings::visuals::misc::aspectratio ) / 100.f;
+		iWidth = int(iWidth * (( settings::visuals::misc::aspectratio ) / 100.f));
 	return g.m_interfaces->engine(  ).hook(  )->get_original<float(__thiscall*)( void *, int32_t, int32_t)>( 101 )( pEcx , iWidth , iHeight );
 }
 void __stdcall Hooked_ClientCmd(const char* str, bool force) {

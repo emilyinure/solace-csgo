@@ -172,7 +172,7 @@ public:
 				const auto child = children_[ i ].get( );
 				const auto name_width = g.m_render->get_text_width( child->name, g.m_render->m_constantia_12( ) );
 				const auto name_height = g.m_render->get_text_height( child->name, g.m_render->m_constantia_12( ) );
-				text_x -= name_width + 7.f;
+				text_x -= int(name_width + 7.f);
 				if ( input_helper.hovering( { static_cast< float >( text_x ), this->area.y + 1, static_cast< float >( name_width ), static_cast< float >( name_height ) } ) && input_helper.key_pressed( VK_LBUTTON ) ) {
 					input_helper.set_key( VK_LBUTTON, false );
 					selected_tab = child;

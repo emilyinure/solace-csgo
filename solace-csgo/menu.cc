@@ -12,14 +12,6 @@
 #include "column.hh"
 #include "groupbox.hh"
 
-bool test;
-float test2;
-int test3;
-
-void test5( ) {
-
-}
-
 auto c_menu::init( ) -> void {
 	auto main_form = std::make_shared<c_form>( "Solace", area_t{ 200, 400, 390, 312 } );
 	this->m_forms.push_back( main_form );
@@ -35,7 +27,6 @@ auto c_menu::init( ) -> void {
 				general_tab->add_child( std::make_shared<c_key_bind>( "Key", &settings::rage::general::key ) );
 				general_tab->add_child( std::make_shared<c_toggle>( "Auto shoot", &settings::rage::general::auto_shoot ) );
 				general_tab->add_child( std::make_shared<c_toggle>( "Silent", &settings::rage::general::silent ) );
-				general_tab->add_child( std::make_shared<c_slider>( "Delay shot", &settings::rage::general::delay_shot, 0, 1.f ) );
 				general_group->add_child( general_tab );
 			};
 			left_column->add_child( general_group );
@@ -113,7 +104,8 @@ auto c_menu::init( ) -> void {
 		} visual_tab->add_child( right_column );
 	}
 	main_form->add_child( visual_tab );
-	auto legit_tab = std::make_shared<c_tab>( "Legit aim" );
+	/// This was left in from when this wasn't a legacy cheat, no real point in a game ver only used for hvh
+	/*	auto legit_tab = std::make_shared<c_tab>( "Legit aim" );
 	{
 		auto left_column = std::make_shared<c_column>( );
 		{
@@ -151,7 +143,7 @@ auto c_menu::init( ) -> void {
 			right_column->add_child( recoil_group );
 		} legit_tab->add_child( right_column );
 	}
-	main_form->add_child( legit_tab );
+	main_form->add_child( legit_tab );*/
 
 	auto hvh_form = std::make_shared<c_tab>( "Hvh" );
 	{
@@ -159,7 +151,7 @@ auto c_menu::init( ) -> void {
 		{
 			auto antiaim_tab = std::make_shared<c_group_box>( "Angles" );
 			{
-				auto stand_tab = std::make_shared<c_group_tab>( "Stand" );
+				auto stand_tab = std::make_shared<c_group_tab>( "Stand" ); //todo: reformat this to look a bit cleaner
 				{
 					stand_tab->add_child( std::make_shared<c_toggle>( "Enabled", &settings::hvh::antiaim::enabled ) );
 					stand_tab->add_child( std::make_shared<c_combobox>( "Body", &settings::hvh::antiaim::body_fake_stand, std::vector<const char *> { "Off", "Left", "Right", "Opposite", "Z" } ) );
@@ -276,7 +268,9 @@ auto c_menu::init( ) -> void {
 	} main_form->add_child( misc_form );
 }
 
-auto c_menu::draw( ) const -> void {	
+auto c_menu::draw( ) -> void {
+
+
 	for ( auto form : this->m_forms ) {
 		if ( !form->m_enabled( ) ) {
 			if ( form.get( ) == this->focused_form )	

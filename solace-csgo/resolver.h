@@ -80,7 +80,7 @@ public:
 	std::deque<hit_record_t> m_hits;
 	static std::shared_ptr<player_record_t> FindIdealRecord ( ent_info_t *data );
 	static void MatchShot ( ent_info_t *data, std::shared_ptr<player_record_t> record );
-	static void update_shot_timing ( int sent_tick );
+	void update_shot_timing ( int sent_tick );
 	static void OnBodyUpdate ( ent_info_t *player, float value );
 	static void SetMode (std::shared_ptr<player_record_t> record );
 	static void ResolveWalk ( ent_info_t *data, std::shared_ptr<player_record_t> record );

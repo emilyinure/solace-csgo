@@ -224,6 +224,7 @@ void c_g::UpdateInformation( ) {
 	auto* state = g.m_local->get_anim_state();
 	if (!state)
 		return;
+	g_hvh.m_side = -g_hvh.m_side;
 	// update time.
 	m_anim_frame = g.m_interfaces->globals(  )->m_curtime - m_anim_time;
 	m_anim_time = g.m_interfaces->globals()->m_curtime;
@@ -297,6 +298,37 @@ void c_g::UpdateInformation( ) {
 	*(bool*)(g.m_local + 14816) = (bStrafeRight || bStrafeLeft || bStrafeForward || bStrafeBackward);
 	g.m_hooks->players_hook( g.m_local->index( ) - 1 )->get_original< void( __thiscall * ) ( player_t * ) >( 218 )( g.m_local );
 
+	// store updated abs yaw.
+	m_abs_yaw = state->m_goal_feet_yaw;// *(float*)(m_animstate + 112);
+
+	// we landed.
+	if ( !m_ground && state->m_ground ) {// *(bool*)(m_animstate + 248)) {
+
+		m_body = m_angle.y;
+		m_body_pred = m_anim_time;
+	}
+
+	// walking, delay lby update by .22.
+	else if ( state->m_speed > 0.1f ) { //if (*(float*)(m_animstate + 55) > 0.1f ) {
+		if ( state->m_ground )//if (*(bool*)(m_animstate + 248) )
+			m_body = m_angle.y;
+
+		m_body_pred = m_anim_time + 0.22f;
+	}
+
+	// standing update every 1.1s
+	else if ( m_anim_time >= g.m_body_pred ) {
+		m_body = m_angle.y;
+		m_body_pred = m_anim_time + 1.1f;
+	}
+
+	// save updated data.
+	m_rotation = m_local->m_angAbsRotation( );
+	m_speed = state->m_speed;// *(float*)(m_animstate + 55);
+	m_ground = state->m_ground;// *(bool*)(m_animstate + 248);
+
+	m_local->GetPoseParameters( m_poses );
+
 	weapon_world_model_t* weapon_world_model = nullptr;
 	if ( g.m_weapon ) {
 		weapon_world_model = static_cast< weapon_world_model_t* >( g.m_interfaces->entity_list( )->get_client_entity_handle(
@@ -338,36 +370,7 @@ void c_g::UpdateInformation( ) {
 			g.m_real_bones[i].mat_val[ 2 ][ 3 ] -= abs_origin.z;
 		}
 	}
-	m_local->GetPoseParameters( m_poses );
 
-	// store updated abs yaw.
-	m_abs_yaw = state->m_goal_feet_yaw;// *(float*)(m_animstate + 112);
-
-	// we landed.
-	if (!m_ground && state->m_ground){// *(bool*)(m_animstate + 248)) {
-		
-		m_body = m_angle.y;
-		m_body_pred = m_anim_time;
-	}
-
-	// walking, delay lby update by .22.
-	else if(state->m_speed > 0.1f){ //if (*(float*)(m_animstate + 55) > 0.1f ) {
-		if(state->m_ground)//if (*(bool*)(m_animstate + 248) )
-			m_body = m_angle.y;
-
-		m_body_pred = m_anim_time + 0.22f;
-	}
-
-	// standing update every 1.1s
-	else if ( m_anim_time >= g.m_body_pred ) {
-		m_body = m_angle.y;
-		m_body_pred = m_anim_time + 1.1f;
-	}
-
-	// save updated data.
-	m_rotation = m_local->m_angAbsRotation( );
-	m_speed = state->m_speed;// *(float*)(m_animstate + 55);
-	m_ground = state->m_ground;// *(bool*)(m_animstate + 248);
 }
 
 int c_g::time_to_ticks ( float time ) const {

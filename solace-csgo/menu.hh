@@ -42,7 +42,7 @@ public:
 	color dark = color( 0x1B, 0x17, 0x26, 0xFF );
 	color dark_accent = color( 0x8A, 0x86, 0xA6, 0xFF );
 	auto init( ) -> void;
-	auto draw( ) const -> void;
+	auto draw( ) -> void;
 	auto update( ) const -> void;
 	void append_bind ( key_bind_t * value );
 

@@ -67,7 +67,7 @@ struct player_record_t {
 	int m_mode = 0;
 	bool m_body_update = false;
 	float m_base_angle{};
-	std::array<bone_array_t *, 10> m_fake_bones = {};
+	std::vector<bone_array_t *> m_fake_bones = {};
 	
 	~player_record_t ( );
 

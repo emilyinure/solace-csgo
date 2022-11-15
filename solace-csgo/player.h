@@ -530,6 +530,10 @@ public:
 		using original_fn = void( __thiscall * )( void * );
 		( *( original_fn ** )this )[ 471 ]( this );
 	}
+	float get_max_speed( ) {
+		using original_fn = float( __thiscall* )( void* );
+		return ( *( original_fn** )this )[ 429 ]( this );
+	}
 	//VFUNC( get_weapon_info( ), 446, weapon_info_t *( __thiscall * )( void * ) )
 	OFFSET( bool, pin_pulled, g.m_offsets->m_weapon.m_pin_pulled );
 	OFFSET( float, throw_time, g.m_offsets->m_weapon.m_throw_time);

@@ -1,6 +1,5 @@
 #include "esp.h"
 #include "sdk.h"
-#include "delaunator.hpp"
 #include "includes.h"
 #include "menu.hh"
 
@@ -30,65 +29,65 @@ void esp_t::flying_grenade( entity_t *ent ) {
 
 
 void esp_t::molotov(entity_t* ent) {
-	if (!settings::visuals::world::molotov)
-		return;
-	auto* inferno = reinterpret_cast<inferno_t*>(ent);
-	auto* thrower = static_cast<player_t*>(g.m_interfaces->entity_list()->get_client_entity_handle(inferno->m_thrower()));
-	bool team = false;
-	if (thrower)
-		team = thrower->on_team(g.m_local);
-	const auto origin = ent->origin();
-	auto* const fire_x = inferno->m_fire_x();
-	auto* const fire_y = inferno->m_fire_y();
-	auto* const fire_z = inferno->m_fire_z();
-	auto* const burning = inferno->m_fire_burning();
-	const int fire_count = inferno->m_fire_count();
-
-	std::vector<double> points = {};
-	for (auto k = 0; k < fire_count; k++) {
-		if (!burning[k])
-			continue;
-		const auto point = vec3_t{ static_cast<float>(fire_x[k]), static_cast<float>(fire_y[k]), static_cast<float>(fire_z[k]) };
-		vec3_t screen = origin + point;
-		//			m_render->text( m_render->m_tahoma_12( ), screen.x, screen.y, color( 255, 255, 255 ), std::to_string( k ).c_str( ) );
-		points.push_back(screen.x);
-		points.push_back(screen.y);
-		points.push_back(screen.z);
-	}
-	if (points.size() < 9)
-		return;
-	delaunator::Delaunator delaunator(points);
-
-	color point_color = team ? color{ 0xFF, 0x08, 0xFF } : color{ 0x81, 0xFF, 0x21 };
-	render_t::vertex_t verts[6] = {};
-	vec3_t point;
-	for (std::size_t i = 0; i < delaunator.triangles.size(); i += 3) {
-
-		point = vec3_t(static_cast<float>(delaunator.coords[3 * delaunator.triangles[i]]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i] + 1]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i] + 2]));
-		vec3_t screen;
-		if (!math::world_to_screen(point, screen))
-			continue;
-		point_color.set_a(static_cast <int>(200.f - (fminf(200.f, (point - origin).length()) / 1.142857142857143)));
-		verts[0] = render_t::vertex_t{ screen.x, screen.y, 0, 1, point_color };
-
-		point = vec3_t(static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 1]]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 1] + 1]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 1] + 2]));
-		if (!math::world_to_screen(point, screen))
-			continue;
-		point_color.set_a(static_cast <int>(200.f - (fminf(200.f, (point - origin).length()) / 1.142857142857143)));
-		verts[1] = render_t::vertex_t{ screen.x, screen.y, 0, 1, point_color };
-
-		point = vec3_t(static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 2]]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 2] + 1]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 2] + 2]));
-		if (!math::world_to_screen(point, screen))
-			continue;
-		point_color.set_a(static_cast <int>(200.f - (fminf(200.f, (point - origin).length()) / 1.142857142857143)));
-		verts[2] = render_t::vertex_t{ screen.x, screen.y, 0, 1, point_color };
-
-		g.m_render->render_triangle(verts, 1);
-
-		g.m_render->line(verts[0].x, verts[0].y, verts[1].x, verts[1].y, color(255, 255, 255, 30), 1);
-		g.m_render->line(verts[2].x, verts[2].y, verts[0].x, verts[0].y, color(255, 255, 255, 30), 1);
-		g.m_render->line(verts[2].x, verts[2].y, verts[1].x, verts[1].y, color(255, 255, 255, 30), 1);
-	}
+	//if (!settings::visuals::world::molotov)
+	//	return;
+	//auto* inferno = reinterpret_cast<inferno_t*>(ent);
+	//auto* thrower = static_cast<player_t*>(g.m_interfaces->entity_list()->get_client_entity_handle(inferno->m_thrower()));
+	//bool team = false;
+	//if (thrower)
+	//	team = thrower->on_team(g.m_local);
+	//const auto origin = ent->origin();
+	//auto* const fire_x = inferno->m_fire_x();
+	//auto* const fire_y = inferno->m_fire_y();
+	//auto* const fire_z = inferno->m_fire_z();
+	//auto* const burning = inferno->m_fire_burning();
+	//const int fire_count = inferno->m_fire_count();
+	//
+	//std::vector<double> points = {};
+	//for (auto k = 0; k < fire_count; k++) {
+	//	if (!burning[k])
+	//		continue;
+	//	const auto point = vec3_t{ static_cast<float>(fire_x[k]), static_cast<float>(fire_y[k]), static_cast<float>(fire_z[k]) };
+	//	vec3_t screen = origin + point;
+	//	//			m_render->text( m_render->m_tahoma_12( ), screen.x, screen.y, color( 255, 255, 255 ), std::to_string( k ).c_str( ) );
+	//	points.push_back(screen.x);
+	//	points.push_back(screen.y);
+	//	points.push_back(screen.z);
+	//}
+	//if (points.size() < 9)
+	//	return;
+	//delaunator::Delaunator delaunator(points);
+	//
+	//color point_color = team ? color{ 0xFF, 0x08, 0xFF } : color{ 0x81, 0xFF, 0x21 };
+	//render_t::vertex_t verts[6] = {};
+	//vec3_t point;
+	//for (std::size_t i = 0; i < delaunator.triangles.size(); i += 3) {
+	//
+	//	point = vec3_t(static_cast<float>(delaunator.coords[3 * delaunator.triangles[i]]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i] + 1]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i] + 2]));
+	//	vec3_t screen;
+	//	if (!math::world_to_screen(point, screen))
+	//		continue;
+	//	point_color.set_a(static_cast <int>(200.f - (fminf(200.f, (point - origin).length()) / 1.142857142857143)));
+	//	verts[0] = render_t::vertex_t{ screen.x, screen.y, 0, 1, point_color };
+	//
+	//	point = vec3_t(static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 1]]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 1] + 1]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 1] + 2]));
+	//	if (!math::world_to_screen(point, screen))
+	//		continue;
+	//	point_color.set_a(static_cast <int>(200.f - (fminf(200.f, (point - origin).length()) / 1.142857142857143)));
+	//	verts[1] = render_t::vertex_t{ screen.x, screen.y, 0, 1, point_color };
+	//
+	//	point = vec3_t(static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 2]]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 2] + 1]), static_cast<float>(delaunator.coords[3 * delaunator.triangles[i + 2] + 2]));
+	//	if (!math::world_to_screen(point, screen))
+	//		continue;
+	//	point_color.set_a(static_cast <int>(200.f - (fminf(200.f, (point - origin).length()) / 1.142857142857143)));
+	//	verts[2] = render_t::vertex_t{ screen.x, screen.y, 0, 1, point_color };
+	//
+	//	g.m_render->render_triangle(verts, 1);
+	//
+	//	g.m_render->line(verts[0].x, verts[0].y, verts[1].x, verts[1].y, color(255, 255, 255, 30), 1);
+	//	g.m_render->line(verts[2].x, verts[2].y, verts[0].x, verts[0].y, color(255, 255, 255, 30), 1);
+	//	g.m_render->line(verts[2].x, verts[2].y, verts[1].x, verts[1].y, color(255, 255, 255, 30), 1);
+	//}
 	//free( verts );
 	//for ( std::size_t i = 0; i < delaunator.halfedges.size( ); i += 2 ) {
 	//	//verts[ 0 ] = ( render_t::vertex_t{ static_cast< float >( delaunator.coords[ 2 * delaunator.halfedges[ i ] ] ), static_cast< float >( delaunator.coords[ 2 * delaunator.halfedges[ i ] + 1 ] ), 0, 1, color( 180, 0,0, 100 ) } );

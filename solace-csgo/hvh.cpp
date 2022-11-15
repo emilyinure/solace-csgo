@@ -625,9 +625,8 @@ void hvh::DoRealAntiAim( ) {
 			case 5: // distortion
 
 				if (m_mode == AntiAimMode::WALK) {
-					break_yaw = fminf(89, ((g.ticks_to_time(g.m_last_lag) * (30.0f + 20.0f * m_flWalkToRunTransition))));
-					g.m_cmd->m_viewangles.y += (break_yaw * (m_side));
-					m_side *= -1;
+					break_yaw = ((g.ticks_to_time(g.m_last_lag) * (30.0f + 20.0f * m_flWalkToRunTransition)));
+					g.m_cmd->m_viewangles.y += ( break_yaw * 4.f * (m_side));
 				}
 				else {
 

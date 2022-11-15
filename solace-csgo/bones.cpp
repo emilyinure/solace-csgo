@@ -151,7 +151,7 @@
 bool bones_t::setup( player_t *player, bone_array_t *out, std::shared_ptr<player_record_t> record, CIKContext *ipk ) {
 	// if the record isnt setup yet.
 
-	std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex );
+	//std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex );
 	// run setupbones rebuilt.
 	record->m_setup = BuildBones( player, bone_used_by_anything, out, record, ipk );
 
