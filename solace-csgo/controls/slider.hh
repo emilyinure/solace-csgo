@@ -1,4 +1,6 @@
 #pragma once
+#include "base_control.hh"
+#include "../input_helper/input_helper.hh"
 #include <iostream>
 #include <fstream>
 

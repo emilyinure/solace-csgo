@@ -97,6 +97,7 @@ public:
 	struct {
 		NETVAR( "DT_BaseCombatWeapon", "m_flNextPrimaryAttack", next_primary_attack )
 		NETVAR( "DT_BaseCombatWeapon", "m_flNextSecondaryAttack", next_secondary_attack )
+		NETVAR( "DT_BaseCSGrenade", "m_flThrowStrength", m_throw_strength )
 		NETVAR( "DT_BaseAttributableItem", "m_iItemDefinitionIndex", item_definition_index )
 		NETVAR( "DT_BaseCombatWeapon", "m_iClip1", clip1_count )
 		NETVAR( "DT_BaseCombatWeapon", "m_iClip2", clip2_count )

@@ -5,7 +5,7 @@
 #include "thread_handler.h"
 
 using IsBreakableEntity_t = bool( __thiscall * )( entity_t * );
-bool IsBreakable( entity_t *ent ) {
+bool penetration::IsBreakable( entity_t *ent ) {
     bool        ret;
     c_client_class *cc;
     const char *name;
@@ -180,7 +180,6 @@ bool penetration::TraceToExit( vec3_t &start, const vec3_t &dir, vec3_t &out, tr
             // we hit an ent's hitbox, do another trace.
             if ( exit_trace->startSolid && ( exit_trace->surface.flags & SURF_HITBOX ) ) {
                 filter.skip = exit_trace->entity;
-
                 g.m_interfaces->trace( )->trace_ray( ray_t( out, start ), MASK_SHOT_HULL, &filter, exit_trace );
 
                 if ( exit_trace->did_hit( ) && !exit_trace->startSolid ) {

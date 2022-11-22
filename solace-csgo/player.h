@@ -536,7 +536,8 @@ public:
 	}
 	//VFUNC( get_weapon_info( ), 446, weapon_info_t *( __thiscall * )( void * ) )
 	OFFSET( bool, pin_pulled, g.m_offsets->m_weapon.m_pin_pulled );
-	OFFSET( float, throw_time, g.m_offsets->m_weapon.m_throw_time);
+	OFFSET( float, throw_time, g.m_offsets->m_weapon.m_throw_time );
+	OFFSET( float, throw_strength, g.m_offsets->m_weapon.m_throw_strength );
 	OFFSET( float, next_primary_attack, g.m_offsets->m_weapon.next_primary_attack );
 	OFFSET( float, next_secondary_attack, g.m_offsets->m_weapon.next_secondary_attack );
 	OFFSET( int, item_definition_index, g.m_offsets->m_weapon.item_definition_index );

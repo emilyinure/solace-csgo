@@ -223,6 +223,22 @@ public:
 		vec.z = z / other;
 		return vec;
 	}
+	auto operator<=( float other ) const {
+		return ( fabsf( x ) <= other &&
+			fabsf( y ) <= other &&
+			fabsf( z ) <= other );
+	}
+
+	auto operator!=( vec3_t other ) const {
+		return ( fabsf( x - other.x ) >= 0.f ||
+			fabsf( y - other.y ) >= 0.f ||
+			fabsf( z - other.z ) >= 0.f );
+	}
+	auto operator==( vec3_t other ) const {
+		return ( fabsf( x - other.x ) <= 0.f &&
+			fabsf( y - other.y ) <= 0.f &&
+			fabsf( z - other.z ) <= 0.f );
+	}
 
 	__forceinline float dot( const vec3_t &b ) const {
 		return( this->x * b.x + this->y * b.y + this->z * b.z );

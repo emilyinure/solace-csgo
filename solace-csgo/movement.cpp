@@ -159,13 +159,13 @@ void movement::auto_peek( ) {
 		if ( m_invert ) {
 			move_to( m_stop_pos );
 		}
+		set_should_stop( false );
 	}
 
 	else {
 		m_invert = false;
 	}
 	last = settings::hvh::antiaim::auto_peek;
-	set_should_stop( false );
 }
 
 void movement::move_to(vec3_t target_origin) const {
@@ -178,7 +178,8 @@ void movement::move_to(vec3_t target_origin) const {
 
 	if (speed > 0.1f) {
 		const auto friction = sv_friction->GetFloat() * g.m_local->surface_friction();
-		const auto control = fmaxf(speed, sv_stopspeed->GetFloat());
+		auto stop_speed = std::max< float >( speed, sv_stopspeed->GetFloat( ) );
+		auto control = fminf( speed, stop_speed );
 		auto drop = control * friction * g.m_interfaces->globals()->m_interval_per_tick;
 		auto newspeed = speed - drop;
 		if (newspeed < 0)
@@ -188,14 +189,16 @@ void movement::move_to(vec3_t target_origin) const {
 		velocity *= newspeed;
 	}
 	
-	auto local_delta = ( target_origin - local_origin  ) / g.m_interfaces->globals( )->m_interval_per_tick;
+	auto local_delta = ( target_origin - local_origin ) / g.m_interfaces->globals( )->m_interval_per_tick;
 
-	local_delta -= velocity;
-	//if ( g.m_weapon_info && g.m_weapon_info->m_max_player_speed * g.m_weapon_info->m_max_player_speed < local_delta.length_sqr( ) ) {
-	//	const auto fRatio = g.m_weapon_info->m_max_player_speed / local_delta.length( );
-	//	local_delta *= fRatio;
-	//}
+	local_delta -= velocity * 2.f;
 
+	if ( g.m_weapon_info && g.m_weapon_info->m_max_player_speed * g.m_weapon_info->m_max_player_speed < local_delta.length_sqr( ) ) {
+		const auto fRatio = g.m_weapon_info->m_max_player_speed / local_delta.length( );
+		local_delta *= fRatio;
+	}
+
+	const auto delta_len = local_delta.length_2d( );
 
 	//if (local_delta.length_2d() > 0.1f) {
 	//	drop = sv_stopspeed->GetFloat() * friction * g.m_interfaces->globals()->m_interval_per_tick;
@@ -203,16 +206,41 @@ void movement::move_to(vec3_t target_origin) const {
 	//
 	//	local_delta *= newspeed / speed;
 	//}
-	
+
+
+	static auto sv_accelerate = g.m_interfaces->console( )->get_convar( "sv_accelerate" );
+
+	float max_accel = 450;
+	auto accel_speed = sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick * 450;
+	if ( max_accel > accel_speed )
+		max_accel = accel_speed;
+
+	const auto current_speed = velocity.dot( local_delta.normalized( ) );
+
+	auto projected_delta = fminf( 450.f, local_delta.length( ) + current_speed );
+
 	g.m_view_angles = ang_t( 0, static_cast< float >( atan2( local_delta.y, local_delta.x ) * 180.f / M_PI ), 0 );;
-	float projected_delta = fminf(450.f, local_delta.length_2d());
-	if (projected_delta <= 0.1f ) {
-		g.m_cmd->m_forwardmove = 0.f;
+
+	const auto add_speed = projected_delta - current_speed;
+	if ( max_accel < add_speed ) {
+		//distance is farther than we can account for
+		//go as fast as we can
+		g.m_cmd->m_forwardmove = 450;
 		g.m_cmd->m_sidemove = 0;
-		return;
 	}
-	g.m_cmd->m_forwardmove = projected_delta;
-	g.m_cmd->m_sidemove = 0.f;
+	else {
+		// const float kAccelerationScale = MAX( 250.0f, wishspeed );
+		// accelspeed = accel * gpGlobals->frametime * kAccelerationScale * player->m_surfaceFriction;
+		accel_speed = sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick * fmaxf( 250, projected_delta );
+
+		g.m_cmd->m_forwardmove = 0;
+		if ( accel_speed <= add_speed ) {
+			//add speed is too high, try to correct the accelspeed
+			projected_delta = projected_delta / ( sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick );
+		}
+		g.m_cmd->m_forwardmove = std::clamp<float>( projected_delta, -450.f, 450.f );
+		g.m_cmd->m_sidemove = 0.f;
+	}
 }
 
 
@@ -394,20 +422,17 @@ void movement::DoPrespeed( ) {
 	mod = g.m_interfaces->globals()->m_interval_per_tick * 128.f;
 
 	// scale min and max based on tickrate.
-	min = 2.25f * mod;
 	max = 5.f * mod;
+	min = 5.f * mod;
 
 	// compute ideal strafe angle for moving in a circle.
 	strafe = ideal * 2.f;
 
-	// clamp ideal strafe circle value to min and max step.
-	strafe = std::clamp<float> ( strafe, min, max );
-
 	// calculate time.
-	time = 320.f / speed;
+	time = 640.f / speed;
 
 	// clamp time.
-	time = std::clamp<float>( time, 0.35f, 1.f );
+	time = std::clamp<float>( time, 0.35f, 2.f );
 
 	// init step.
 	step = strafe;
@@ -418,7 +443,7 @@ void movement::DoPrespeed( ) {
 			break;
 
 		// if we will collide with an object with the current strafe step then increment step to prevent a collision.
-		step += 0.2f;
+		step += 0.1f;
 	}
 
 	if ( step > max ) {
@@ -431,7 +456,7 @@ void movement::DoPrespeed( ) {
 				break;
 
 			// if we will collide with an object with the current strafe step decrement step to prevent a collision.
-			step -= 0.2f;
+			step -= 0.1f;
 		}
 
 		if ( step < -min ) {
@@ -511,6 +536,80 @@ void air_acceletate( vec3_t& wishdir, vec3_t &velocity, const float wishspeed, c
 	}
 }
 
+class trace_filter_skip_players : public i_trace_filter {
+public:
+	trace_filter_skip_players( ) {
+	}
+
+	virtual bool ShouldHitEntity( void* pEntityHandle, int contentsMask ) {
+		return ( ( ( entity_t* )pEntityHandle )->index( ) == 0 || ( ( entity_t* )pEntityHandle )->index( ) >= g.m_interfaces->globals( )->m_max_clients );
+	}
+
+	virtual TraceType_t GetTraceType( ) const {
+		return TraceType_t::TRACE_EVERYTHING;
+	}
+};
+
+void try_touch_ground( const vec3_t& start, const vec3_t& end, const vec3_t& mins, const vec3_t& maxs, unsigned int fMask, trace_t& pm ) {
+	ray_t ray;
+	ray.initialize( start, end, mins, maxs );
+	trace_filter_skip_players traceFilter;
+	g.m_interfaces->trace( )->trace_ray( ray, fMask, &traceFilter, &pm );
+}
+
+void movement::try_touch_ground_in_quadrants( const vec3_t& start, const vec3_t& end, unsigned int fMask, trace_t& pm ) {
+	vec3_t maxs;
+	const vec3_t minsSrc = m_mins;
+	const vec3_t maxsSrc = m_maxs;
+
+	const float fraction = pm.flFraction;
+	const vec3_t endpos = pm.end;
+
+	// Check the -x, -y quadrant
+	vec3_t mins = minsSrc;
+	maxs.init( fminf( 0, maxsSrc.x ), fminf( 0, maxsSrc.y ), maxsSrc.z );
+	try_touch_ground( start, end, mins, maxs, fMask, pm );
+	if ( pm.entity && pm.plane.normal[ 2 ] >= 0.7 ) {
+		pm.flFraction = fraction;
+		pm.end = endpos;
+		return;
+	}
+
+	// Check the +x, +y quadrant
+	mins.init( fmaxf( 0, minsSrc.x ), fmaxf( 0, minsSrc.y ), minsSrc.z );
+	maxs = maxsSrc;
+	try_touch_ground( start, end, mins, maxs, fMask, pm );
+	if ( pm.entity && pm.plane.normal[ 2 ] >= 0.7 ) {
+		pm.flFraction = fraction;
+		pm.end = endpos;
+		return;
+	}
+
+	// Check the -x, +y quadrant
+	mins.init( minsSrc.x, fmaxf( 0, minsSrc.y ), minsSrc.z );
+	maxs.init( fminf( 0, maxsSrc.x ), maxsSrc.y, maxsSrc.z );
+	try_touch_ground( start, end, mins, maxs, fMask, pm );
+	if ( pm.entity && pm.plane.normal[ 2 ] >= 0.7 ) {
+		pm.flFraction = fraction;
+		pm.end = endpos;
+		return;
+	}
+
+	// Check the +x, -y quadrant
+	mins.init( fmaxf( 0, minsSrc.x ), minsSrc.y, minsSrc.z );
+	maxs.init( maxsSrc.x, fminf( 0, maxsSrc.y ), maxsSrc.z );
+	try_touch_ground( start, end, mins, maxs, fMask, pm );
+	if ( pm.entity && pm.plane.normal[ 2 ] >= 0.7 ) {
+		pm.flFraction = fraction;
+		pm.end = endpos;
+		return;
+	}
+
+	pm.flFraction = fraction;
+	pm.end = endpos;
+}
+
+
 inline bool movement::WillCollide( float time, float change, float start ) {
 	struct PredictionData_t {
 		vec3_t start;
@@ -523,7 +622,7 @@ inline bool movement::WillCollide( float time, float change, float start ) {
 
 	PredictionData_t      data;
 	trace_t            trace;
-	trace_world_only filter;
+	trace_filter_skip_players filter;
 
 	// set base data.
 	data.ground = g.m_local->flags() & fl_onground;
@@ -567,7 +666,7 @@ inline bool movement::WillCollide( float time, float change, float start ) {
 			data.velocity.z = sv_jump_impulse->GetFloat( );
 
 		else
-			data.velocity.z -= sv_gravity->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick;
+			data.velocity.z -= sv_gravity->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick * 0.5f;
 
 		// we adjusted the velocity for our new direction.
 		// see if we can move in this direction, predict our new origin if we were to travel at this velocity.
@@ -577,7 +676,7 @@ inline bool movement::WillCollide( float time, float change, float start ) {
 		g.m_interfaces->trace()->trace_ray( ray_t( data.start, data.end, m_mins, m_maxs ), MASK_PLAYERSOLID, &filter, &trace );
 
 		// check if we hit any objects.
-		if ( trace.flFraction != 1.f && trace.plane.normal.z <= 0.9f )
+		if ( trace.flFraction != 1.f && trace.plane.normal.z <= 0.9f && trace.plane.normal.z > -.9f )
 			return true;
 		if ( trace.startSolid || trace.allsolid )
 			return true;
@@ -585,12 +684,24 @@ inline bool movement::WillCollide( float time, float change, float start ) {
 		// adjust start and end point.
 		data.start = data.end = trace.end;
 
-		// move endpoint 2 units down, and re-trace.
-		// do this to check if we are on th floor.
-		g.m_interfaces->trace( )->trace_ray( ray_t( data.start, data.end - vec3_t{ 0.f, 0.f, 2.f }, m_mins, m_maxs ), MASK_PLAYERSOLID, &filter, &trace );
+		try_touch_ground( data.start, data.end - vec3_t{ 0.f, 0.f, 2.f }, m_mins, m_maxs, MASK_PLAYERSOLID, trace );
+		if ( trace.plane.normal[ 2 ] < 0.7f ) {
+			// Test four sub-boxes, to see if any of them would have found shallower slope we could actually stand on
+			try_touch_ground_in_quadrants( data.start, data.end - vec3_t{ 0.f, 0.f, 2.f }, MASK_PLAYERSOLID, trace );
 
-		// see if we moved the player into the ground for the next iteration.
-		data.ground = trace.did_hit( ) && trace.plane.normal.z > 0.7f;
+			if ( trace.entity == nullptr || trace.plane.normal[ 2 ] < 0.7f ) {
+				data.ground = false;
+			}
+			else {
+				data.ground = trace.entity != nullptr;
+			}
+		}
+		else {
+			data.ground = trace.entity != nullptr;
+		}
+
+		if( !data.ground )
+			data.velocity.z -= sv_gravity->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick * 0.5f;
 	}
 
 	// the entire loop has ran

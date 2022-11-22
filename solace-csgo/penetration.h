@@ -3,6 +3,7 @@
 #include "vec3.h"
 struct trace_t;
 class player_t;
+class entity_t;
 
 namespace penetration {
     struct PenetrationInput_t {
@@ -27,6 +28,7 @@ namespace penetration {
         __forceinline PenetrationOutput_t( ) = default;
     };
 
+    bool IsBreakable( entity_t* ent );
     float scale( player_t *player, float damage, float armor_ratio, int hitgroup );
     bool  TraceToExit( vec3_t &start, const vec3_t &dir, vec3_t &out, trace_t *enter_trace, trace_t *exit_trace );
     void  ClipTraceToPlayer( vec3_t &start, const vec3_t &end, uint32_t mask, trace_t *tr, player_t *player, float min );

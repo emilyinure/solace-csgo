@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include "vec3.h"
 
 #include "d3d9.h"
 #pragma comment(lib, "d3dx9.lib")
@@ -189,6 +190,9 @@ public:
 	auto pop_clip( ) -> void;
 	auto start( ) -> void;
 	auto finish( ) const -> void;
+	auto world_circle( vec3_t origin, float radius, color clr ) const -> void;
+
+	auto circle( int x, int y, float radius, int segments, color clr ) const -> void;
 
 	[[nodiscard]] auto is_steam_overlay( ) const -> bool;
 

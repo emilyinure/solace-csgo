@@ -9,15 +9,17 @@ namespace settings {
 			inline bool silent = true;
 			inline float delay_shot = 0;
 		}
+		namespace hitbox {
+			inline int hitboxes = 0;
+			inline float point_scale = 85;
+			inline float body_scale = 80;
+			inline int baim_conditions = 0;
+		}
 		namespace selection {
 			inline float hitchance = 58;
 			inline float min_damage = 20;
 			inline float lethal_damage = 10;
-			inline float point_scale = 85;
-			inline int hitboxes = 0;
 			inline float fov = 0;
-			inline float body_scale = 80;
-			inline bool body_aim_lethal = true;
 		}
 	}
 	namespace visuals {
@@ -37,6 +39,7 @@ namespace settings {
 			inline bool box = false;
 			inline bool name = false;
 			inline bool noscope = true;
+			inline bool grenade_prediction = true;
 		}
 		namespace world {
 			inline bool wire_smoke = true;

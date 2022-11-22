@@ -1,5 +1,6 @@
 #pragma once
-#include "controls/window.hh"
+#include "base_control.hh"
+#include "../input_helper/input_helper.hh"
 #include <iostream>
 #include <fstream>
 class c_group_tab : public c_base_control {

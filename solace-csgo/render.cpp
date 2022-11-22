@@ -380,7 +380,51 @@ auto render_t::finish( ) const -> void {
 	this->state_block_->Apply( );
 	this->state_block_->Release( );
 	this->device_->SetVertexDeclaration( this->vertex_declaration_ );
-};
+}
+auto render_t::world_circle( vec3_t origin, float radius, color clr ) const -> void {
+	vec3_t origin_w2s;
+	if ( !math::world_to_screen( origin, origin_w2s ) )
+		return;
+
+	render_t::vertex_t verts[ 3 ] = {};
+	for ( auto i = 0; i < 360; i += 5 ) {
+		auto rot = origin + ang_t( 0, i, 0 ).forward( ) * radius;
+		auto rot_2 = origin + ang_t( 0, i + 5.f, 0 ).forward( ) * radius;
+
+		vec3_t point_wts;
+		vec3_t point_wts_2;
+
+
+		if ( !math::world_to_screen( rot, point_wts ) )
+			continue;
+		if ( !math::world_to_screen( rot_2, point_wts_2 ) )
+			continue;
+
+		clr.set_a( 20 );
+		verts[ 0 ] = { roundf( point_wts.x ), roundf( point_wts.y ), 0, 1, clr };
+		verts[ 1 ] = { roundf( point_wts_2.x ), roundf( point_wts_2.y ), 0, 1, clr };
+		clr.set_a( 100 );
+		verts[ 2 ] = { roundf( origin_w2s.x ) , roundf( origin_w2s.y ), 0, 1, clr };
+		g.m_render->render_triangle( verts, 1 );
+		clr.set_a( 50 );
+		g.m_render->line( roundf( point_wts.x ), roundf( point_wts.y ), roundf( point_wts_2.x ), roundf( point_wts_2.y ), clr, 1 );
+	}
+}
+
+auto render_t::circle( int x, int y, float radius, int segments, color clr ) const -> void {
+	float step = ( M_PI * 2.f ) / segments;
+	for ( float i{ 0.f }; i < ( M_PI * 2.f ); i += step ) {
+		vertex_t verts[ 3 ];
+		clr.set_a( 20 );
+		verts[ 0 ] = { roundf( x + ( radius * std::cos( i ) ) ), roundf( y + ( radius * std::sin( i ) ) ), 0, 1, clr };
+		verts[ 1 ] = { roundf( x + ( radius * std::cos( i + step ) ) ), roundf( y + ( radius * std::sin( i + step ) ) ), 0, 1, clr };
+		clr.set_a( 100 );
+		verts[ 2 ] = { roundf( x ) , roundf( y ), 0, 1, clr };
+		g.m_render->render_triangle( verts, 1 );
+	}
+
+
+}
 
 auto render_t::is_steam_overlay( ) const -> bool {
 	static std::uintptr_t gameoverlay_return_address = 0;

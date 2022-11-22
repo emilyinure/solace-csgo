@@ -6,9 +6,6 @@
 #include <fstream>
 
 #include "base_control.hh"
-#include "../menu.hh"
-#include "../input_helper/input_helper.hh"
-class c_tab;
 
 class c_form : public c_base_control {
 	const char* name_{ "Test" };

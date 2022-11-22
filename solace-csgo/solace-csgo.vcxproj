@@ -26,7 +26,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -39,7 +39,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Profiling|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -173,13 +173,16 @@
     <ClInclude Include="chams.h" />
     <ClInclude Include="checksum_crc.h" />
     <ClInclude Include="client_state.h" />
-    <ClInclude Include="column.hh" />
     <ClInclude Include="console.h" />
     <ClInclude Include="controls\base_control.hh" />
     <ClInclude Include="controls\button.hh" />
+    <ClInclude Include="controls\column.hh" />
     <ClInclude Include="controls\combobox.hh" />
+    <ClInclude Include="controls\groupbox.hh" />
     <ClInclude Include="controls\key_bind.hh" />
+    <ClInclude Include="controls\multiselect.hh" />
     <ClInclude Include="controls\slider.hh" />
+    <ClInclude Include="controls\tab.hh" />
     <ClInclude Include="controls\toggle.hh" />
     <ClInclude Include="controls\window.hh" />
     <ClInclude Include="debug_overlay.h" />
@@ -194,7 +197,6 @@
     <ClInclude Include="g.h" />
     <ClInclude Include="global_vars.h" />
     <ClInclude Include="app_system.h" />
-    <ClInclude Include="groupbox.hh" />
     <ClInclude Include="hooks.h" />
     <ClInclude Include="hvh.h" />
     <ClInclude Include="includes.h" />
@@ -209,7 +211,6 @@
     <ClInclude Include="menu.hh" />
     <ClInclude Include="model_info.h" />
     <ClInclude Include="movement.h" />
-    <ClInclude Include="multiselect.hh" />
     <ClInclude Include="netvars.h" />
     <ClInclude Include="netvar_manager.h" />
     <ClInclude Include="notification.h" />
@@ -226,7 +227,6 @@
     <ClInclude Include="sdk.h" />
     <ClInclude Include="settings.h" />
     <ClInclude Include="studio.h" />
-    <ClInclude Include="tab.hh" />
     <ClInclude Include="tfm.h" />
     <ClInclude Include="thread_handler.h" />
     <ClInclude Include="utils.h" />
@@ -244,8 +244,10 @@
     <ClCompile Include="buy_bot.cpp" />
     <ClCompile Include="chams.cpp" />
     <ClCompile Include="checksum_crc.cpp" />
+    <ClCompile Include="controls\window.cc" />
     <ClCompile Include="datamap.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="engine_trace.cpp" />
     <ClCompile Include="esp.cpp" />
     <ClCompile Include="events.cpp" />
     <ClCompile Include="g.cpp" />
@@ -269,7 +271,6 @@
     <ClCompile Include="thread_hander.cpp" />
     <ClCompile Include="vec3.cpp" />
     <ClCompile Include="view_matrix.cpp" />
-    <ClCompile Include="window.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

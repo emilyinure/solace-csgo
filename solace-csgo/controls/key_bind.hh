@@ -1,3 +1,6 @@
+#pragma once
+#include "base_control.hh"
+#include "../input_helper/input_helper.hh"
 #include <iostream>
 #include <fstream>
 
@@ -87,7 +90,7 @@ public:
 
 		
 
-		if ( this->open_ && !input_helper.hovering( button_area_ ) && !input_helper.hovering( this->item_area_ ) && ( input_helper.key_pressed( VK_LBUTTON ) ) ) {
+		if ( this->open_ && !input_helper.hovering( this->item_area_ ) && ( input_helper.key_pressed( VK_LBUTTON ) ) ) {
 			input_helper.set_key( VK_LBUTTON, false );
 			menu.focused_control = nullptr;
 			this->open_ = false;
@@ -99,7 +102,7 @@ public:
 
 		menu.focused_control = this;
 
-		if ( this->capturing_ && this->open_ ) {
+		if ( this->open_ ) {
 			for ( auto i{ 0 }; i < static_cast< int >( this->key_bind_types_.size( ) ); i++ ) {
 				const area_t item_area{ this->item_area_.x, this->item_area_.y + ( i * 17 ), this->item_area_.w, 17 };
 

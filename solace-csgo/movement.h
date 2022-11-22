@@ -30,7 +30,11 @@ public:
 
 
 	void DoPrespeed( );
+
+	bool try_player_move( vec3_t& velocity, vec3_t& position, bool on_ground );
 	bool GetClosestPlane( vec3_t& plane );
+	void try_touch_ground_in_quadrants( const vec3_t& start, const vec3_t& end, unsigned int fMask, trace_t& pm );
+	bool try_player_move( vec3_t& velocity, vec3_t& position );
 	bool WillCollide( float time, float change, float start );
 } inline g_movement;
 

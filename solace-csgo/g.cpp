@@ -25,8 +25,8 @@ void c_g::init_cheat( ) {
 	m_offsets = new offsets_t( );
 	m_hooks = new hooks_t( );
 	random_seed = reinterpret_cast< random_seed_t >( GetProcAddress( GetModuleHandleA( "vstdlib.dll" ), "RandomSeed" ) );
-	random_int = reinterpret_cast< random_int_t >( GetProcAddress( GetModuleHandleA( "vstdlib.dll" ), "RandomFloat" ) );
-	random_float = reinterpret_cast< random_float_t >( GetProcAddress( GetModuleHandleA( "vstdlib.dll" ), "RandomInt" ) );
+	random_int = reinterpret_cast< random_int_t >( GetProcAddress( GetModuleHandleA( "vstdlib.dll" ), "RandomInt" ) );
+	random_float = reinterpret_cast< random_float_t >( GetProcAddress( GetModuleHandleA( "vstdlib.dll" ), "RandomFloat" ) );
 	events::init( );
 	menu.init( );
 }
@@ -439,6 +439,8 @@ void UTIL_EmplaceTickBaseShift(int high, int low, int ideal, int ticks) {
 
 void c_g::add_tickbase_log( int cmd_num, int tick_base ) {
 	m_tick_base_log.emplace_back( cmd_num, tick_base );
+	if ( m_tick_base_log.size( ) > 256 )
+		m_tick_base_log.pop_back( );
 }
 void c_g::get_tickbase_log( int cmd_num, int *tick_base ) {
 	for ( auto& i : m_tick_base_log ) {
@@ -474,7 +476,7 @@ void c_g::on_move ( float accumulated_extra_samples, bool bFinalTick, cl_move_t 
 	auto iTicksThisCommand = **reinterpret_cast< int** >( frame_ticks );
 	cl_move( accumulated_extra_samples, bFinalTick );
 
-	if ( g.m_local ) {
+	if ( g.m_local && g.m_local->alive() ) {
 		int high, low, ideal;
 		UTIL_FieldHighLowTickBase( &high, &low, &ideal );
 

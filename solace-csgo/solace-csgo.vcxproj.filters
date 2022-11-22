@@ -141,12 +141,6 @@
     <ClInclude Include="menu.hh">
       <Filter>helpers\render</Filter>
     </ClInclude>
-    <ClInclude Include="tab.hh">
-      <Filter>helpers\render\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="multiselect.hh">
-      <Filter>helpers\render\controls</Filter>
-    </ClInclude>
     <ClInclude Include="settings.h">
       <Filter>g</Filter>
     </ClInclude>
@@ -219,12 +213,6 @@
     <ClInclude Include="chams.h">
       <Filter>g\features</Filter>
     </ClInclude>
-    <ClInclude Include="column.hh">
-      <Filter>helpers\render\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="groupbox.hh">
-      <Filter>helpers\render\controls</Filter>
-    </ClInclude>
     <ClInclude Include="material_system.h">
       <Filter>sdk\valve\interfaces</Filter>
     </ClInclude>
@@ -268,6 +256,21 @@
     <ClInclude Include="buy_bot.h">
       <Filter>g\features</Filter>
     </ClInclude>
+    <ClInclude Include="grenade_pred.h">
+      <Filter>g\features</Filter>
+    </ClInclude>
+    <ClInclude Include="controls\column.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="controls\groupbox.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="controls\multiselect.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="controls\tab.hh">
+      <Filter>helpers\render\controls</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hooks.cpp">
@@ -294,9 +297,6 @@
     </ClCompile>
     <ClCompile Include="menu.cc">
       <Filter>helpers\render</Filter>
-    </ClCompile>
-    <ClCompile Include="window.cc">
-      <Filter>helpers\render\controls</Filter>
     </ClCompile>
     <ClCompile Include="block_bot.cpp">
       <Filter>g\features</Filter>

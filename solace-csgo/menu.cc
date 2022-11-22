@@ -1,22 +1,22 @@
 ﻿#include "menu.hh"
 
 #include "includes.h"
-#include "multiselect.hh"
-#include "tab.hh"
+#include "controls/multiselect.hh"
+#include "controls/tab.hh"
 #include "controls/window.hh"
 #include "controls/button.hh"
 #include "controls/combobox.hh"
 #include "controls/key_bind.hh"
 #include "controls/slider.hh"
 #include "controls/toggle.hh"
-#include "column.hh"
-#include "groupbox.hh"
+#include "controls/column.hh"
+#include "controls/groupbox.hh"
 
 auto c_menu::init( ) -> void {
-	auto main_form = std::make_shared<c_form>( "Solace", area_t{ 200, 400, 390, 312 } );
+	auto main_form = std::make_shared<c_form>( "Solace", area_t{ 200, 400, 580, 424 } );
 	this->m_forms.push_back( main_form );
 	
-	auto aim_tab = std::make_shared<c_tab>( "rage aim" );
+	auto aim_tab = std::make_shared<c_tab>( "Rage aim" );
 	{
 		auto left_column = std::make_shared<c_column>( );
 		{
@@ -30,6 +30,16 @@ auto c_menu::init( ) -> void {
 				general_group->add_child( general_tab );
 			};
 			left_column->add_child( general_group );
+			auto hitbox_group = std::make_shared<c_group_box>( "Hitboxes" );
+			{
+				auto general_tab = std::make_shared<c_group_tab>( "Selection" );
+				general_tab->add_child( std::make_shared<c_multiselect>( "Hitboxes", &settings::rage::hitbox::hitboxes, std::vector<const char*> { "Head", "Chest", "Body", "Arms", "Legs" } ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Head scale", &settings::rage::hitbox::point_scale ) );
+				general_tab->add_child( std::make_shared<c_slider>( "Body scale", &settings::rage::hitbox::body_scale ) );
+				general_tab->add_child( std::make_shared<c_multiselect>( "Body-aim conditions", &settings::rage::hitbox::baim_conditions, std::vector<const char*> { "Prefer Lethal", "Force In-Air" } ) );
+				hitbox_group->add_child( general_tab );
+			}
+			left_column->add_child( hitbox_group );
 		}
 		aim_tab->add_child( left_column );
 		auto right_column = std::make_shared<c_column>( );
@@ -41,10 +51,6 @@ auto c_menu::init( ) -> void {
 				general_tab->add_child( std::make_shared<c_slider>( "Hitchance", &settings::rage::selection::hitchance ) );
 				general_tab->add_child( std::make_shared<c_slider>( "Minimum damage", &settings::rage::selection::min_damage ) );
 				general_tab->add_child( std::make_shared<c_slider>( "Extra lethal damage", &settings::rage::selection::lethal_damage ) );
-				general_tab->add_child( std::make_shared<c_multiselect>( "Hitboxes", &settings::rage::selection::hitboxes, std::vector<const char *> { "Head", "Chest", "Body", "Arms", "Legs" } ) );
-				general_tab->add_child( std::make_shared<c_slider>( "Head scale", &settings::rage::selection::point_scale ) );
-				general_tab->add_child( std::make_shared<c_slider>( "Body scale", &settings::rage::selection::body_scale ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "Body-aim lethal", &settings::rage::selection::body_aim_lethal ) );
 				selection_group->add_child( general_tab );
 			}
 			right_column->add_child( selection_group );
@@ -52,7 +58,7 @@ auto c_menu::init( ) -> void {
 		aim_tab->add_child( right_column );
 	}
 	main_form->add_child( aim_tab );
-	auto visual_tab = std::make_shared<c_tab>( "visuals" );
+	auto visual_tab = std::make_shared<c_tab>( "Visuals" );
 	{
 		auto left_column = std::make_shared<c_column>( );
 		{
@@ -76,7 +82,8 @@ auto c_menu::init( ) -> void {
 				auto general_tab = std::make_shared<c_group_tab>( "Players" );
 				general_tab->add_child( std::make_shared<c_toggle>( "Box", &settings::visuals::weapons::box ) );
 				general_tab->add_child( std::make_shared<c_toggle>( "Name", &settings::visuals::weapons::name ) );
-				general_tab->add_child( std::make_shared<c_toggle>( "Box", &settings::visuals::weapons::noscope ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "No scope", &settings::visuals::weapons::noscope ) );
+				general_tab->add_child( std::make_shared<c_toggle>( "Grendae Prediction", &settings::visuals::weapons::grenade_prediction ) );
 				chams_group->add_child( general_tab );
 			}
 			left_column->add_child( chams_group );
@@ -212,7 +219,7 @@ auto c_menu::init( ) -> void {
 				auto general_tab = std::make_shared<c_group_tab>( "" );
 				{
 					general_tab->add_child( std::make_shared<c_toggle>( "Lag", &settings::hvh::antiaim::lag_enable ) );
-					general_tab->add_child( std::make_shared<c_multiselect>( "Lag activation", &settings::hvh::antiaim::lag_active, std::vector<const char *> { "<ove", "Air", "Crouch" } ) );
+					general_tab->add_child( std::make_shared<c_multiselect>( "Lag activation", &settings::hvh::antiaim::lag_active, std::vector<const char *> { "Move", "Air", "Crouch" } ) );
 					general_tab->add_child( std::make_shared<c_combobox>( "Lag mode", &settings::hvh::antiaim::lag_mode, std::vector<const char *> { "Max", "Random", "Break step", "Rotate", "Random", "Peek" } ) );
 					general_tab->add_child( std::make_shared<c_slider>( "Lag limit", &settings::hvh::antiaim::lag_limit, 0, 15 ) );
 				}
@@ -251,7 +258,7 @@ auto c_menu::init( ) -> void {
 			auto griefing_tab = std::make_shared<c_group_box>( "Griefing" );
 			{
 				auto movement_tab = std::make_shared<c_group_tab>( "Movement" );
-				movement_tab->add_child( std::make_shared<c_key_bind>( "block bot", &settings::misc::griefing::block_bot, key_bind_type_toggle ) );
+				movement_tab->add_child( std::make_shared<c_key_bind>( "Block bot", &settings::misc::griefing::block_bot, key_bind_type_toggle ) );
 				griefing_tab->add_child( movement_tab );
 			}
 			right_column->add_child( griefing_tab );

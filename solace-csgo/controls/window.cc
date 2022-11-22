@@ -1,5 +1,5 @@
-#include "controls/window.hh"
-#include "tab.hh"
+#include "window.hh"
+#include "../input_helper/input_helper.hh"
 
 auto c_form::draw ( ) -> void {
 

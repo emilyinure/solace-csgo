@@ -139,7 +139,7 @@ struct ray_t {
 		m_start = start;
 	}
 
-	void initialize( vec3_t &vecStart, vec3_t &vecEnd, vec3_t min, vec3_t max ) {
+	void initialize( const vec3_t &vecStart, const vec3_t &vecEnd, const vec3_t &min, const vec3_t &max ) {
 		m_delta = vec_aligned_t{ vecEnd - vecStart };
 		m_world_axis_transform = nullptr;
 		m_is_swept = m_delta.length_sqr( ) != 0.f;
@@ -284,11 +284,11 @@ public:
 
 class trace_filter_skip_one_entity : public i_trace_filter {
 public:
-	trace_filter_skip_one_entity( void *pPassEnt1 ) {
+	trace_filter_skip_one_entity( void* pPassEnt1 ) {
 		passentity1 = pPassEnt1;
 	}
 
-	virtual bool ShouldHitEntity( void *pEntityHandle, int contentsMask ) {
+	virtual bool ShouldHitEntity( void* pEntityHandle, int contentsMask ) {
 		return !( pEntityHandle == passentity1 );
 	}
 
@@ -296,7 +296,7 @@ public:
 		return TraceType_t::TRACE_EVERYTHING;
 	}
 
-	void *passentity1 = nullptr;
+	void* passentity1 = nullptr;
 };
 
 class trace_entity : public i_trace_filter {

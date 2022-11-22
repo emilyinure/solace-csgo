@@ -721,7 +721,7 @@ hooks_t::hooks_t( ) {
 	g.m_interfaces->client( ).hook( )->add( frame_stage_notify, 36 );
 	g.m_interfaces->client( ).hook( )->add( LevelInitPostEntity, 6 );
 	//g.m_interfaces->viewrender( ).hook( )->add( static_cast< void * >( RenderSmokeOverlay ), 40 );
-
+	
 	g.m_interfaces->client_mode( ).hook( )->add( create_move, 24 );
 	g.m_interfaces->client_mode( ).hook( )->add( override_view, 18 );
 	g.m_interfaces->prediction( ).hook( )->add( run_command, 19 );
@@ -729,7 +729,7 @@ hooks_t::hooks_t( ) {
 	g.m_interfaces->prediction( ).hook( )->add( PostEntityPacketReceived, 5 );
 	g.m_interfaces->prediction().hook()->add(PreEntityPacketReceived, 4);
 	g.m_interfaces->prediction().hook()->add(InPrediction, 14);
-
+	
 	g.m_interfaces->device().hook()->add(end_scene, 42);
 	g.m_interfaces->device().hook()->add(reset, 16);
 	g.m_interfaces->render_view( ).hook( )->add( SceneEnd, 9 );
@@ -737,16 +737,16 @@ hooks_t::hooks_t( ) {
 	m_cl_hook.init( reinterpret_cast< uintptr_t >(g.m_interfaces->hookable_client_state( )) );
 	m_cl_hook.add( TempEntities, 36 );
 	m_cl_hook.add( PacketStart, 5 );
-
+	
 	//o_setupmovement = reinterpret_cast<setup_movment_t>(DetourFunction( (PBYTE)util::find("client.dll", "55 8B EC 83 E4 ? 81 EC ? ? ? ? 56 57 8B 3D ? ? ? ? 8B F1"), (PBYTE)SetUpMovement));
-
+	
 	netvar_manager::set_proxy( fnv::hash( "DT_CSPlayer" ), fnv::hash( "m_flLowerBodyYawTarget" ), Body_proxy, m_Body_original );
 	netvar_manager::set_proxy( fnv::hash( "DT_SmokeGrenadeProjectile" ), fnv::hash( "m_bDidSmokeEffect" ), m_nSmokeEffectTickBegin, m_nSmokeEffectTickBegin_original );
-
 	
-	original_cl_move = reinterpret_cast< decltype( &cl_move ) >( DetourFunction(
-		util::find( "engine.dll", "55 8B EC 81 EC ? ? ? ? 53 56 57 8B 3D ? ? ? ? 8A F9" ),
-		reinterpret_cast< PBYTE >( cl_move ) ) );
+	
+	//original_cl_move = reinterpret_cast< decltype( &cl_move ) >( DetourFunction(
+	//	util::find( "engine.dll", "55 8B EC 81 EC ? ? ? ? 53 56 57 8B 3D ? ? ? ? 8A F9" ),
+	//	reinterpret_cast< PBYTE >( cl_move ) ) );
 
 	//render_view_hook( )->hook( scene_end, 9 );
 

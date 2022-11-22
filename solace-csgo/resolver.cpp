@@ -38,8 +38,10 @@ std::shared_ptr<player_record_t> resolver::FindIdealRecord( ent_info_t *data ) {
 			first_valid = current;
 
 		// try to find a record with a shot, lby update, walking or no anti-aim.
-		if ( it->m_mode == RESOLVE_BODY || it->m_mode == RESOLVE_WALK )
+		if ( it->m_mode == RESOLVE_WALK )
 			return current;
+		if ( it->m_mode == RESOLVE_BODY && !(first_valid && first_valid->m_mode == RESOLVE_BODY) )
+			first_valid = current;
 	}
 
 	// none found above, return the first valid record if possible.

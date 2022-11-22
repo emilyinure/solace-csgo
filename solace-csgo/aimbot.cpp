@@ -125,6 +125,11 @@ void aimbot_t::get_targets() {
 	}
 }
 
+enum body_aim_conditions {
+	LETHAL = 0,
+	IN_AIR
+};
+
 void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 	info->m_hitboxes.clear( );
 	vec3_t center;
@@ -135,7 +140,7 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 		if ( !hitbox )
 			return;
 		auto n = 5; // TODO: Add option on menu to adjust points per hitbox
-		auto scale = settings::rage::selection::point_scale;
+		auto scale = settings::rage::hitbox::point_scale;
 		int select = -1;
 		switch ( hitbox_num ) {
 		case hitbox_head:
@@ -151,7 +156,7 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 		case hitbox_pelvis:
 		case hitbox_body:
 			select = 2;
-			scale = settings::rage::selection::body_scale;
+			scale = settings::rage::hitbox::body_scale;
 			break;
 		case hitbox_l_upper_arm:
 		case hitbox_r_upper_arm:
@@ -168,14 +173,17 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 			continue;
 		}
 
-		if ( select == -1 || !( settings::rage::selection::hitboxes & ( 1 << select ) ) )
+		if ( select == -1 || !( settings::rage::hitbox::hitboxes & ( 1 << select ) ) )
+			continue;
+
+		if ( settings::rage::hitbox::baim_conditions & ( 1 << IN_AIR ) && select != 2 && info->m_selected_record->m_mode == resolver::RESOLVE_AIR ) //force baim in air
 			continue;
 
 		hitbox_helper_t point_list{ hitbox_num };
 
 		center = ( hitbox->mins + hitbox->maxs ) / 2.f;
 
-		mode = settings::rage::selection::body_aim_lethal ? lethal : 0;
+		mode = settings::rage::hitbox::baim_conditions;
 		r = hitbox->radius * ( scale / 100.f );
 
 		matrix_t bone_transform;
@@ -212,21 +220,22 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 			point += right * -r;
 			point_list.m_points.emplace_back( point, 0, hitbox_num );
 			break;
+		case hitbox_pelvis:
 		case hitbox_body:
 
 			math::VectorTransform( center, bone_transform, point );
-			point_list.m_points.emplace_back( point, 0, hitbox_num );
+			point_list.m_points.emplace_back( point, mode, hitbox_num );
 
 			math::VectorTransform( center, bone_transform, point );
 			point += right * r;
-			point_list.m_points.emplace_back( point, 0, hitbox_num );
+			point_list.m_points.emplace_back( point, mode, hitbox_num );
 
 			math::VectorTransform( center, bone_transform, point );
 			point += right * -r;
-			point_list.m_points.emplace_back( point, 0, hitbox_num );
+			point_list.m_points.emplace_back( point, mode, hitbox_num );
 
 			break;
-		case hitbox_pelvis:
+		case hitbox_thorax:
 		case hitbox_upper_chest:
 			math::VectorTransform( center, bone_transform, point );
 			point_list.m_points.emplace_back( point, 0, hitbox_num );
@@ -239,11 +248,10 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 			point += right * -r;
 			point_list.m_points.emplace_back( point, 0, hitbox_num );
 			break;
-		case hitbox_thorax:
 		case hitbox_chest:
 			point = center;
 			math::VectorTransform( center, bone_transform, point );
-			point_list.m_points.emplace_back( point, 0, hitbox_num );
+			point_list.m_points.emplace_back( point, mode, hitbox_num );
 
 			math::VectorTransform( center, bone_transform, point );
 			point += right * r;
@@ -256,17 +264,17 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 		case hitbox_r_calf:
 		case hitbox_l_calf:
 			math::VectorTransform( center, bone_transform, point );
-			point_list.m_points.emplace_back( point, mode, hitbox_num );
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
 			break;
 		case hitbox_r_thigh:case hitbox_l_thigh:
 			math::VectorTransform( center, bone_transform, point );
-			point_list.m_points.emplace_back( point, mode, hitbox_num );
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
 			break;
 
 			// arms get only one point.
 		case hitbox_r_upper_arm:case hitbox_l_upper_arm:
 			math::VectorTransform( center, bone_transform, point );
-			point_list.m_points.emplace_back( point, mode, hitbox_num );
+			point_list.m_points.emplace_back( point, 0, hitbox_num );
 			break;
 		default:;
 			break;
@@ -277,20 +285,6 @@ void aimbot_t::get_points( ent_info_t *info, studio_hdr_t *studio_model ) {
 		{
 			info->m_hitboxes.push_back( point_list );
 		}
-	}
-	static auto surface_predicate = [](const hitbox_helper_t& a, const hitbox_helper_t& b) {
-
-		auto* hitbox = a.hdr->hitbox_set(a.info->m_ent->hitbox_set())->hitbox(a.m_index);
-		auto* hitbox_1 = a.hdr->hitbox_set(a.info->m_ent->hitbox_set())->hitbox(b.m_index);
-		float len = (hitbox->maxs - hitbox->mins).length_sqr();
-		float len_1 = (hitbox_1->maxs - hitbox_1->mins).length_sqr();
-		const float area_1 = (M_PI * powf(hitbox->radius, 2) * len) + (4.f / 3.f * M_PI * hitbox->radius);
-		const float area_2 = (M_PI * powf(hitbox_1->radius, 2) * len_1) + (4.f / 3.f * M_PI * hitbox_1->radius);
-
-		return area_1 < area_2;
-	};
-	{
-		std::sort( info->m_hitboxes.begin( ), info->m_hitboxes.end( ), surface_predicate );
 	}
 }
 
@@ -451,12 +445,12 @@ bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &ey
 				if ( out.m_target != in.m_target || in.m_damage > out.m_damage )
 					continue;
 
-				if ( selected_point )
-					continue;
+				if ( point.m_mode & ( 1 << LETHAL ) && ( out.m_damage >= info->m_ent->health() + settings::rage::selection::lethal_damage ) ) {
+					selected_eye = eye;
+					selected_point = &point;
+					break;
+				}
 
-				penetration::PenetrationOutput_t sim_out;
-
-				run( &in, &sim_out );
 				weight += out.m_damage / info->m_ent->health();
 
 				look = eye.look( point.m_point );
@@ -580,47 +574,35 @@ bool aimbot_t::check_hitchance( ent_info_t *info, ang_t &view, std::shared_ptr<p
 		return false;
 
 	auto *hitbox_set = studio_model->hitbox_set( info->m_ent->hitbox_set( ) );
-	std::vector<math::hitbox_t> hit_boxes;
 	vec3_t mins{}, maxs{};
-	
-	for ( auto i = 0; i < hitbox_set->hitbox_count; i++ ) {
-		if (i != point->m_hitbox)
-			continue;
-		auto *hitbox = hitbox_set->hitbox( i );
 
-		if ( hitbox && hitbox->radius > 0 ) {
-			matrix_t bone_transform;
-			memcpy( &bone_transform, &record->m_bones[ hitbox->bone ], sizeof( matrix_t ) );
-			if ( hitbox->angle != ang_t( ) ) {
-				matrix_t temp;
+	if ( point->m_hitbox < 0 || point->m_hitbox >= hitbox_set->hitbox_count )
+		return false;
+	auto *hitbox = hitbox_set->hitbox( point->m_hitbox );
 
-				math::AngleMatrix( hitbox->angle, &temp );
-				math::ConcatTransforms( bone_transform, temp, &bone_transform );
-			}
-
-			vec3_t vMin, vMax;
-			math::VectorTransform( hitbox->mins, bone_transform, vMin );
-			math::VectorTransform( hitbox->maxs, bone_transform, vMax );
-			hit_boxes.emplace_back( vMin, vMax, hitbox->radius );
-		}
-	}
-	if ( hit_boxes.empty( ) )
+	if ( !( hitbox && hitbox->radius > 0 ) )
 		return false;
 
-	static auto surface_predicate = [ ]( const math::hitbox_t& a, const math::hitbox_t& b ) {
-		const float area_1 = ( M_PI * powf( a.m_radius, 2 ) * a.m_len_sqr ) + ( 4.f / 3.f * M_PI * a.m_radius );
-		const float area_2 = ( M_PI * powf( b.m_radius, 2 ) * b.m_len_sqr ) + ( 4.f / 3.f * M_PI * b.m_radius );
+	matrix_t bone_transform;
+	memcpy( &bone_transform, &record->m_bones[ hitbox->bone ], sizeof( matrix_t ) );
+	if ( hitbox->angle != ang_t( ) ) {
+		matrix_t temp;
 
-		return area_1 < area_2;
-	};
+		math::AngleMatrix( hitbox->angle, &temp );
+		math::ConcatTransforms( bone_transform, temp, &bone_transform );
+	}
 
-	std::sort( hit_boxes.begin( ), hit_boxes.end( ), surface_predicate );
+	vec3_t vMin, vMax;
+	math::VectorTransform( hitbox->mins, bone_transform, vMin );
+	math::VectorTransform( hitbox->maxs, bone_transform, vMax );
+
 	vec3_t forward{}, right{}, up{};
 
 	view.vectors( &forward, &right, &up );
 
 	vec3_t origin;
 	ang_t angles;
+	float m1, m2;
 	for ( auto i = 0; i < 255; i++ ) {
 		const auto weapon_spread = math::calculate_spread( g.m_weapon, i, inaccuracy, spread, false );
 
@@ -628,24 +610,15 @@ bool aimbot_t::check_hitchance( ent_info_t *info, ang_t &view, std::shared_ptr<p
 		dir /= dir.length( );
 		const auto end = start + ( dir * g.m_weapon_info->m_range );
 
-		math::custom_ray_t ray( g.m_shoot_pos, end );
-
-		math::custom_ray_t ray_1( ray.m_start, ray.m_end );
-		for ( auto& box : hit_boxes ) {
-			float m1, m2;
-			auto dist = math::distSegmentToSegmentSqr( ray.m_start, ray.m_end, box.m_mins, box.m_maxs, m1, m2 );
-			//RayTracer::TraceHitbox( ray_1, box, trace, RayTracer::Flags_NONE );
-			if ( dist <= box.m_radius * box.m_radius ) {
-				total_hits++;
-				break;
-			}
+		float dist = math::distSegmentToSegmentSqr( g.m_shoot_pos, end, vMin, vMax, m1, m2 );
+		//RayTracer::TraceHitbox( ray_1, box, trace, RayTracer::Flags_NONE );
+		if ( dist <= hitbox->radius * hitbox->radius ) {
+			total_hits++;
+			if ( total_hits >= needed_hits )
+				return true;
 		}
-		if ( total_hits >= needed_hits ) {
-			return true;
-		}
-		if ( ( ( 255 - i ) + total_hits ) < needed_hits ) {
+		if ( ( ( 255 - i ) + total_hits ) < needed_hits )
 			return false;
-		}
 	}
 	return false;
 }
