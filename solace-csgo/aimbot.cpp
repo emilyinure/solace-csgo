@@ -319,6 +319,21 @@ bool aimbot_t::collides( math::custom_ray_t ray, ent_info_t *info, bone_array_t 
 	return false;
 }
 
+float AngleDiff( float destAngle, float srcAngle ) {
+	float delta;
+
+	delta = fmodf( destAngle - srcAngle, 360.0f );
+	if ( destAngle > srcAngle ) {
+		if ( delta >= 180 )
+			delta -= 360;
+	}
+	else {
+		if ( delta <= -180 )
+			delta += 360;
+	}
+	return delta;
+}
+
 bool aimbot_t::get_aim_matrix ( ang_t angle, bone_array_t *bones ) {
 	auto *state = g.m_local->get_anim_state( );
 	if ( !state )
@@ -326,8 +341,16 @@ bool aimbot_t::get_aim_matrix ( ang_t angle, bone_array_t *bones ) {
 	float backup_pose = g.m_local->pose_parameters( )[ 12 ];
 	
 	angle.x = std::clamp( angle.x, -90.f, 90.f );
-	
-	g.m_local->pose_parameters( )[ 12 ] = ( angle.x + 90.f ) / 180.f;
+
+	float flPitch = AngleDiff( angle.x, 0 );
+	if ( flPitch > 0 ) {
+		flPitch = ( flPitch / state->m_max_pitch ) * 90.f;
+	}
+	else {
+		flPitch = ( flPitch / state->m_min_pitch ) * -90.f;
+	}
+
+	g.m_local->pose_parameters( )[ 12 ] = flPitch;
 
 	CIKContext backup_ik;
 	memcpy( &backup_ik, &g.m_ipk, sizeof( CIKContext ) );
@@ -348,31 +371,29 @@ bool aimbot_t::get_aim_matrix ( ang_t angle, bone_array_t *bones ) {
 
 bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &eye ) {
 	//g.m_interfaces->mem_alloc( )->free( bones );
+	//if ( info->m_shot_wanted > info->m_selected_record->m_sim_time )
+	//	return false;
 	float max_damage = 0;
 	vec3_t selected_eye;
 	aim_point_t* selected_point = nullptr;
 	ang_t view;
-	int damage;
 	int max_safe_points;
 	hitbox_helper_t* box;
 	ang_t new_look;
 	float max_weight = 0.f;
-	auto* const bone_cache = &g.m_local->bone_cache( );
 	float weight;
 	int safe_points;
 	math::custom_ray_t ray;
 	penetration::PenetrationInput_t in;
 	g.m_interfaces->engine( )->get_view_angles( view );
 	int bone_index;
-	int current_index;
 	ang_t look;
-	int possible;
 	for ( ent_info_t::helper_array::size_type i = 0; i < info->m_hitboxes.size( ); i++ ) {
 		max_safe_points = 0;
 		box = &info->m_hitboxes[ i ];
 		for ( auto& point : box->m_points ) {
 			new_look = eye.look( point.m_point );
-			/// It turns out, source doesn't actually force animations and bonesetup when shooting, last update is fine
+			/// It turns out, source doesn't actually force the pose and bonesetup when shooting, last update is fine
 			//if ( !found_match ) {
 			//if ( get_aim_matrix( g.m_shoot_pos.look( point.m_point ) - g.m_local->aim_punch() * 2, bones ) ) {
 			//	auto *const bone_cache = &g.m_local->bone_cache( );
@@ -391,12 +412,12 @@ bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &ey
 
 			weight = 0.f;
 			safe_points = 0;
-			if ( ( !info->m_selected_record->m_body_reliable && info->m_selected_record->m_mode == resolver::RESOLVE_BODY ) || info->m_selected_record->m_mode == resolver::RESOLVE_WALK ) {
+			if ( ( !info->m_selected_record->m_body_reliable && info->m_selected_record->m_mode == resolver::RESOLVE_BODY ) || info->m_selected_record->m_mode == resolver::RESOLVE_WALK ) { // check these safepoints on walk/lby flick
 				ray.init( eye, point.m_point );
 
 				bool should_continue = false;
 				for( auto &i : info->m_selected_record->m_fake_bones )
-					if ( !collides( ray, info, i ) ) {
+					if ( collides( ray, info, i ) ) { // if this shot collides with the fake hitboxes add on to our safepoints
 						if ( info->m_selected_record->m_mode == resolver::RESOLVE_WALK )
 							safe_points++;
 						else {
@@ -418,6 +439,41 @@ bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &ey
 			in.m_target = info->m_ent;
 			int damage = min( 100, info->m_ent->health( ) + settings::rage::selection::lethal_damage );
 			in.m_damage = in.m_damage_pen = min( settings::rage::selection::min_damage, damage );
+			switch ( point.m_hitbox ) {
+			case hitboxes::hitbox_head:
+			case hitboxes::hitbox_neck:
+			case hitboxes::hitbox_lower_neck:
+				in.m_hitgroup = hitgroups::hitgroup_head;
+				break;
+			case hitboxes::hitbox_chest:
+			case hitboxes::hitbox_upper_chest:
+				in.m_hitgroup = hitgroups::hitgroup_chest;
+				break;
+			case hitboxes::hitbox_pelvis:
+			case hitboxes::hitbox_thorax:
+				in.m_hitgroup = hitgroups::hitgroup_stomach;
+				break;
+			case hitboxes::hitbox_l_calf:
+			case hitboxes::hitbox_l_foot:
+			case hitboxes::hitbox_l_thigh:
+				in.m_hitgroup = hitgroups::hitgroup_leftleg;
+				break;
+			case hitboxes::hitbox_r_calf:
+			case hitboxes::hitbox_r_foot:
+			case hitboxes::hitbox_r_thigh:
+				in.m_hitgroup = hitgroups::hitgroup_rightleg;
+				break;
+			case hitboxes::hitbox_r_forearm:
+			case hitboxes::hitbox_r_upper_arm:
+			case hitboxes::hitbox_r_hand:
+				in.m_hitgroup = hitgroups::hitgroup_rightarm;
+				break;
+			case hitboxes::hitbox_l_forearm:
+			case hitboxes::hitbox_l_upper_arm:
+			case hitboxes::hitbox_l_hand:
+				in.m_hitgroup = hitgroups::hitgroup_leftarm;
+				break;
+			}
 			if ( info->m_selected_record->m_mode == resolver::RESOLVE_STAND1 || info->m_selected_record->m_mode == resolver::RESOLVE_STAND2 ) {
 				ray.init( eye, point.m_point );
 				bone_index = 0;
@@ -428,7 +484,7 @@ bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &ey
 						continue;
 					auto& dir_data = mode_data.m_dir_data[ i1 ];
 					if ( dir_data.dir_enabled ) {
-						if ( collides( ray, info, info->m_selected_record->m_fake_bones[ bone_index ] ) )
+						if ( collides( ray, info, info->m_selected_record->m_fake_bones[ bone_index ] ) ) // if this shot collides with the fake hitboxes add on to our safepoints
 							safe_points++;
 						possible++;
 					}
@@ -441,7 +497,7 @@ bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &ey
 			penetration::PenetrationOutput_t out;
 
 			info->m_selected_record->cache( -1 );
-			if ( run( &in, &out ) ) {
+			if ( run( &in, &out ) ) { // check wall penetration
 				if ( out.m_target != in.m_target || in.m_damage > out.m_damage )
 					continue;
 
@@ -489,14 +545,19 @@ bool aimbot_t::best_target( ent_info_t *&info ) const {
 }
 
 void aimbot_t::apply( ) {
-	if ( m_best_target == nullptr || m_best_target->m_aim_point == nullptr )
+	if ( m_best_target == nullptr || m_best_target->m_aim_point == nullptr ) // was there no good targets to shoot? m_aim_point should always be non null at this point but for safety sake
 		return;
 	if ( m_best_target != m_last_target )
-		m_best_target->m_shot_wanted = g.m_interfaces->globals( )->m_curtime;
+		m_best_target->m_shot_wanted = m_best_target->m_selected_record->m_sim_time + settings::rage::general::delay_shot; // Unused for now, used for 
+
+	g_movement.set_should_stop( true );
+
 	g.m_shoot_pos = m_best_target->m_aim_point->m_shoot_pos;
 	auto look = g.m_shoot_pos.look( m_best_target->m_aim_point->m_point );
 	if ( !check_hitchance( m_best_target, look, m_best_target->m_selected_record, m_best_target->m_aim_point ) )
 		return;
+
+	g_movement.set_should_unpeek( true );
 
 	draw_hitboxes( );
 	g.m_cmd->m_tick_count = g.time_to_ticks(m_best_target->m_selected_record->m_pred_time + g.m_lerp);
@@ -743,6 +804,20 @@ void mpThreadObject::run ( ) {
 			//continue;
 		}
 	}
+	info->m_selected_record = g_resolver.FindIdealBackRecord( info );
+	if ( info->m_selected_record ) {
+		aimbot_t::get_points( info, studio_model );
+		if ( /*best_target( info ) && */g_aimbot.get_best_point( info, nullptr, eye ) ) {
+			//m_best_target = info;
+			std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex2 );
+			ret_state = true;
+			finished = true;
+			return;
+			//valid_targets.push_back( info );
+			//if ( info->m_damage >= info->m_ent->health( ) )
+			//	break;
+		}
+	}
 	info->m_selected_record = aimbot_t::last_record( info );
 	if ( info->m_selected_record ) {
 		aimbot_t::get_points( info, studio_model );
@@ -768,30 +843,32 @@ std::vector<ent_info_t*> aimbot_t::mp_threading( ) const {
 
 	g_thread_handler.start( );
 
-	//auto bones = static_cast< bone_array_t* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
-	//vec3_t eye;
-	//bone_array_t* backup_cache;
+	auto bones = static_cast< bone_array_t* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
+	vec3_t eye;
+	ang_t look;
+	bone_array_t* backup_cache;
 
 	for ( auto& info : m_targets ) {
-		//look = g.m_shoot_pos.look( info->m_ent->world_space_center( ) );
-		//if ( get_aim_matrix( look - g.m_local->aim_punch( ) * 2, bones ) ) {
-		//	auto bone_cache = &g.m_local->bone_cache( );
-		//	if ( bone_cache ) {
-		//		backup_cache = bone_cache->m_pCachedBones;
-		//		int backup_bone_count = bone_cache->m_CachedBoneCount;
-		//		bone_cache->m_pCachedBones = bones;
-		//		g.m_local->get_eye_pos( &eye );
-		//		bone_cache->m_pCachedBones = backup_cache;
-		//		bone_cache->m_CachedBoneCount = backup_bone_count;
-		//	}
-		//}
-		auto ptr = objects.emplace_back( std::make_shared<mpThreadObject>( info, g.m_shoot_pos ) );
-		g_thread_handler.QueueJob( [ ptr ] { 
-			ptr->run( );
-			} );
+		look = g.m_shoot_pos.look( info->m_ent->world_space_center( ) );
+		if ( get_aim_matrix( look - g.m_local->aim_punch( ) * 2, bones ) ) {
+			auto bone_cache = &g.m_local->bone_cache( );
+			if ( bone_cache ) {
+				backup_cache = bone_cache->m_pCachedBones;
+				int backup_bone_count = bone_cache->m_CachedBoneCount;
+				bone_cache->m_pCachedBones = bones;
+				g.m_local->get_eye_pos( &eye );
+				bone_cache->m_pCachedBones = backup_cache;
+				bone_cache->m_CachedBoneCount = backup_bone_count;
+
+				auto ptr = objects.emplace_back( std::make_shared<mpThreadObject>( info, eye ) );
+				g_thread_handler.QueueJob( [ ptr ] {
+					ptr->run( );
+					} );
+			}
+		}
 	}
 
-	//g.m_interfaces->mem_alloc( )->free( bones );
+	g.m_interfaces->mem_alloc( )->free( bones );
 
 	while ( g_thread_handler.busy( ) );
 
@@ -814,6 +891,14 @@ std::vector<ent_info_t*> aimbot_t::mp_threading( ) const {
 }
 
 
+void aimbot_t::StripAttack( ) {
+	if ( g.m_weapon->item_definition_index() == 64 )
+		g.m_cmd->m_buttons &= ~IN_ATTACK2;
+
+	else
+		g.m_cmd->m_buttons &= ~IN_ATTACK;
+}
+
 void aimbot_t::on_tick ( ) {
 	m_list_eye_pos.clear();
 	//g.m_cmd->m_viewangles -= g.m_local->aim_punch( ) * 2;
@@ -827,8 +912,10 @@ void aimbot_t::on_tick ( ) {
 	if ( g.m_lag == 0 )
 		return;
 
-	if ( !g.m_can_fire )
+	if ( !g.m_can_fire ) {
+		StripAttack( );
 		return;
+	}
 
 
 
@@ -851,8 +938,6 @@ void aimbot_t::on_tick ( ) {
 
 	std::vector<ent_info_t*> valid_targets = mp_threading( );
 
-	if ( valid_targets.size() > 0 )
-		g_movement.set_should_stop( true );
 
 	for ( auto& i : valid_targets ) {
 		if ( best_target( i ) ) // only set if the player is the best overall target

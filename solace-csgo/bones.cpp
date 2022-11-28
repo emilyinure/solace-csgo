@@ -153,7 +153,13 @@ bool bones_t::setup( player_t *player, bone_array_t *out, std::shared_ptr<player
 
 	//std::unique_lock<std::mutex> lock( g_thread_handler.queue_mutex );
 	// run setupbones rebuilt.
+	g.m_interfaces->mdlcache( )->begin_coarse_lock( );
+	g.m_interfaces->mdlcache( )->begin_lock( );
+
 	record->m_setup = BuildBones( player, bone_used_by_anything, out, record, ipk );
+
+	g.m_interfaces->mdlcache( )->end_lock( );
+	g.m_interfaces->mdlcache( )->end_coarse_lock( );
 
 	return record->m_setup;
 }
@@ -548,13 +554,8 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 	animation_layer_t backup_layers[ 15 ];
 
 	// get hdr.
-	g.m_interfaces->mdlcache( )->begin_coarse_lock( );
-	g.m_interfaces->mdlcache( )->begin_lock( );
 
 	const auto hdr = target->GetModelPtr( );
-
-	g.m_interfaces->mdlcache( )->end_lock( );
-	g.m_interfaces->mdlcache( )->end_coarse_lock( );
 	if ( !hdr ) 
 		return false;
 
@@ -605,7 +606,7 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 
 		//target->StandardBlendingRules(hdr, pos, q, record->m_sim_time, mask);
 		if ( ipk ) {
-			ipk->Init( hdr, target->abs_angles( ), target->abs_origin( ), record->m_pred_time, g.m_interfaces->globals( )->m_tickcount, mask );
+			ipk->Init( hdr, target->abs_angles( ), target->abs_origin( ), record->m_pred_time, g.time_to_ticks( record->m_pred_time ), mask );
 			target->UpdateIKLocks( record->m_pred_time );
 			GetSkeleton( target, hdr, pos, q, mask, record->m_pred_time, ipk );
 			ipk->UpdateTargets( pos, q, accessor->m_pBones, &computed[ 0 ] );

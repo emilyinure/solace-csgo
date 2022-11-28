@@ -105,8 +105,7 @@ void prediction::start( cmd_t *cmd ) {
 	g.m_interfaces->game_movement( )->finish_track_prediction_errors( g.m_local );
 
 	g.m_interfaces->prediction( )->bIsFirstTimePredicted = false;
-	adjust_time( );
-	//g.m_local->tick_base()++;
+	g.m_local->tick_base()++;
 	g.m_interfaces->prediction()->SuppressHostEvents(nullptr);
 	g.m_in_pred = false;
 }
@@ -225,9 +224,7 @@ void prediction::finish_partial_frame( player_t * player, cmd_t *cmd ) { // repl
 	g.m_local->PostThink( );
 	g.m_interfaces->game_movement( )->finish_track_prediction_errors( g.m_local );
 
-	if ( g.m_interfaces->globals( )->m_frametime > 0.f ) {
-		player->tick_base( )++;
-	}
+	player->tick_base( )++;
 
 	prediction::end( );
 	g.m_interfaces->prediction( )->bIsFirstTimePredicted = false;
@@ -314,6 +311,8 @@ void prediction::re_predict ( cmd_t *cmd ) {
 	
 	g.m_interfaces->prediction( )->bIsFirstTimePredicted = false;	
 	g.m_interfaces->prediction( )->bInPrediction = false;
+
+	g.m_local->tick_base( )++;
 	
 	end( );
 	g.m_interfaces->prediction()->SuppressHostEvents(nullptr);

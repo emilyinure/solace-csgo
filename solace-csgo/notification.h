@@ -18,7 +18,7 @@ class notification {
 	};
 
 	private:
-		std::vector< std::shared_ptr< NotifyText > > m_notify_text;
+		std::vector< NotifyText > m_notify_text;
 
 	public:
 		__forceinline notification( ) : m_notify_text{} { }

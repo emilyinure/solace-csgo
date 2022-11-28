@@ -6,6 +6,7 @@
 class movement {
 	bool m_force_strafe = false;
 	bool m_should_stop = false;
+	bool m_should_unpeek = false;
 	float m_circle_yaw = 0.f;
 	vec3_t m_origin;
 	vec3_t m_mins;
@@ -13,14 +14,14 @@ class movement {
 public:
 	void set_should_stop( bool state ) { m_should_stop = state; };
 	void set_force_strafe( bool state ) { m_force_strafe = state; };
+	void set_should_unpeek( bool state ) { m_should_unpeek = state; };
 	void draw ( );
 	void bhop ( );
 	void QuickStop ( );
 	static void PreciseMove ( );
 	void auto_peek ( );
-	void move_to ( vec3_t target_origin ) const;
+	static void move_to ( vec3_t target_origin );
 	void edge_bug();
-	void move_to ( );
 	void auto_strafe( );
 	float m_old_yaw;
 	int m_switch = 1;

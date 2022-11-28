@@ -47,6 +47,7 @@ class prediction_netvar_manager {
 public:
 	bool setup_vars = false;
 	std::vector<managed_netvar*> vars;
+	std::vector<managed_netvar*> weapon_vars;
 	void pre_update( player_t * );
 	void post_update( player_t * );
 	void init ( datamap_t * map );

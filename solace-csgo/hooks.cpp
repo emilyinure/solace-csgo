@@ -15,6 +15,7 @@
 #include "windowsx.h"
 #include "input_helper/input_helper.hh"
 #include "thread_handler.h"
+#include "grenade_pred.h"
 
 void _stdcall paint_traverse( long panel, bool repaint, bool force ) {
 	static long tools{}, zoom{};
@@ -262,7 +263,7 @@ void __stdcall frame_stage_notify( client_frame_stage_t stage ) {
 	if ( stage != FRAME_START )
 		g.m_stage = stage;
 
-	if ( stage == FRAME_RENDER_START ) {
+	if ( stage == FRAME_RENDER_START && g.m_local && g.m_local->alive() ) {
 		// apply local player animated angles.
 		g.SetAngles( );
 
@@ -304,6 +305,7 @@ void __stdcall override_view( view_setup_t *view ) {
 		g.m_interfaces->engine()->local_player_index( ) ) );
 	const auto alive = g.m_local && g.m_local->alive( );
 	if ( alive ) {
+		g_grenade_pred.View( );
 		if ( settings::misc::misc::thirdperson && !g.m_interfaces->input()->camera_is_third_person( ) )
 			g.m_interfaces->input()->camera_to_third_person( );
 		else if ( !settings::misc::misc::thirdperson && g.m_interfaces->input( )->camera_is_third_person( ) ) {
@@ -375,6 +377,7 @@ using SendDatagram_t = int( __thiscall * )( void *, void * );
 #define NET_FRAMES_MASK ( NET_FRAMES_BACKUP - 1 )
 
 int __fastcall SendDatagram( i_net_channel *this_ptr, uint32_t edx, void *data ) {
+	const int backup1 = this_ptr->m_in_rel_state;
 	const auto backup2 = this_ptr->m_in_seq;
 
 	if ( settings::misc::misc::fake_latency ) {
@@ -383,27 +386,32 @@ int __fastcall SendDatagram( i_net_channel *this_ptr, uint32_t edx, void *data )
 		// the target latency.
 		const auto correct = fmaxf( 0.f, ( ping / 1000.f ) - g.m_latency - g.m_lerp );
 		
-		this_ptr->m_in_seq += 2 * NET_FRAMES_MASK - static_cast< uint32_t >( NET_FRAMES_MASK * correct );
-		//or ( const auto &sequence : g.m_sequences ) {
-		//	if ( g.m_interfaces->globals(  )->m_curtime - sequence.m_time >= ping ) {
-		//		this_ptr->in_reliable_state = sequence.m_state;
-		//		this_ptr->in_sequence_nr = sequence.m_seq;
-		//		break;
-		//	}
-		//
+		//this_ptr->m_in_seq += 2 * ( 64 - 3 ) - static_cast< uint32_t >( ( 64 - 3 ) * correct );
+
+		for ( const auto& sequence : g.m_sequences ) {
+			if ( g.m_interfaces->globals( )->m_curtime - sequence.m_time >= ping / 1000.f ) {
+				this_ptr->m_in_rel_state = sequence.m_state;
+				this_ptr->m_in_seq = sequence.m_seq;
+				break;
+			}
+		}
+		
 	}
 	
 	g_resolver.update_shot_timing( this_ptr->m_choked_packets );
 
 	const auto ret = m_net_hook.get_original< SendDatagram_t >( 48 )( this_ptr, data );
-;
-	
-	if ( !g.m_ran && g.m_valid_round) {
-		g.m_cmds.push_back( ret );
-	} else if ( !g.m_valid_round )
-		g.m_cmds.clear( );
 
+	this_ptr->m_in_rel_state = backup1;
 	this_ptr->m_in_seq = backup2;
+	
+	if ( !g.m_ran && g.m_valid_round ) {
+		g.m_cmds.push_back( ret );
+	}
+	else if ( !g.m_valid_round ) {
+		g.m_sequences.clear( );
+		g.m_cmds.clear( );
+	}
 
 	return ret;
 }
@@ -414,17 +422,17 @@ void __fastcall ProcessPacket( i_net_channel *this_ptr, uint32_t edx, void *pack
 	g.UpdateIncomingSequences( this_ptr );
 
 	// get this from CL_FireEvents string "Failed to execute event for classId" in engine.dll
-	//for ( event_info_t *it{ g.m_interfaces->client_state(  )->m_events }; it != nullptr; it = it->m_next ) {
-	//	if ( !it->m_client_class )
-	//		continue;
-	//
-	//	// set all delays to instant.
-	//	it->m_fire_delay = 0.f;
-	//}
-	//
-	//// game events are actually fired in OnRenderStart which is WAY later after they are received
-	//// effective delay by lerp time, now we call them right after theyre received (all receive proxies are invoked without delay).
-	//g.m_interfaces->engine()->FireEvents( );
+	for ( event_info_t *it{ g.m_interfaces->client_state(  )->m_events }; it != nullptr; it = it->m_next ) {
+		if ( !it->m_client_class )
+			continue;
+	
+		// set all delays to instant.
+		it->m_fire_delay = 0.f;
+	}
+	
+	// game events are actually fired in OnRenderStart which is WAY later after they are received
+	// effective delay by lerp time, now we call them right after theyre received (all receive proxies are invoked without delay).
+	g.m_interfaces->engine()->FireEvents( );
 }
 
 void __fastcall SetChoked( i_net_channel *this_ptr, uint32_t edx) {
@@ -473,6 +481,14 @@ bool __fastcall TempEntities( client_state_t *this_ptr, uint32_t edx, void *msg 
 	g.m_interfaces->client_state( )->m_nMaxClients( ) = 1;
 	const auto ret = m_cl_hook.get_original< TempEntities_t >( 36 )( this_ptr, msg );
 	g.m_interfaces->client_state( )->m_nMaxClients( ) = backup;
+
+	for ( event_info_t* it{ g.m_interfaces->client_state( )->m_events }; it != nullptr; it = it->m_next ) {
+		if ( !it->m_client_class )
+			continue;
+
+		// set all delays to instant.
+		it->m_fire_delay = 0.f;
+	}
 
 	g.m_interfaces->engine( )->FireEvents( );
 
@@ -744,9 +760,9 @@ hooks_t::hooks_t( ) {
 	netvar_manager::set_proxy( fnv::hash( "DT_SmokeGrenadeProjectile" ), fnv::hash( "m_bDidSmokeEffect" ), m_nSmokeEffectTickBegin, m_nSmokeEffectTickBegin_original );
 	
 	
-	//original_cl_move = reinterpret_cast< decltype( &cl_move ) >( DetourFunction(
-	//	util::find( "engine.dll", "55 8B EC 81 EC ? ? ? ? 53 56 57 8B 3D ? ? ? ? 8A F9" ),
-	//	reinterpret_cast< PBYTE >( cl_move ) ) );
+	original_cl_move = reinterpret_cast< decltype( &cl_move ) >( DetourFunction(
+		util::find( "engine.dll", "55 8B EC 81 EC ? ? ? ? 53 56 57 8B 3D ? ? ? ? 8A F9" ),
+		reinterpret_cast< PBYTE >( cl_move ) ) );
 
 	//render_view_hook( )->hook( scene_end, 9 );
 

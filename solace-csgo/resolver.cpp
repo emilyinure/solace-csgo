@@ -48,6 +48,36 @@ std::shared_ptr<player_record_t> resolver::FindIdealRecord( ent_info_t *data ) {
 	return first_valid;
 }
 
+std::shared_ptr<player_record_t> resolver::FindIdealBackRecord( ent_info_t* data ) {
+	if ( data->m_records.empty( ) )
+		return nullptr;
+
+	bool set = false;
+	std::shared_ptr<player_record_t> first_valid = nullptr;
+
+	// iterate records.
+	for ( const auto& it : data->m_records ) {
+		auto const& current = it;
+		if ( !current || !current->m_setup || current->m_dormant || !current->valid( ) )
+			continue;
+
+		// get current record.
+
+		// first record that was valid, store it for later.
+		if ( !first_valid )
+			first_valid = current;
+
+		// try to find a record with a shot, lby update, walking or no anti-aim.
+		if ( it->m_mode == RESOLVE_WALK )
+			first_valid = current;
+		if ( it->m_mode == RESOLVE_BODY && !( first_valid && first_valid->m_mode != RESOLVE_WALK ) )
+			first_valid = current;
+	}
+
+	// none found above, return the first valid record if possible.
+	return first_valid;
+}
+
 void resolver::MatchShot( ent_info_t *data, std::shared_ptr<player_record_t> record ) {
 	// do not attempt to do this in nospread mode.
 	//if ( g_menu.main.config.mode.get( ) == 1 )
@@ -350,21 +380,21 @@ void resolver::ResolveStand( ent_info_t *data, std::shared_ptr<player_record_t> 
 		if ( mode_data.m_index == 6 )
 			record->m_eye_angles.y = record->m_body - 135.f;
 
-		record_dir_data.emplace_back( record->m_body - 90.F );
-		if ( mode_data.m_index == 7 )
-			record->m_eye_angles.y = record->m_body - 90.F;
-
-		record_dir_data.emplace_back( record->m_body + 90.F );
-		if ( mode_data.m_index == 8 )
-			record->m_eye_angles.y = record->m_body + 90.F;
-
-		record_dir_data.emplace_back( record->m_body - 45.F );
-		if ( mode_data.m_index == 9 )
-			record->m_eye_angles.y = record->m_body - 45.F;
-
-		record_dir_data.emplace_back( record->m_body + 45.F );
-		if ( mode_data.m_index == 10 )
-			record->m_eye_angles.y = record->m_body + 45.F;
+		//record_dir_data.emplace_back( record->m_body - 90.F );
+		//if ( mode_data.m_index == 7 )
+		//	record->m_eye_angles.y = record->m_body - 90.F;
+		//
+		//record_dir_data.emplace_back( record->m_body + 90.F );
+		//if ( mode_data.m_index == 8 )
+		//	record->m_eye_angles.y = record->m_body + 90.F;
+		//
+		//record_dir_data.emplace_back( record->m_body - 45.F );
+		//if ( mode_data.m_index == 9 )
+		//	record->m_eye_angles.y = record->m_body - 45.F;
+		//
+		//record_dir_data.emplace_back( record->m_body + 45.F );
+		//if ( mode_data.m_index == 10 )
+		//	record->m_eye_angles.y = record->m_body + 45.F;
 		return;
 	}
 
@@ -400,25 +430,25 @@ void resolver::ResolveStand( ent_info_t *data, std::shared_ptr<player_record_t> 
 	if (mode_data.m_index == 5)
 		record->m_eye_angles.y = record->m_body;
 
-	record_dir_data.emplace_back( away + 180.f );
-	if (mode_data.m_index == 6)
-		record->m_eye_angles.y = away + 180.f;
+	//record_dir_data.emplace_back( away + 180.f );
+	//if (mode_data.m_index == 6)
+	//	record->m_eye_angles.y = away + 180.f;
 
-	record_dir_data.emplace_back( record->m_body - 90.F);
-	if ( mode_data.m_index == 7 )
-		record->m_eye_angles.y = record->m_body - 90.F;
-
-	record_dir_data.emplace_back( record->m_body + 90.F );
-	if ( mode_data.m_index == 8 )
-		record->m_eye_angles.y = record->m_body + 90.F;
-
-	record_dir_data.emplace_back( record->m_body - 45.F );
-	if ( mode_data.m_index == 9 )
-		record->m_eye_angles.y = record->m_body - 45.F;
-
-	record_dir_data.emplace_back( record->m_body + 45.F );
-	if ( mode_data.m_index == 10 )
-		record->m_eye_angles.y = record->m_body + 45.F;
+	//record_dir_data.emplace_back( record->m_body - 90.F);
+	//if ( mode_data.m_index == 7 )
+	//	record->m_eye_angles.y = record->m_body - 90.F;
+	//
+	//record_dir_data.emplace_back( record->m_body + 90.F );
+	//if ( mode_data.m_index == 8 )
+	//	record->m_eye_angles.y = record->m_body + 90.F;
+	//
+	//record_dir_data.emplace_back( record->m_body - 45.F );
+	//if ( mode_data.m_index == 9 )
+	//	record->m_eye_angles.y = record->m_body - 45.F;
+	//
+	//record_dir_data.emplace_back( record->m_body + 45.F );
+	//if ( mode_data.m_index == 10 )
+	//	record->m_eye_angles.y = record->m_body + 45.F;
 	//record->m_eye_angles.y = record->m_body + get_rel( record, data->m_stand_index2 );
 }
 

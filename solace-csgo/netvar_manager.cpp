@@ -80,10 +80,12 @@ float AssignRangeMultiplier( int nBits, double range ) {
 }
 
 void prediction_netvar_manager::init ( datamap_t *map ) {
-	float val = (1.f / AssignRangeMultiplier( 17, 4096.f - ( -4096.f ) ));
+	float val = ( 1.f / AssignRangeMultiplier( 17, 4096.f - ( -4096.f ) ) );
 	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_fall_velocity, val, "m_flFallVelocity" ) );
-	val = ( 1.f / AssignRangeMultiplier( 12, 2048.0f ));
-	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_max_speed, val, "view_offset_x" ) );
+	val = ( 1.f / AssignRangeMultiplier( 16, 128.f ) );
+	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_step_size, val, "m_flStepSize" ) );
+	val = ( 1.f / AssignRangeMultiplier( 12, 2048.0f ) );
+	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_max_speed, val, "max_speed" ) );
 	val = ( 1.f / AssignRangeMultiplier( 8, 32.0f - ( -32.0f ) ) );
 	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_view_offset, val, "view_offset_x" ) );
 	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_view_offset + 0x4, val, "view_offset_y" ) );

@@ -67,11 +67,11 @@ struct player_record_t {
 	int m_mode = 0;
 	bool m_body_update = false;
 	float m_base_angle{};
-	std::vector<bone_array_t *> m_fake_bones = {};
+	std::vector<bone_array_t*> m_fake_bones = {};
 	
 	~player_record_t ( );
 
-	void cache ( int index = -1 ) const;
+	void cache( int index = -1 ) const;
 
 	bool valid ( ) const;
 	player_record_t( ent_info_t * info, float last_sim );
@@ -148,8 +148,13 @@ struct resolver_data {
 
 			mode_data.m_index = 0;
 			mode_data.m_dir_data.clear( );
-			if ( i != 2 ) {
-				for ( auto k = 0; k < 11; k++ ) {
+			if ( i == 0 ) {
+				for ( auto k = 0; k < 7; k++ ) {
+					mode_data.m_dir_data.emplace_back( true, true );
+				}
+			}
+			else if ( i == 1 ) {
+				for ( auto k = 0; k < 6; k++ ) {
 					mode_data.m_dir_data.emplace_back( true, true );
 				}
 			}

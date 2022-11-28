@@ -39,6 +39,9 @@ public:
 	__forceinline Sequence( ) : m_time{}, m_state{}, m_seq{} {};
 	__forceinline Sequence( float time, int state, int seq ) : m_time{ time }, m_state{ state }, m_seq{ seq } {};
 };
+
+enum CSWeaponType : int;
+
 class c_g {
 public:
 	interfaces_t *m_interfaces = nullptr;
@@ -72,7 +75,7 @@ public:
 	int m_stage;
 	bool m_can_fire = false;
 	int m_player_fire;
-	int m_weapon_type;
+	CSWeaponType m_weapon_type;
 	int m_flags;
 	bool m_shift = false;
 	int m_available_ticks = 0;

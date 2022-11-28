@@ -37,7 +37,6 @@ void block_bot_t::friction ( float surface_friction, vec3_t *velocity ) {
 }
 
 void block_bot_t::on_tick ( ) {
-	return;
 	m_draw.clear( );
 	if ( !settings::misc::griefing::block_bot ) {
 		target = nullptr;
@@ -116,6 +115,7 @@ void block_bot_t::on_tick ( ) {
 	auto change = dir - old_dir;
 
 	target_velocity.z = 0;
+
 	// only over predict if they're moving in a consistent direction
 	if ( change < 5.f ) {
 		auto hyp = target_velocity.length_2d( );
@@ -127,8 +127,6 @@ void block_bot_t::on_tick ( ) {
 		target_velocity.reset();
 	}
 	
-		
-	auto target_origin = (target->m_ent->origin( ) / g.m_interfaces->globals( )->m_interval_per_tick) + target_velocity;
 	
 
 	static auto last_origin = local_origin;
@@ -144,7 +142,7 @@ void block_bot_t::on_tick ( ) {
 		max_accel = accel_speed;
 
 	if ( auto *ground_ent = static_cast< player_t * >(g.m_interfaces->entity_list( )->get_client_entity_handle( g.m_local->m_ground_entity( ) ) ) ) {
-
+		auto target_origin = target->m_ent->origin( ) + target_velocity * g.m_interfaces->globals( )->m_interval_per_tick;
 		if ( ground_ent->index() != target->m_ent->index() ) {
 			auto delta = target_origin - original_origin;
 			delta.z = 0;
@@ -153,17 +151,21 @@ void block_bot_t::on_tick ( ) {
 			const auto projected_origin = original_local + plane * fraction;
 
 			auto local_delta = (projected_origin - local_origin) / g.m_interfaces->globals( )->m_interval_per_tick;
-			if (g.m_weapon_info && g.m_weapon_info->m_max_player_speed * g.m_weapon_info->m_max_player_speed < local_delta.length_sqr( ) ) {
-				auto fRatio = g.m_weapon_info->m_max_player_speed / local_delta.length( );
-				local_delta *= fRatio;
-			}
 			local_delta.z = 0;
 
 			local_delta -= velocity;
-			const auto delta_len = local_delta.length_2d( );
-			g.m_view_angles = ang_t( 0, static_cast< float >( atan2( local_delta.y, local_delta.x ) * 180.f / M_PI ), 0 );;
+
+			float speed = local_delta.length_2d( );
+
+			g.m_view_angles = ang_t( 0, static_cast< float >( atan2( local_delta.y, local_delta.x ) * ( 180.f / M_PI ) ), 0 );;
 			const auto current_speed = velocity.dot( local_delta.normalized( ) );
-			auto projected_delta = fminf( 450.f, local_delta.length( ) + current_speed );
+			auto projected_delta = fminf( 450.f, local_delta.length_2d( ) + current_speed );
+
+			if ( g.m_weapon_info && g.m_weapon_info->m_max_player_speed > 0.f ) {
+				const auto fRatio = projected_delta / g.m_weapon_info->m_max_player_speed;
+				if ( fRatio > 0.f )
+					projected_delta /= fRatio;
+			}
 
 			const auto add_speed = projected_delta - current_speed;
 			if ( max_accel < add_speed ) {
@@ -174,36 +176,35 @@ void block_bot_t::on_tick ( ) {
 			} else {
 				// const float kAccelerationScale = MAX( 250.0f, wishspeed );
 				// accelspeed = accel * gpGlobals->frametime * kAccelerationScale * player->m_surfaceFriction;
-				accel_speed = sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick * fmaxf( 250, delta_len );
+				accel_speed = sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick * fmaxf( 250, projected_delta );
 
 				g.m_cmd->m_forwardmove = 0;
 				if ( accel_speed <= add_speed ) {
-					projected_delta = delta_len / ( sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick );
+					projected_delta /= ( sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick );
 				}
 				g.m_cmd->m_forwardmove = projected_delta;
 				g.m_cmd->m_sidemove = 0;
 			}
 		} else {
 			//distance to compensate
-			auto local_delta = ( target_origin - local_origin / g.m_interfaces->globals( )->m_interval_per_tick ) ;
+			auto local_delta = (target_origin - local_origin) / g.m_interfaces->globals( )->m_interval_per_tick;
 			local_delta.z = 0;
-
-			if (g.m_weapon_info && g.m_weapon_info->m_max_player_speed * g.m_weapon_info->m_max_player_speed < local_delta.length_sqr( ) ) {
-				//adjust to maxspeed
-				const auto fRatio = g.m_weapon_info->m_max_player_speed / local_delta.length( );
-				local_delta *= fRatio;
-			}
 
 			// remove our velocity
 			// local_delta is now the desired velocity change 
 			local_delta -= velocity;
-			
-			const auto delta_len = fminf( local_delta.length_2d( ), 450 );
-			g.m_view_angles = ang_t( 0, static_cast< float >( atan2( local_delta.y, local_delta.x ) * 180.f / M_PI ), 0 );
+
+			g.m_view_angles = ang_t( 0, static_cast< float >( atan2( local_delta.y, local_delta.x ) * ( 180.f / M_PI ) ), 0 );
 
 			const auto current_speed = velocity.dot( local_delta.normalized( ) );
 
-			auto projected_delta = fminf( 450.f, local_delta.length( ) + current_speed );
+			auto projected_delta = fminf( 450.f, local_delta.length_2d( ) + current_speed );
+
+			if ( g.m_weapon_info && g.m_weapon_info->m_max_player_speed > 0.f ) {
+				const auto fRatio = projected_delta / g.m_weapon_info->m_max_player_speed;
+				if ( fRatio > 0.f )
+					projected_delta /= fRatio;
+			}
 
 			const auto add_speed = projected_delta - current_speed;
 			if ( max_accel < add_speed ) {
@@ -214,12 +215,12 @@ void block_bot_t::on_tick ( ) {
 			} else {
 				// const float kAccelerationScale = MAX( 250.0f, wishspeed );
 				// accelspeed = accel * gpGlobals->frametime * kAccelerationScale * player->m_surfaceFriction;
-				accel_speed = sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick * fmaxf( 250, delta_len );
+				accel_speed = sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick * fmaxf( 250, projected_delta );
 
 				g.m_cmd->m_forwardmove = 0;
 				if ( accel_speed <= add_speed ) {
 					//add speed is too high, try to correct the accelspeed
-					projected_delta = delta_len / ( sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick );
+					projected_delta /= ( sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick );
 				}
 				g.m_cmd->m_forwardmove = std::clamp<float>( projected_delta, -450.f, 450.f );
 				g.m_cmd->m_sidemove = 0.f;
@@ -227,6 +228,7 @@ void block_bot_t::on_tick ( ) {
 		}
 	}
 	else {
+		auto target_origin = target->m_ent->origin( );
 		g.m_view_angles = ang_t( 0, local_origin.look( target_origin ).y, 0 );
 		g_movement.set_force_strafe( true );
 		g.m_cmd->m_forwardmove = 450;

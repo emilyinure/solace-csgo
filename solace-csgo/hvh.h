@@ -46,7 +46,7 @@ public:
 	bool m_step_switch = 0;
 	float m_view_angle;
 	bool m_just_updated_body;
-	int m_switch = 1;
+	bool m_switch = false;
 	int m_lby_side = 1;
 	int m_side = 1.f;
 	void fake_walk ( ) const;

@@ -17,6 +17,7 @@ namespace penetration {
         vec3_t m_start = vec3_t(0,0,0);
         bool m_resolving = false;
         bool m_simulated_shot = false;
+        int m_hitgroup = 0;
     };
 
     struct PenetrationOutput_t {

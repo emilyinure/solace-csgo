@@ -64,7 +64,7 @@ void movement::bhop( ) {
 }
 
 void movement::QuickStop( ) {
-	if ( !m_should_stop || settings::hvh::antiaim::auto_peek )
+	if ( !m_should_stop )
 		return;
 
 	set_should_stop( false );
@@ -112,36 +112,7 @@ void movement::PreciseMove( ) {
 		return;
 	if ( g.m_cmd->m_forwardmove != 0.f || g.m_cmd->m_sidemove != 0.f )
 		return;
-	static auto sv_friction = g.m_interfaces->console( )->get_convar( "sv_friction" );
-	static auto sv_stopspeed = g.m_interfaces->console( )->get_convar( "sv_stopspeed" );
-	const auto friction = sv_friction->GetFloat( ) * g.m_local->surface_friction( );
-
-	const auto speed = g.m_local->velocity( ).length( );
-	// calculate speed.
-
-	if ( speed <= 0.1f ) {
-		g.m_cmd->m_forwardmove = 0.f;
-		g.m_cmd->m_sidemove = 0.f;
-		return;
-	}
-
-	// bleed off some speed, but if we have less than the bleed, threshold, bleed the threshold amount.
-	const auto control = fmaxf( speed, sv_stopspeed->GetFloat( ) );
-
-	// calculate the drop amount.
-	const auto drop = control * friction * g.m_interfaces->globals( )->m_interval_per_tick;
-
-	// scale the velocity.
-	const auto newspeed = fmaxf( 0.f, speed - drop );
-	g.m_view_angles = g.m_local->velocity( ).look( vec3_t( ) );
-
-	if ( newspeed > 0.1f ) {
-		g.m_cmd->m_forwardmove = newspeed;
-		g.m_cmd->m_sidemove = 0.f;
-	} else {
-		g.m_cmd->m_forwardmove = 0.f;
-		g.m_cmd->m_sidemove = 0.f;
-	}
+	move_to( g.m_origin );
 }
 
 void movement::auto_peek( ) {
@@ -153,22 +124,22 @@ void movement::auto_peek( ) {
 			m_time_left = 0;
 		}
 			
-		if ( m_should_stop )
+		if ( m_should_unpeek )
 			m_invert = true;
 		 
 		if ( m_invert ) {
 			move_to( m_stop_pos );
 		}
-		set_should_stop( false );
 	}
 
 	else {
 		m_invert = false;
 	}
 	last = settings::hvh::antiaim::auto_peek;
+	set_should_unpeek( false );
 }
 
-void movement::move_to(vec3_t target_origin) const {
+void movement::move_to(vec3_t target_origin) {
 	const auto local_origin = g.m_local->origin( );
 	static auto sv_friction = g.m_interfaces->console( )->get_convar( "sv_friction" );
 	static auto sv_stopspeed = g.m_interfaces->console( )->get_convar( "sv_stopspeed" );
@@ -190,15 +161,9 @@ void movement::move_to(vec3_t target_origin) const {
 	}
 	
 	auto local_delta = ( target_origin - local_origin ) / g.m_interfaces->globals( )->m_interval_per_tick;
+	local_delta -= velocity;
+	local_delta.z = 0.f;
 
-	local_delta -= velocity * 2.f;
-
-	if ( g.m_weapon_info && g.m_weapon_info->m_max_player_speed * g.m_weapon_info->m_max_player_speed < local_delta.length_sqr( ) ) {
-		const auto fRatio = g.m_weapon_info->m_max_player_speed / local_delta.length( );
-		local_delta *= fRatio;
-	}
-
-	const auto delta_len = local_delta.length_2d( );
 
 	//if (local_delta.length_2d() > 0.1f) {
 	//	drop = sv_stopspeed->GetFloat() * friction * g.m_interfaces->globals()->m_interval_per_tick;
@@ -215,25 +180,30 @@ void movement::move_to(vec3_t target_origin) const {
 	if ( max_accel > accel_speed )
 		max_accel = accel_speed;
 
-	const auto current_speed = velocity.dot( local_delta.normalized( ) );
+	auto current_speed = velocity.dot( local_delta.normalized( ) );
 
-	auto projected_delta = fminf( 450.f, local_delta.length( ) + current_speed );
+	auto projected_delta = fminf( 450.f, local_delta.length_2d() + current_speed );
 
-	g.m_view_angles = ang_t( 0, static_cast< float >( atan2( local_delta.y, local_delta.x ) * 180.f / M_PI ), 0 );;
+	if ( g.m_weapon_info && g.m_weapon_info->m_max_player_speed > 0.f) {
+		const auto fRatio = projected_delta / g.m_weapon_info->m_max_player_speed;
+		if ( fRatio > 0.f )
+			projected_delta /= fRatio;
+	}
+
+	g.m_view_angles = ang_t( 0, static_cast< float >( atan2( local_delta.y, local_delta.x ) * (180.f / M_PI) ), 0 );;
 
 	const auto add_speed = projected_delta - current_speed;
-	if ( max_accel < add_speed ) {
+	if ( max_accel <= add_speed ) {
 		//distance is farther than we can account for
 		//go as fast as we can
-		g.m_cmd->m_forwardmove = 450;
+		g.m_cmd->m_forwardmove = 450;	
 		g.m_cmd->m_sidemove = 0;
 	}
 	else {
-		// const float kAccelerationScale = MAX( 250.0f, wishspeed );
-		// accelspeed = accel * gpGlobals->frametime * kAccelerationScale * player->m_surfaceFriction;
-		accel_speed = sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick * fmaxf( 250, projected_delta );
+		//const float kAccelerationScale = MAX( 250.0f, wishspeed );
+		//accelspeed = accel * gpGlobals->frametime * kAccelerationScale * player->m_surfaceFriction;
+		//accel_speed = sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick * fmaxf( 250, projected_delta );
 
-		g.m_cmd->m_forwardmove = 0;
 		if ( accel_speed <= add_speed ) {
 			//add speed is too high, try to correct the accelspeed
 			projected_delta = projected_delta / ( sv_accelerate->GetFloat( ) * g.m_interfaces->globals( )->m_interval_per_tick );
@@ -340,7 +310,7 @@ void movement::auto_strafe ( ) {
 	else if ( g.m_cmd->m_sidemove < 0 )
 		direction += vec3_t( 0, 1, 0 );
 
-	g.m_view_angles.y += static_cast< float >(atan2( direction.y, direction.x ) * 180.f / M_PI);
+	g.m_view_angles.y += static_cast< float >(atan2( direction.y, direction.x ) * (180.f / M_PI));
 
 	const auto delta = math::normalize_angle( g.m_view_angles.y - m_old_yaw, 180 );
 
@@ -390,6 +360,17 @@ void movement::auto_strafe ( ) {
 	m_old_yaw = g.m_view_angles.y;
 }
 
+class pre_speed_node {
+	float angle;
+	vec3_t position, velocity;
+	bool calculated = false;
+	std::vector< pre_speed_node* > m_child_nodes = {};
+	pre_speed_node( float angle, vec3_t pos, vec3_t vel ) : angle( angle ), position( pos ), velocity( vel ) {}
+	int recur( int &iter ) {
+
+	}
+};
+
 void movement::DoPrespeed( ) {
 	if ( !settings::misc::movement::pre_speed || !( g.m_cmd->m_buttons & IN_JUMP ) ) {
 		m_circle_yaw = g.m_view_angles.y;
@@ -407,7 +388,7 @@ void movement::DoPrespeed( ) {
 	vec3_t  plane;
 	const auto velocity = g.m_local->velocity( );
 	const float speed = velocity.length_2d( );
-	float ideal = ( speed > 1.f ) ? RAD2DEG( std::asinf( 15.f / speed ) ) : 90.f;
+	float ideal = ( speed > 1.f ) ? RAD2DEG( std::asinf( 30.f / speed ) ) : 90.f;
 
 	if ( isnan( ideal ) ) {
 		ideal = 0.f;
@@ -422,14 +403,14 @@ void movement::DoPrespeed( ) {
 	mod = g.m_interfaces->globals()->m_interval_per_tick * 128.f;
 
 	// scale min and max based on tickrate.
-	max = 5.f * mod;
-	min = 5.f * mod;
+	max = ideal * 2.f;
+	min = ideal * 2.f;
 
 	// compute ideal strafe angle for moving in a circle.
-	strafe = ideal * 2.f;
+	strafe = ideal;
 
 	// calculate time.
-	time = 640.f / speed;
+	time = 320.f / speed;
 
 	// clamp time.
 	time = std::clamp<float>( time, 0.35f, 2.f );
@@ -452,20 +433,33 @@ void movement::DoPrespeed( ) {
 
 		while ( true ) {
 			// if we will not collide with an object or we wont accelerate from such a big step anymore then stop.
-			if ( !WillCollide( time, step, m_circle_yaw ) || step <= -min )
+			if ( !WillCollide( time, step, m_circle_yaw ) || step <= 0.f )
 				break;
 
 			// if we will collide with an object with the current strafe step decrement step to prevent a collision.
 			step -= 0.1f;
 		}
 
-		if ( step < -min ) {
-			if ( GetClosestPlane( plane ) ) {
-				// grab the closest object normal
-				// compute the angle of the normal
-				// and push us away from the object.
-				angle = RAD2DEG( std::atan2( plane.y, plane.x ) );
-				step = -math::normalize_angle( m_circle_yaw - angle, 180.f ) * 0.1f;
+		if ( step < 0.f ) {
+			step = -min;
+
+			while ( true ) {
+				// if we will not collide with an object or we wont accelerate from such a big step anymore then stop.
+				if ( !WillCollide( time, step, m_circle_yaw ) || step >= 0.f )
+					break;
+
+				// if we will collide with an object with the current strafe step decrement step to prevent a collision.
+				step += 0.1f;
+			}
+
+			if ( step > 0 ) {
+				if ( GetClosestPlane( plane ) ) {
+					// grab the closest object normal
+					// compute the angle of the normal
+					// and push us away from the object.
+					angle = RAD2DEG( std::atan2( plane.y, plane.x ) );
+					step = -math::normalize_angle( m_circle_yaw - angle, 180.f ) * 0.2f;
+				}
 			}
 		}
 	}

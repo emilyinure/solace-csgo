@@ -79,6 +79,7 @@ public:
 	std::deque<impact_record_t> m_impacts;
 	std::deque<hit_record_t> m_hits;
 	static std::shared_ptr<player_record_t> FindIdealRecord ( ent_info_t *data );
+	std::shared_ptr<player_record_t> FindIdealBackRecord( ent_info_t* data );
 	static void MatchShot ( ent_info_t *data, std::shared_ptr<player_record_t> record );
 	void update_shot_timing ( int sent_tick );
 	static void OnBodyUpdate ( ent_info_t *player, float value );

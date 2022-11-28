@@ -3,8 +3,7 @@
 
 void notification::add ( const std::string text, color _color, float time, bool console ) {
 	// modelled after 'CConPanel::AddToNotify'
-	m_notify_text.push_back(
-		std::make_shared< NotifyText >( text, _color, g.m_interfaces->globals( )->m_curtime + time ) );
+	m_notify_text.emplace_back( text, _color, g.m_interfaces->globals( )->m_curtime + time );
 
 	va_list list;
 	std::string buf;
@@ -36,8 +35,8 @@ void notification::think ( ) {
 
 	// update lifetimes.
 	for ( size_t i{}; i < m_notify_text.size( ); ++i ) {
-		const auto notify = m_notify_text[i];
-		const auto delta_time = notify->m_time - g.m_interfaces->globals( )->m_curtime;
+		const auto &notify = m_notify_text[i];
+		const auto delta_time = notify.m_time - g.m_interfaces->globals( )->m_curtime;
 
 		if ( delta_time <= 0.f ) {
 			m_notify_text.erase( m_notify_text.begin( ) + i );
@@ -51,10 +50,10 @@ void notification::think ( ) {
 
 	// iterate entries.
 	for ( size_t i{}; i < m_notify_text.size( ); ++i ) {
-		const auto notify = m_notify_text[i];
+		const auto &notify = m_notify_text[i];
 
-		const auto left = notify->m_time - g.m_interfaces->globals( )->m_curtime;
-		auto color = notify->m_color;
+		const auto left = notify.m_time - g.m_interfaces->globals( )->m_curtime;
+		auto color = notify.m_color;
 
 		if ( left < .5f ) {
 			auto f = left;
@@ -71,7 +70,7 @@ void notification::think ( ) {
 		else
 			color.set_a( 255 );
 
-		g.m_render->text( g.m_render->m_courier_new_13( ), x, y, color, notify->m_text.c_str( ) );
+		g.m_render->text( g.m_render->m_courier_new_13( ), x, y, color, notify.m_text.c_str( ) );
 		y += size;
 	}
 }

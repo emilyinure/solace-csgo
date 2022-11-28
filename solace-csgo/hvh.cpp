@@ -162,19 +162,12 @@ void hvh::break_resolver() {
 		return;
 	}
 	const auto stand = settings::hvh::antiaim::body_fake_stand > 0 && !g.m_cmd->m_forwardmove && !g.m_cmd->m_sidemove;
-	if (!g.m_lag) {
-		static auto sv_friction = g.m_interfaces->console()->get_convar("sv_friction");
-		static auto sv_stopspeed = g.m_interfaces->console()->get_convar("sv_stopspeed");
-		auto friction = sv_friction->GetFloat() * g.m_local->surface_friction();
-		auto control = sv_stopspeed->GetFloat();
+	if ( stand ) {
+		m_switch = !m_switch;
+		g.m_cmd->m_forwardmove = 2.4f / ((!m_switch) + 1 );
 
-		auto drop = control * friction * g.m_interfaces->globals()->m_interval_per_tick;
-		m_switch++;
-		if ( m_switch > 2 )
-			m_switch = 0;
-		g.m_cmd->m_forwardmove = 1.1f * (m_switch / 2);
-
-		m_breaking = m_switch == 0;
+		m_breaking = m_switch;
+		*g.m_packet = m_switch;
 	}
 }
 
@@ -518,7 +511,7 @@ void hvh::DoRealAntiAim( ) {
 
 		// check if we will have a lby fake this tick.
 		//else 
-		if ( !g.m_lag && (m_breaking || (g.m_interfaces->globals()->m_curtime >= g.m_body_pred && (stand || air)))) {
+		if ( !g.m_lag && ((g.m_interfaces->globals()->m_curtime >= g.m_body_pred && (stand || air)))) {
 			
 			m_just_updated_body = true;
 			//if ( breaker ) {
@@ -533,7 +526,7 @@ void hvh::DoRealAntiAim( ) {
 			//	g.m_cmd->m_viewangles.y += m_break_dir;
 			//}
 			// there will be an lbyt update on this tick.
-			if ( stand || m_breaking) {
+			if ( stand || !m_breaking) {
 				//switch ( settings::hvh::antiaim::body_fake_stand ) {
 				//
 				//	// left.
@@ -542,10 +535,10 @@ void hvh::DoRealAntiAim( ) {
 					g.m_cmd->m_viewangles.y -= 110.f * (settings::hvh::antiaim::body_fake_stand == 2);
 					g.m_cmd->m_viewangles.y += 180.f * (settings::hvh::antiaim::body_fake_stand == 3);
 
-					float break_yaw = 85.f; ;
-					if (animstate && m_breaking)
-						break_yaw = fmaxf( 45, fminf( 89, g.ticks_to_time(g.m_last_lag) * (30.0f + 20.0f * m_flWalkToRunTransition)));
-					g.m_cmd->m_viewangles.y += (std::copysignf(90, m_lby_side *= -1) + (break_yaw * m_lby_side)) * (settings::hvh::antiaim::body_fake_stand == 4);
+					//float break_yaw = 85.f; ;
+					//if (animstate && !m_breaking)
+					//	break_yaw = fmaxf( 45, fminf( 89, g.ticks_to_time(g.m_last_lag) * (30.0f + 20.0f * m_flWalkToRunTransition)));
+					//g.m_cmd->m_viewangles.y += (std::copysignf(90, m_lby_side *= -1) + (break_yaw * m_lby_side)) * (settings::hvh::antiaim::body_fake_stand == 4);
 				//	break;
 				//
 				//default:
@@ -745,7 +738,7 @@ void hvh::AntiAim( ) {
 
 	if ( g.m_weapon && g.m_can_fire ) {
 		const auto knife = g.m_weapon_type == WEAPONTYPE_KNIFE;// &&g.m_weapon_id != ZEUS;
-		const auto revolver = false;// g.m_weapon_id == REVOLVER;
+		const auto revolver = g.m_weapon->item_definition_index() == 64;
 
 		// if we are in attack and can fire, do not anti-aim.
 		if ( attack || ( attack2 && ( knife || revolver ) ) )

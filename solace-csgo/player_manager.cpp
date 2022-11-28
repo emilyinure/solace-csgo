@@ -7,8 +7,10 @@
 player_record_t::~player_record_t ( ) {
 	// free heap allocated game mem.
 	g.m_interfaces->mem_alloc( )->free( m_bones );
-	for( auto &i : m_fake_bones )
-		g.m_interfaces->mem_alloc( )->free( i );
+	for ( auto pObj = m_fake_bones.begin( ); pObj != m_fake_bones.end( ); ++pObj )
+		g.m_interfaces->mem_alloc( )->free( *pObj );
+	m_fake_bones.clear( );
+	m_resolver_data.m_dir_data.clear();
 }
 
 void player_record_t::cache ( int index ) const {
@@ -48,7 +50,7 @@ bool player_record_t::valid() const {
 
 	// calculate difference between tick sent by player and our latency based tick.
 	// ensure this record isn't too old.
-	return std::fabsf(correct - (curtime - m_pred_time)) < 0.2f;
+	return std::fabsf(correct - (curtime - m_pred_time)) < 0.19f;
 }
 
 //bool player_record_t::valid() const {
@@ -631,9 +633,22 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 
 				// delta in duckamt and delta in time..
 				const auto duck = record->m_duck - previous->m_duck;
+				float time = record->m_sim_time - previous->m_sim_time;
 
 				// fix crouching players.
-				m_ent->duck_amount( ) = std::clamp<float>(previous->m_duck + std::copysignf(previous->m_duck_speed*g.m_interfaces->globals()->m_interval_per_tick, duck), 0.f, 1.f);
+				m_ent->duck_amount( ) = std::clamp<float>(previous->m_duck + std::copysignf(previous->m_duck_speed * g.m_interfaces->globals()->m_interval_per_tick, duck ), 0.f, 1.f );
+
+				if ( !record->m_fake_walk && !record->m_ukn_vel ) {
+					// fix the velocity till the moment of animation.
+					vec3_t velo = record->m_velocity - previous->m_velocity;
+
+					// accel per tick.
+					vec3_t accel = ( velo / time ) * g.m_interfaces->globals( )->m_interval_per_tick;
+
+					// set the anim velocity to the previous velocity.
+					// and predict one tick ahead.
+					record->m_anim_velocity = previous->m_velocity + accel;
+				}
 			}
 		}
 	}

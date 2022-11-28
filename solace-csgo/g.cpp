@@ -19,6 +19,8 @@
 #include "input_helper/input_helper.hh"
 #include <cassert>
 
+#include "grenade_pred.h"
+
 void c_g::init_cheat( ) {
 	m_interfaces = new interfaces_t( );
 	m_render = new render_t( );
@@ -56,10 +58,8 @@ void c_g::on_render ( IDirect3DDevice9 *device ) {
 	for ( auto &it : menu.n_binds )
 		it->update( );
 	
-	if ( open ) {
+	if ( open )
 		menu.update( );
-		menu.draw( );
-	}
 	
 	m_local = static_cast< player_t * >( m_interfaces->entity_list(  )->get_client_entity(m_interfaces->engine()->local_player_index( ) ) );
 	g_movement.draw( );
@@ -72,8 +72,12 @@ void c_g::on_render ( IDirect3DDevice9 *device ) {
 			m_render->line( 0, m_render->m_screen_size( ).Height / 2, m_render->m_screen_size( ).Width, m_render->m_screen_size( ).Height / 2, color( 0, 0, 0 ), 1);
 		}
 	}
+	g_grenade_pred.Paint( );
 	
 	g_notification.think( );
+
+	if ( open )
+		menu.draw( );
 
 	m_render->finish( );
 }
@@ -389,11 +393,9 @@ bool c_g::can_weapon_fire( ) const {
 	if ( m_weapon_type == WEAPONTYPE_GRENADE )
 		return false;
 
-	// if we have no bullets, we cant shoot.
 	if ( m_weapon_type == WEAPONTYPE_KNIFE || m_weapon->clip1_count( ) < 1 )
 		return false;
-
-	// yeez we have a normal gun.
+	
 	if ( ( static_cast< float >(g.m_local->tick_base( )) * g.m_interfaces->globals( )->m_interval_per_tick ) >= m_weapon->next_primary_attack( ) )
 		return true;
 
@@ -401,8 +403,6 @@ bool c_g::can_weapon_fire( ) const {
 }
 
 void UTIL_FieldHighLowTickBase(int* high, int* low, int* ideal) {
-	static auto *frame_ticks = util::find( "engine.dll", "2B 05 ? ? ? ? 03 05 ? ? ? ? 83 CF ?" ) + 2;
-	auto iTicksThisCommand = **reinterpret_cast<int**>(frame_ticks);
 	auto* sv_clockcorrection_msecs = g.m_interfaces->console()->get_convar("sv_clockcorrection_msecs");
 	float flCorrectionSeconds = std::clamp(sv_clockcorrection_msecs->GetFloat() / 1000.0f, 0.0f, 1.0f);
 	int nCorrectionTicks = g.time_to_ticks(flCorrectionSeconds);
@@ -418,7 +418,7 @@ void UTIL_FieldHighLowTickBase(int* high, int* low, int* ideal) {
 		latency += net->GetLatency( 0 );
 
 	int	nIdealFinalTick = g.m_interfaces->globals()->m_tickcount + g.time_to_ticks( latency ) + nCorrectionTicks;
-	auto simulation_ticks = g.m_interfaces->client_state()->m_choked_commands + 1;
+	auto simulation_ticks = g.m_interfaces->client_state()->m_choked_commands;
 
 	// If client gets ahead of this, we'll need to correct
 	*high = nIdealFinalTick + nCorrectionTicks;
@@ -429,11 +429,12 @@ void UTIL_FieldHighLowTickBase(int* high, int* low, int* ideal) {
 }
 
 void UTIL_EmplaceTickBaseShift(int high, int low, int ideal, int ticks) {
-	auto simulation_ticks = g.m_interfaces->client_state( )->m_choked_commands + ticks;
+	auto simulation_ticks = g.m_interfaces->client_state( )->m_choked_commands;
 	int nEstimatedFinalTick = g.m_local->tick_base( ) + simulation_ticks;
 	if ( nEstimatedFinalTick > high ||
 		nEstimatedFinalTick < low ) {
-		g.m_local->tick_base( ) = ideal;
+		int nCorrectedTick = ideal - simulation_ticks + ticks + 1;
+		g.m_local->tick_base( ) = nCorrectedTick;
 	}
 }
 
@@ -489,7 +490,7 @@ void c_g::on_move ( float accumulated_extra_samples, bool bFinalTick, cl_move_t 
 
 			get_tickbase_log( pCmd->m_command_number, &g.m_local->tick_base( ) );
 		}
-		UTIL_EmplaceTickBaseShift( high, low, ideal, iTicksThisCommand + 1 );
+		UTIL_EmplaceTickBaseShift( high, low, ideal, iTicksThisCommand );
 	}
 	//m_can_shift = false;
 
@@ -559,6 +560,12 @@ bool c_g::start_move( cmd_t *cmd ) {
 		memcpy( m_pEndData, m_pStartData, sizeof( byte ) * size ); // override 
 	}
 
+	bool set = false;
+	if ( m_weapon && m_weapon->item_definition_index( ) == 64 ) {
+		set = !(g.m_cmd->m_buttons & IN_ATTACK);
+			
+		g.m_cmd->m_buttons |= IN_ATTACK;
+	}
 
 	prediction::start( cmd );
 	m_speed = m_local->velocity().length();
