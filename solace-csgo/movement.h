@@ -20,7 +20,7 @@ public:
 	void QuickStop ( );
 	static void PreciseMove ( );
 	void auto_peek ( );
-	static void move_to ( vec3_t target_origin );
+	void move_to ( vec3_t target_origin ) const;
 	void edge_bug();
 	void auto_strafe( );
 	float m_old_yaw;

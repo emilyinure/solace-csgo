@@ -112,7 +112,36 @@ void movement::PreciseMove( ) {
 		return;
 	if ( g.m_cmd->m_forwardmove != 0.f || g.m_cmd->m_sidemove != 0.f )
 		return;
-	move_to( g.m_origin );
+	static auto sv_friction = g.m_interfaces->console( )->get_convar( "sv_friction" );
+	static auto sv_stopspeed = g.m_interfaces->console( )->get_convar( "sv_stopspeed" );
+	const auto friction = sv_friction->GetFloat( ) * g.m_local->surface_friction( );
+
+	const auto speed = g.m_local->velocity( ).length( );
+	// calculate speed.
+
+	if ( speed <= 0.1f ) {
+		g.m_cmd->m_forwardmove = 0.f;
+		g.m_cmd->m_sidemove = 0.f;
+		return;
+	}
+
+	// bleed off some speed, but if we have less than the bleed, threshold, bleed the threshold amount.
+	const auto control = fmaxf( speed, sv_stopspeed->GetFloat( ) );
+
+	// calculate the drop amount.
+	const auto drop = control * friction * g.m_interfaces->globals( )->m_interval_per_tick;
+
+	// scale the velocity.
+	const auto newspeed = fmaxf( 0.f, speed - drop );
+	g.m_view_angles = g.m_local->velocity( ).look( vec3_t( ) );
+
+	if ( newspeed > 0.1f ) {
+		g.m_cmd->m_forwardmove = newspeed;
+		g.m_cmd->m_sidemove = 0.f;
+	} else {
+		g.m_cmd->m_forwardmove = 0.f;
+		g.m_cmd->m_sidemove = 0.f;
+	}
 }
 
 void movement::auto_peek( ) {
@@ -129,17 +158,18 @@ void movement::auto_peek( ) {
 		 
 		if ( m_invert ) {
 			move_to( m_stop_pos );
+			set_should_stop( false );
 		}
 	}
 
 	else {
 		m_invert = false;
 	}
-	last = settings::hvh::antiaim::auto_peek;
 	set_should_unpeek( false );
+	last = settings::hvh::antiaim::auto_peek;
 }
 
-void movement::move_to(vec3_t target_origin) {
+void movement::move_to(vec3_t target_origin) const {
 	const auto local_origin = g.m_local->origin( );
 	static auto sv_friction = g.m_interfaces->console( )->get_convar( "sv_friction" );
 	static auto sv_stopspeed = g.m_interfaces->console( )->get_convar( "sv_stopspeed" );

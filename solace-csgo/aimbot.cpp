@@ -890,15 +890,6 @@ std::vector<ent_info_t*> aimbot_t::mp_threading( ) const {
 	return targets;
 }
 
-
-void aimbot_t::StripAttack( ) {
-	if ( g.m_weapon->item_definition_index() == 64 )
-		g.m_cmd->m_buttons &= ~IN_ATTACK2;
-
-	else
-		g.m_cmd->m_buttons &= ~IN_ATTACK;
-}
-
 void aimbot_t::on_tick ( ) {
 	m_list_eye_pos.clear();
 	//g.m_cmd->m_viewangles -= g.m_local->aim_punch( ) * 2;
@@ -913,7 +904,6 @@ void aimbot_t::on_tick ( ) {
 		return;
 
 	if ( !g.m_can_fire ) {
-		StripAttack( );
 		return;
 	}
 

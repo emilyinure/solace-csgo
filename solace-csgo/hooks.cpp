@@ -210,6 +210,7 @@ void __fastcall EstimateAbsVelocity( player_t *_this, uint32_t edx, vec3_t &vec 
 	vec.z = velocity.z;
 }
 void  __fastcall AllocateIntermediateData( player_t *_this, uint32_t edx ) {
+	g.m_local = static_cast< player_t* >( g.m_interfaces->entity_list( )->get_client_entity( g.m_interfaces->engine( )->local_player_index( ) ) );
 	if ( _this != g.m_local )
 		return;
 	const auto map = g.m_local->GetPredDescMap( );
@@ -236,7 +237,6 @@ void hooks_t::CustomEntityListener::OnEntityCreated ( entity_t *ent ) {
 		vmt->add( update_anims, 218 );
 		vmt->add( is_player, 152 );
 		vmt->add( EstimateAbsVelocity, 141 );
-		
 	}
 	//vmt = g.m_hooks->renderables_hook( ent->index( ) - 1 );
 	//if ( vmt ) {
@@ -263,6 +263,9 @@ void __stdcall frame_stage_notify( client_frame_stage_t stage ) {
 	if ( stage != FRAME_START )
 		g.m_stage = stage;
 
+	if ( !g.m_interfaces->engine( )->is_connected( ) || !g.m_interfaces->engine( )->in_game( ) )
+		g.m_interfaces->client( ).hook( )->get_original<decltype( &frame_stage_notify )>( 36 )( stage );
+
 	if ( stage == FRAME_RENDER_START && g.m_local && g.m_local->alive() ) {
 		// apply local player animated angles.
 		g.SetAngles( );
@@ -276,7 +279,9 @@ void __stdcall frame_stage_notify( client_frame_stage_t stage ) {
 				*reinterpret_cast< int* >( smoke_count ) = 0;
 		}
 	}
-	g.m_interfaces->client( ).hook( )->get_original<decltype( &frame_stage_notify )>( 36 )(stage);
+
+	g.m_interfaces->client( ).hook( )->get_original<decltype( &frame_stage_notify )>( 36 )( stage );
+
 	if ( stage == FRAME_NET_UPDATE_POSTDATAUPDATE_END ) {
 		g_player_manager.update( );
 	} 
