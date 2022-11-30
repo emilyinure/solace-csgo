@@ -439,41 +439,6 @@ bool aimbot_t::get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &ey
 			in.m_target = info->m_ent;
 			int damage = min( 100, info->m_ent->health( ) + settings::rage::selection::lethal_damage );
 			in.m_damage = in.m_damage_pen = min( settings::rage::selection::min_damage, damage );
-			switch ( point.m_hitbox ) {
-			case hitboxes::hitbox_head:
-			case hitboxes::hitbox_neck:
-			case hitboxes::hitbox_lower_neck:
-				in.m_hitgroup = hitgroups::hitgroup_head;
-				break;
-			case hitboxes::hitbox_chest:
-			case hitboxes::hitbox_upper_chest:
-				in.m_hitgroup = hitgroups::hitgroup_chest;
-				break;
-			case hitboxes::hitbox_pelvis:
-			case hitboxes::hitbox_thorax:
-				in.m_hitgroup = hitgroups::hitgroup_stomach;
-				break;
-			case hitboxes::hitbox_l_calf:
-			case hitboxes::hitbox_l_foot:
-			case hitboxes::hitbox_l_thigh:
-				in.m_hitgroup = hitgroups::hitgroup_leftleg;
-				break;
-			case hitboxes::hitbox_r_calf:
-			case hitboxes::hitbox_r_foot:
-			case hitboxes::hitbox_r_thigh:
-				in.m_hitgroup = hitgroups::hitgroup_rightleg;
-				break;
-			case hitboxes::hitbox_r_forearm:
-			case hitboxes::hitbox_r_upper_arm:
-			case hitboxes::hitbox_r_hand:
-				in.m_hitgroup = hitgroups::hitgroup_rightarm;
-				break;
-			case hitboxes::hitbox_l_forearm:
-			case hitboxes::hitbox_l_upper_arm:
-			case hitboxes::hitbox_l_hand:
-				in.m_hitgroup = hitgroups::hitgroup_leftarm;
-				break;
-			}
 			if ( info->m_selected_record->m_mode == resolver::RESOLVE_STAND1 || info->m_selected_record->m_mode == resolver::RESOLVE_STAND2 ) {
 				ray.init( eye, point.m_point );
 				bone_index = 0;

@@ -263,10 +263,10 @@ void __stdcall frame_stage_notify( client_frame_stage_t stage ) {
 	if ( stage != FRAME_START )
 		g.m_stage = stage;
 
-	if ( !g.m_interfaces->engine( )->is_connected( ) || !g.m_interfaces->engine( )->in_game( ) )
-		g.m_interfaces->client( ).hook( )->get_original<decltype( &frame_stage_notify )>( 36 )( stage );
+	if ( !g.m_interfaces->engine( )->is_connected( ) || !g.m_interfaces->engine( )->in_game( ) || !g.m_local )
+		return g.m_interfaces->client( ).hook( )->get_original<decltype( &frame_stage_notify )>( 36 )( stage );
 
-	if ( stage == FRAME_RENDER_START && g.m_local && g.m_local->alive() ) {
+	if ( stage == FRAME_RENDER_START && g.m_local->alive() ) {
 		// apply local player animated angles.
 		g.SetAngles( );
 
@@ -486,16 +486,6 @@ bool __fastcall TempEntities( client_state_t *this_ptr, uint32_t edx, void *msg 
 	g.m_interfaces->client_state( )->m_nMaxClients( ) = 1;
 	const auto ret = m_cl_hook.get_original< TempEntities_t >( 36 )( this_ptr, msg );
 	g.m_interfaces->client_state( )->m_nMaxClients( ) = backup;
-
-	for ( event_info_t* it{ g.m_interfaces->client_state( )->m_events }; it != nullptr; it = it->m_next ) {
-		if ( !it->m_client_class )
-			continue;
-
-		// set all delays to instant.
-		it->m_fire_delay = 0.f;
-	}
-
-	g.m_interfaces->engine( )->FireEvents( );
 
 	return ret;
 }
@@ -730,9 +720,9 @@ hooks_t::hooks_t( ) {
 	g_chams.create_materials( );
 
 	m_custom_entity_listener.init( );
-	//auto net_show_fragments_v = g.m_interfaces->console( )->get_convar( "net_showfragments" );
-	//net_show_fragments.init( (uintptr_t)net_show_fragments_v );
-	//net_show_fragments.add( static_cast< void * >( NetShowFragmentsGetBool ), 13 );
+	auto net_show_fragments_v = g.m_interfaces->console( )->get_convar( "net_showfragments" );
+	net_show_fragments.init( (uintptr_t)net_show_fragments_v );
+	net_show_fragments.add( static_cast< void * >( NetShowFragmentsGetBool ), 13 );
 
 	g.m_old_window = reinterpret_cast< WNDPROC >(SetWindowLongPtr( g.m_window, GWL_WNDPROC, reinterpret_cast< LONG_PTR >(wndproc) ));
 	g.m_interfaces->model_render( ).hook( )->add( draw_model_execute, 21 );

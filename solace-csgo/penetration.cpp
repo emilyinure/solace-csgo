@@ -512,7 +512,7 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
 
         // subtract from damage.
         damage -= fmaxf( 0.f, lost );
-        if ( scale( in->m_target, damage, weapon_info->m_armor_ratio, in->m_simulated_shot ? hitgroup_head : in->m_hitgroup ) < in->m_simulated_shot ? 1.f : in->m_damage )
+        if ( damage < 1.f )
             return false;
 
         // set new start pos for successive trace.

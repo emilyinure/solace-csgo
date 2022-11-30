@@ -36,6 +36,9 @@ bool player_record_t::valid() const {
 		return false;
 	// use prediction curtime for this.
 	float curtime = g.ticks_to_time(g.m_local->tick_base());
+	static auto* sv_maxunlag = g.m_interfaces->console( )->get_convar( "sv_maxunlag" );
+	if ( floorf( curtime - sv_maxunlag->GetFloat( ) ) > m_pred_time )
+		return false;
 
 	// correct is the amount of time we have to correct game time,
 	float correct = g.m_lerp;
@@ -45,7 +48,6 @@ bool player_record_t::valid() const {
 	if (nci)
 		correct += nci->GetLatency(1);
 	// check bounds [ 0, sv_maxunlag ]
-	static auto* sv_maxunlag = g.m_interfaces->console()->get_convar("sv_maxunlag");
 	correct = std::clamp<float>(correct, 0.f, sv_maxunlag->GetFloat());
 
 	// calculate difference between tick sent by player and our latency based tick.
