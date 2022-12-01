@@ -226,9 +226,13 @@ bool render_t::draw_rounded_box( int x, int y, int width, int height, int precis
 }
 void render_t::DrawLine( long Xa, long Ya, long Xb, long Yb, DWORD dwWidth, color Color ) {
 }
-auto render_t::render_triangle( vertex_t *vert, int count ) const -> void {
+auto render_t::render_triangle( vertex_t* vert, int count ) const -> void {
 	this->device_->SetFVF( D3DFVF_XYZRHW | D3DFVF_DIFFUSE );
 	this->device_->DrawPrimitiveUP( D3DPT_TRIANGLESTRIP, count, vert, sizeof( vertex_t ) );
+}
+auto render_t::render_trianglefan( vertex_t* vert, int count ) const -> void {
+	this->device_->SetFVF( D3DFVF_XYZRHW | D3DFVF_DIFFUSE );
+	this->device_->DrawPrimitiveUP( D3DPT_TRIANGLEFAN, count, vert, sizeof( vertex_t ) );
 }
 auto render_t::render_lines( vertex_t *vert, int count ) const -> void {
 	this->device_->SetFVF( D3DFVF_XYZRHW | D3DFVF_DIFFUSE );
@@ -409,6 +413,55 @@ auto render_t::world_circle( vec3_t origin, float radius, color clr ) const -> v
 		clr.set_a( 50 );
 		g.m_render->line( roundf( point_wts.x ), roundf( point_wts.y ), roundf( point_wts_2.x ), roundf( point_wts_2.y ), clr, 1 );
 	}
+}
+
+void render_t::Rounded( int x, int y, int w, int h, int iSmooth, color Color ) {
+	POINT pt[ 4 ];
+
+	// Get all corners
+
+
+	pt[ 0 ].x = x + ( w - iSmooth );
+	pt[ 0 ].y = y + ( h - iSmooth );
+
+	pt[ 1 ].x = x + iSmooth;
+	pt[ 1 ].y = y + ( h - iSmooth );
+
+	pt[ 2 ].x = x + iSmooth;
+	pt[ 2 ].y = y + iSmooth;
+
+	pt[ 3 ].x = x + w - iSmooth;
+	pt[ 3 ].y = y + iSmooth;
+
+	// Draw cross
+	filled_rect( x + iSmooth, y + iSmooth, w - iSmooth * 2, h - iSmooth * 2, Color );
+
+	filled_rect( x + iSmooth, y, w - iSmooth * 2, iSmooth, Color );
+	filled_rect( x + ( w - iSmooth ), y + iSmooth, iSmooth, h - iSmooth * 2.f, Color );
+
+	filled_rect( x + iSmooth, y + ( h - iSmooth ), w - iSmooth * 2, iSmooth, Color );
+	filled_rect( x, y + iSmooth, iSmooth, h - iSmooth * 2.f, Color );
+
+
+	float fDegree = 0;
+
+	for ( int i = 0; i < 4; i++ ) {
+		std::vector< render_t::vertex_t > verts = { {float(pt[ i ].x) , float( pt[ i ].y ), 0, 1, Color} };
+		for ( float k = fDegree; k <= fDegree + 90.f; k += 1 ) {
+			// Draw quarter circles on every corner
+			float new_x = pt[ i ].x + ( cos( k * ( M_PI / 180. ) ) * iSmooth );
+			float new_y = pt[ i ].y + ( sin( k * ( M_PI / 180. ) ) * iSmooth );
+			verts.push_back( { new_x , new_y, 0, 1, Color } );
+			//line( pt[ i ].x, pt[ i ].y,
+			//	new_x,
+			//	new_y,
+			//	Color, 1 ); // 3 is with line width
+		}
+		render_trianglefan( verts.data( ), verts.size( ) - 2 );
+
+		fDegree += 90.f; // quarter circle offset
+	}
+
 }
 
 auto render_t::circle( int x, int y, float radius, int segments, color clr ) const -> void {

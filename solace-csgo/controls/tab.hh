@@ -15,9 +15,7 @@ public:
 	}
 
 	auto draw( ) -> void  override {
-		g.m_render->push_clip( this->area.x, this->area.y, this->area.w, this->area.h );
-		g.m_render->filled_rect( this->area.x, this->area.y, this->area.w, this->area.h, color( 240,240,240, 10) );
-		g.m_render->pop_clip( );
+		g.m_render->Rounded( this->area.x, this->area.y, this->area.w, this->area.h, 15, color( 240,240,240, 10) );
 		//g.m_render->outlined_rect( this->area.x, this->area.y, this->area.w, this->area.h, { 240,240,240 } );
 		// child handling.
 		if ( !this->children_.empty( ) ) {

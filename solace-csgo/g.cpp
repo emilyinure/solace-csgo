@@ -19,8 +19,6 @@
 #include "input_helper/input_helper.hh"
 #include <cassert>
 
-#include "grenade_pred.h"
-
 void c_g::init_cheat( ) {
 	m_interfaces = new interfaces_t( );
 	m_render = new render_t( );
@@ -72,7 +70,6 @@ void c_g::on_render ( IDirect3DDevice9 *device ) {
 			m_render->line( 0, m_render->m_screen_size( ).Height / 2, m_render->m_screen_size( ).Width, m_render->m_screen_size( ).Height / 2, color( 0, 0, 0 ), 1);
 		}
 	}
-	g_grenade_pred.Paint( );
 	
 	g_notification.think( );
 

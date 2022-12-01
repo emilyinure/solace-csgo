@@ -180,10 +180,12 @@ public:
 	void rounded ( int x, int y, int w, int h, int iSmooth, color Color );
 	void rounded ( int x, int y, int w, int h, int iSmooth, D3DCOLOR Color );
 	auto render_triangle( vertex_t* vert, int count ) const -> void;
+	auto render_trianglefan( vertex_t* vert, int count ) const -> void;
 	auto render_lines( vertex_t* vert, int count ) const -> void;
 	auto filled_rect( const float x, const float y, const float w, const float h, const color col ) const -> void;
 	auto outlined_rect( const float x, const float y, float w, float h, const color col ) const -> void;
 	auto line( const float x, const float y, const float x2, const float y2, const color color, const int dwWidth = 1) const -> void;
+	auto line( D3DXVECTOR2* lines, int count, const color color, const int dwWidth ) const -> void;
 	auto gradient( const float x, const float y, const float w, const float h, const color col, const color col2, const bool vertical = 0 ) const -> void;
 	auto push_clip( const float x, const float y, const float w, const float h ) -> void;
 	auto push_clip( area_t area ) -> void;
@@ -191,6 +193,8 @@ public:
 	auto start( ) -> void;
 	auto finish( ) const -> void;
 	auto world_circle( vec3_t origin, float radius, color clr ) const -> void;
+
+	void Rounded( int x, int y, int w, int h, int iSmooth, color Color );
 
 	auto circle( int x, int y, float radius, int segments, color clr ) const -> void;
 

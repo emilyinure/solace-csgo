@@ -247,7 +247,6 @@
     <ClCompile Include="controls\window.cc" />
     <ClCompile Include="datamap.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="engine_trace.cpp" />
     <ClCompile Include="esp.cpp" />
     <ClCompile Include="events.cpp" />
     <ClCompile Include="g.cpp" />

@@ -3,14 +3,15 @@
 
 auto c_form::draw ( ) -> void {
 
-	g.m_render->filled_rect( this->area_.x - 1, this->area_.y - 1, this->area_.w + 2, this->area_.h + 2, menu.dark );
+	//menu.dark_accent.set_a( 50 );
+	//g.m_render->Rounded( this->area_.x - 1, this->area_.y - 1, this->area_.w + 2, this->area_.h + 2, 40, menu.dark_accent );
+	//menu.dark_accent.set_a( 255 );
+
+	g.m_render->Rounded( this->area_.x - 1, this->area_.y - 1, this->area_.w + 2, this->area_.h + 2, 15, menu.dark );
 
 	auto text_height = g.m_render->get_text_height( this->name_, g.m_render->m_tahoma_14( ) );
 	g.m_render->text( g.m_render->m_tahoma_14( ), this->area_.x + 7, this->area_.y + 10 - ( text_height / 2.f ), menu.main_theme, this->name_ );
 
-	menu.dark_accent.set_a( 50 );
-	g.m_render->outlined_rect( this->area_.x - 1, this->area_.y - 1, this->area_.w + 2, this->area_.h + 2, menu.dark_accent );
-	menu.dark_accent.set_a( 255 );
 
 	// child handling.
 	if ( !this->children_.empty( ) ) {
