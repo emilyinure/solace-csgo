@@ -53,7 +53,6 @@ auto render_t::setup( IDirect3DDevice9 *device ) -> void {
 		this->device_->GetViewport( &this->screen_size_ );
 					} );
 }
-
 auto render_t::text( font_t &font, float x, float y, color col, const char *text, const int centered ) -> void {
 	RECT rect = { 0, 0, 0, 0 };
 
@@ -108,10 +107,10 @@ auto render_t::text( font_t &font, float x, float y, color col, const char *text
 		}
 	};
 
-	if ( centered == 1 )
+	if ( centered & Horizontal )
 		x -= text_size / 2.f;
 	text_size = get_text_height( text, font );
-	if ( centered == 2 )
+	if ( centered & Vertical )
 		y -= text_size / 2.f;
 
 	draw_text( rect, col, x, y );
@@ -433,7 +432,6 @@ void render_t::Rounded( int x, int y, int w, int h, int iSmooth, color Color ) {
 	pt[ 3 ].x = x + w - iSmooth;
 	pt[ 3 ].y = y + iSmooth;
 
-	// Draw cross
 	filled_rect( x + iSmooth, y + iSmooth, w - iSmooth * 2, h - iSmooth * 2, Color );
 
 	filled_rect( x + iSmooth, y, w - iSmooth * 2, iSmooth, Color );
@@ -448,18 +446,13 @@ void render_t::Rounded( int x, int y, int w, int h, int iSmooth, color Color ) {
 	for ( int i = 0; i < 4; i++ ) {
 		std::vector< render_t::vertex_t > verts = { {float(pt[ i ].x) , float( pt[ i ].y ), 0, 1, Color} };
 		for ( float k = fDegree; k <= fDegree + 90.f; k += 1 ) {
-			// Draw quarter circles on every corner
 			float new_x = pt[ i ].x + ( cos( k * ( M_PI / 180. ) ) * iSmooth );
 			float new_y = pt[ i ].y + ( sin( k * ( M_PI / 180. ) ) * iSmooth );
 			verts.push_back( { new_x , new_y, 0, 1, Color } );
-			//line( pt[ i ].x, pt[ i ].y,
-			//	new_x,
-			//	new_y,
-			//	Color, 1 ); // 3 is with line width
 		}
 		render_trianglefan( verts.data( ), verts.size( ) - 2 );
 
-		fDegree += 90.f; // quarter circle offset
+		fDegree += 90.f;
 	}
 
 }

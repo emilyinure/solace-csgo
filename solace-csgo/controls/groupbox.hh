@@ -128,13 +128,14 @@ public:
 			}
 
 			if ( children_.size( ) > 1 ) {
-				auto text_x = this->area.x + this->area.w - 6.f;
+				auto text_x = this->area.x + this->area.w - 10.f;
 				for ( int i = children_.size( ) - 1; i >= 0; i-- ) {
 					auto *const child = children_[ i ].get( );
 					const auto name_width = g.m_render->get_text_width( child->name, g.m_render->m_constantia_12( ) );
 					text_height = g.m_render->get_text_height( this->name, g.m_render->m_constantia_12( ) );
-					text_x -= name_width + 7.f;
+					text_x -= name_width;
 					render_t::text( g.m_render->m_constantia_12( ), text_x, this->area.y + 10 - ( text_height / 2.f ), child == selected_tab ? menu.main_theme : menu.bright, child->name );
+					text_x -= 7.f;
 				}
 			}
 			

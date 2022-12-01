@@ -6,20 +6,26 @@
 
 class c_button : public c_base_control {
 	typedef void( *button_fn )( void );
-	button_fn function_{ nullptr };
+	std::function<void( )> function_{ nullptr };
 	bool holding_{ false };
 public:
-	c_button( const char* name, button_fn function ) {
+	c_button( const char* name, std::function<void( )> function ) {
 		this->name = name;
-		this->function_ = function_;
+		this->function_ = function;
 		this->type = control_type_button;
 	}
 
-	auto draw( ) -> void override {
-		g.m_render->gradient( this->area.x, this->area.y, this->area.w, this->area.h, this->holding_ ? color( 0xe5, 0xc1, 0xcd ) : color{ 0x04, 0x1b, 0x2d }, this->holding_ ? color{ 0x04, 0x1b, 0x2d } : color{ 0x04, 0x1b, 0x2d } );
-		g.m_render->outlined_rect( this->area.x, this->area.y, this->area.w, this->area.h, { 240, 240, 240 } );
+	auto disable( ) -> void override {
+		this->holding_ = false;
+	}
 
-		g.m_render->text( g.m_render->m_constantia_12( ), this->area.x + ( this->area.w / 2 ), this->area.y + 2, { 240, 240, 240 }, this->name, true );
+	auto draw( ) -> void override {
+		menu.main_theme.set_a( 50 );
+		g.m_render->gradient( this->area.x + 1, this->area.y + 1, this->area.w - 2, this->area.h - 2, this->holding_ ? menu.main_theme : color{ 0, 0, 0, 0 }, color{ 0, 0, 0, 0 } );
+		menu.main_theme.set_a( 255 );
+		g.m_render->outlined_rect( this->area.x, this->area.y, this->area.w, this->area.h, { 240,240,240, 7 } );
+
+		g.m_render->text( g.m_render->m_constantia_12( ), this->area.x + ( this->area.w / 2 ), this->area.y + this->area.h / 2, { 240, 240, 240 }, this->name, Horizontal | Vertical );
 	}
 
 	auto update( ) -> void override {
@@ -32,5 +38,10 @@ public:
 			input_helper.set_key( VK_LBUTTON, false );
 			this->function_( );
 		}
+	}
+
+	void save( ) override {
+	}
+	void load( )  override {
 	}
 };

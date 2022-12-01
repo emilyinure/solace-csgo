@@ -15,6 +15,7 @@ constexpr double M_PI = 3.14159265358979323846;
 constexpr double M_PI_SQUARED = 9.869604401089358;
 
 constexpr double M_PI_2 = M_PI * 2;
+constexpr double M_PI_2_F = static_cast< float >( M_PI_2 );
 constexpr float M_PI_F = static_cast< float >( M_PI );
 constexpr float RAD2DEG( const float x ) {
 	return static_cast< float >(x) * static_cast< float >(180.f / M_PI_F);

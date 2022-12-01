@@ -129,6 +129,9 @@ namespace settings {
 		namespace griefing {
 			inline bool block_bot = false;
 		}
+		namespace config {
+			inline int slot = 1;
+		}
 		namespace misc {
 			inline bool thirdperson = false;
 			inline bool fake_latency = false;

@@ -53,6 +53,9 @@ public:
 		NETVAR( "C_BasePlayer", "m_lifeState", m_life_state )
 		NETVAR( "DT_CSPlayer", "m_fFlags", m_flags )
 		NETVAR( "DT_BasePlayer", "m_viewPunchAngle", m_punch_angle )
+
+		NETVAR( "C_BaseEntity", "m_vecNetworkOrigin", m_network_origin )
+
 		NETVAR( "DT_BaseEntity", "m_vecMins", m_mins )
 		NETVAR( "DT_BaseEntity", "m_vecMaxs", m_maxs )
 		NETVAR( "DT_BasePlayer", "m_aimPunchAngle", m_aim_punch_angle )
@@ -65,6 +68,7 @@ public:
 		NETVAR( "DT_CSPlayer", "m_nJumpTimeMsecs", m_nJumpTimeMsecs )
 		NETVAR( "DT_BasePlayer", "m_vecVelocity[0]", m_velocity )
 		NETVAR( "C_BasePlayer", "m_flMaxspeed", m_max_speed )
+		NETVAR( "DT_CSPlayer", "m_flStamina ", m_stamina )
 		NETVAR( "DT_BaseEntity", "m_flShadowCastDistance", m_fov_time )
 		NETVAR( "DT_BasePlayer", "m_hObserverTarget", m_observer_target )
 		NETVAR( "DT_BasePlayer", "m_nHitboxSet", m_hitbox_set )
@@ -105,6 +109,7 @@ public:
 		NETVAR( "DT_BaseCombatWeapon", "m_iPrimaryReserveAmmoCount", primary_reserve_ammo_acount )
 		NETVAR( "DT_WeaponCSBase", "m_flRecoilIndex", recoil_index )
 		NETVAR( "DT_WeaponCSBase", "m_fLastShotTime", last_shot_time )
+		NETVAR( "DT_SmokeGrenadeProjectile", "m_nSmokeEffectTickBegin", smoke_effect_begin_tick )
 		NETVAR( "DT_WeaponCSBase", "m_flPostponeFireReadyTime", m_flPostponeFireReadyTime )
 		NETVAR( "DT_WeaponCSBaseGun", "m_zoomLevel", zoom_level )
 		NETVAR( "DT_BaseCombatWeapon", "m_iEntityQuality", entity_quality )

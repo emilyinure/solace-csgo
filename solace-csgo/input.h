@@ -29,6 +29,14 @@
 #define IN_GRENADE2		(1 << 24)	// grenade 2
 #define	IN_ATTACK3		(1 << 25)
 
+class c_input_system {
+public:
+	void EnableInput( bool state ) {
+		using original_fn = void( __thiscall* )( c_input_system*, bool );
+		return ( *( original_fn** )this )[ 11 ]( this, state );
+	}
+};
+
 class cmd_t {
 public:
 	int m_pad = 0;

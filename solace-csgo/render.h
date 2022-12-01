@@ -90,6 +90,10 @@ public:
 
 	
 };
+enum Alignment {
+	Vertical = ( 1 << 0 ),
+	Horizontal = ( 1 << 1 )
+};
 class render_t {
 	font_t tahoma_14_{ 0, nullptr };
 	font_t segoe_ui_13_{ 0, nullptr };

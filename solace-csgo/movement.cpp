@@ -510,7 +510,7 @@ inline bool movement::GetClosestPlane( vec3_t& plane ) {
 	const float		      dist{ 75.f };
 
 	// trace around us in a circle
-	for ( float step{}; step <= M_PI_2; step += ( M_PI / 10.f ) ) {
+	for ( float step{}; step <= M_PI_2_F; step += ( M_PI_F / 10.f ) ) {
 		// extend endpoint x units.
 		vec3_t end = start;
 		end.x += std::cos( step ) * dist;

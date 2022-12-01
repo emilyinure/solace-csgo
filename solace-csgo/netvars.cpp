@@ -47,11 +47,11 @@ namespace netvar_manager {
 		if ( map.empty( ) )
 			initialize_props( map );
 
-		if ( map.find( table ) == map.end( ) )
-			return 0;
-
 		auto &table_map = map.at( table );
 		if ( table_map.find( prop ) == table_map.end( ) )
+			return 0;
+
+		if ( map.find( table ) == map.end( ) )
 			return 0;
 
 		return table_map.at( prop ).m_offset;

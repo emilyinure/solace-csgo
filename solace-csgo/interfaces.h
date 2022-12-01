@@ -31,7 +31,9 @@ public:
 protected:
 
 
+	c_base_interface<c_input_system> m_input_system{ "inputsystem.dll", "InputSystemVersion001", false };
 	c_base_interface<c_base_client> m_client{ "client.dll", "VClient018" };
+	c_base_interface<c_surface> m_surface{ "vguimatsurface.dll", "VGUI_Surface031" };
 	c_base_interface<c_global_vars> m_globals{ static_cast< void * >( *address( m_client ).to< address * >( )[ 11 ].to< address * >( 10 ) ), false };
 	c_base_interface<c_engine_client> m_engine{ "engine.dll", "VEngineClient014" };
 	c_base_interface<c_engine_trace> m_trace{ "engine.dll", "EngineTraceClient004" };
@@ -64,8 +66,14 @@ public:
 
 	interfaces_t( ) = default;
 
-	[[nodiscard]] decltype( m_render_view ) &render_view( ) {
+	[[nodiscard]] decltype( m_render_view )& render_view( ) {
 		return m_render_view;
+	}
+	[[nodiscard]] decltype( m_input_system )& input_system( ) {
+		return m_input_system;
+	}
+	[[nodiscard]] decltype( m_surface )& surface( ) {
+		return m_surface;
 	}
 	
 	[[nodiscard]] decltype( m_panel ) &panel( ) {

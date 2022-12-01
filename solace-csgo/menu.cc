@@ -12,6 +12,8 @@
 #include "controls/column.hh"
 #include "controls/groupbox.hh"
 
+std::array<std::string, 3> config_names = { "Auto", "Scout", "Pistol" };
+
 auto c_menu::init( ) -> void {
 	auto main_form = std::make_shared<c_form>( "Solace", area_t{ 200, 400, 580, 424 } );
 	this->m_forms.push_back( main_form );
@@ -264,11 +266,41 @@ auto c_menu::init( ) -> void {
 			right_column->add_child( griefing_tab );
 			auto misc_tab = std::make_shared<c_group_box>( "Misc" );
 			{
-				auto movement_tab = std::make_shared<c_group_tab>( "Movement" );
-				movement_tab->add_child( std::make_shared<c_toggle>( "Ping exploit", &settings::misc::misc::fake_latency ) );
-				movement_tab->add_child( std::make_shared<c_slider>( "Ping amount", &settings::misc::misc::fake_latency_amt, 0, 1000) );
-				movement_tab->add_child( std::make_shared<c_key_bind>( "Thirdperson", &settings::misc::misc::thirdperson, 2 ) );
-				misc_tab->add_child( movement_tab );
+				auto misc_tab2 = std::make_shared<c_group_tab>( "Misc" ); {
+					misc_tab2->add_child( std::make_shared<c_toggle>( "Ping exploit", &settings::misc::misc::fake_latency ) );
+					misc_tab2->add_child( std::make_shared<c_slider>( "Ping amount", &settings::misc::misc::fake_latency_amt, 0, 1000 ) );
+					misc_tab2->add_child( std::make_shared<c_key_bind>( "Thirdperson", &settings::misc::misc::thirdperson, 2 ) );
+					misc_tab->add_child( misc_tab2 );
+				}
+				auto movement_tab = std::make_shared<c_group_tab>( "Config" ); {
+					movement_tab->add_child( std::make_shared<c_combobox>( "Config", &settings::misc::config::slot, std::vector<const char*> { "Auto", "Scout", "Pistol" } ) );
+					movement_tab->add_child( std::make_shared<c_button>( "Save", [ ] {
+						std::string name = config_names[ settings::misc::config::slot ];
+						std::ofstream file( name.c_str( ) );
+						std::streambuf* coutbuf = std::cout.rdbuf( ); //save old buf
+						std::cout.rdbuf( file.rdbuf( ) ); //redirect std::cin to in.txt!
+
+						if ( file.good( ) ) {
+							menu.save( );
+						}
+
+						std::cout.rdbuf( coutbuf ); //reset to standard output again
+
+						file.close( );
+						} ) );
+					movement_tab->add_child( std::make_shared<c_button>( "Load", [ ] {
+						std::string name = config_names[ settings::misc::config::slot ];
+						std::ifstream in( name.c_str( ) );
+						std::streambuf* cinbuf = std::cin.rdbuf( ); //save old buf
+						std::cin.rdbuf( in.rdbuf( ) ); //redirect std::cin to in.txt!
+
+						menu.load( );
+
+						std::cin.rdbuf( cinbuf ); //reset to standard output again
+						in.close( );
+						} ) );
+					misc_tab->add_child( movement_tab );
+				}
 			}
 			right_column->add_child( misc_tab );
 		} misc_form->add_child( right_column );
@@ -276,7 +308,8 @@ auto c_menu::init( ) -> void {
 }
 
 auto c_menu::draw( ) -> void {
-
+	if ( !open )
+		return;
 
 	for ( auto form : this->m_forms ) {
 		if ( !form->m_enabled( ) ) {
@@ -297,7 +330,11 @@ auto c_menu::draw( ) -> void {
 		this->focused_form->draw( );
 }
 
-auto c_menu::update( ) const -> void {
+auto c_menu::update( ) -> void {
+	if ( input_helper.key_pressed( VK_INSERT ) )
+		open = !open;
+	if ( !open )
+		return;
 	for ( auto form : this->m_forms ) {
 		if ( form->m_enabled( ) )
 			form->update( );

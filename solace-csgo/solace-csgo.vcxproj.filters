@@ -271,6 +271,9 @@
     <ClInclude Include="controls\tab.hh">
       <Filter>helpers\render\controls</Filter>
     </ClInclude>
+    <ClInclude Include="delaunator.h">
+      <Filter>sdk\valve\math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hooks.cpp">

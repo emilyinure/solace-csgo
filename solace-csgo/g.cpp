@@ -49,15 +49,11 @@ void c_g::on_render ( IDirect3DDevice9 *device ) {
 
 	input_helper.update( );
 	
-	static auto open = true;
-	if ( input_helper.key_pressed( VK_INSERT ) )
-		open = !open;
 
 	for ( auto &it : menu.n_binds )
 		it->update( );
 	
-	if ( open )
-		menu.update( );
+	menu.update( );
 	
 	m_local = static_cast< player_t * >( m_interfaces->entity_list(  )->get_client_entity(m_interfaces->engine()->local_player_index( ) ) );
 	g_movement.draw( );
@@ -73,8 +69,7 @@ void c_g::on_render ( IDirect3DDevice9 *device ) {
 	
 	g_notification.think( );
 
-	if ( open )
-		menu.draw( );
+	menu.draw( );
 
 	m_render->finish( );
 }
@@ -87,6 +82,11 @@ void c_g::on_tick( cmd_t *cmd ) {
 
 	m_cmd = cmd;                        //save everything we need from the engine
 	m_view_angles = cmd->m_viewangles;
+
+	if ( menu.open ) {
+		m_cmd->m_buttons &= ~IN_ATTACK;
+		m_cmd->m_buttons &= ~IN_ATTACK2;
+	}
 
 	auto *nci = g.m_interfaces->engine( )->get_net_channel_info( );
 	if ( nci )
@@ -139,7 +139,7 @@ void c_g::on_tick( cmd_t *cmd ) {
 	m_last_lag = m_lag;
 	m_lag = g.m_interfaces->client_state()->m_choked_commands;
 	
-	cmd->m_buttons |= IN_BULLRUSH; // allow unlimited ducking
+	//cmd->m_buttons |= IN_BULLRUSH; // allow unlimited ducking
 
 	g_block_bot.on_tick( );   //run all of our movement changing code before prediction
 	g_movement.auto_strafe( );

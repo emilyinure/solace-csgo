@@ -186,6 +186,7 @@
     <ClInclude Include="controls\toggle.hh" />
     <ClInclude Include="controls\window.hh" />
     <ClInclude Include="debug_overlay.h" />
+    <ClInclude Include="delaunator.h" />
     <ClInclude Include="engine_client.h" />
     <ClInclude Include="engine_cvar.h" />
     <ClInclude Include="engine_trace.h" />

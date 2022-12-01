@@ -36,6 +36,7 @@ public:
 };
 class c_menu {
 public:
+	bool open = true;
 	color main_theme = color( 0x8A, 0x86, 0xA6, 0xFF );
 	color bright = color( 0xBF,0xBE,0xBD, 0xFF );
 	color bright_accent = color( 209, 176, 194, 0xFF );
@@ -43,7 +44,7 @@ public:
 	color dark_accent = color( 0x8A, 0x86, 0xA6, 0xFF );
 	auto init( ) -> void;
 	auto draw( ) -> void;
-	auto update( ) const -> void;
+	auto update( ) -> void;
 	void append_bind ( key_bind_t * value );
 
 	std::vector< key_bind_t * > n_binds = {};

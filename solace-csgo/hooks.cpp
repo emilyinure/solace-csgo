@@ -713,6 +713,24 @@ int __fastcall SetUpMovement(anim_state* _this, void* pEcx, void* pEdx) {
 	}
 	return o_setupmovement(_this);
 }
+
+using lock_cursor_t = int( __thiscall* ) ( void* );
+lock_cursor_t oLockCursor;
+void __stdcall LockCursor( ) {
+	oLockCursor( g.m_interfaces->surface() );
+
+	g.m_local = static_cast< player_t* >( g.m_interfaces->entity_list( )->get_client_entity( g.m_interfaces->engine( )->local_player_index( ) ) );
+	
+	bool state = true;
+	if ( !g.m_interfaces->engine()->in_game() || ( g.m_local && !g.m_local->alive( ) ) ) {
+		state = !menu.open;
+	}
+	
+	g.m_interfaces->input_system()->EnableInput( state );
+	
+	if ( menu.open )
+		g.m_interfaces->surface( )->UnlockCursor( );
+}
 hooks_t::hooks_t( ) {
 	while ( !((g.m_window = FindWindowA( "Valve001", nullptr)) ) )
 		Sleep( 100 );
@@ -731,6 +749,7 @@ hooks_t::hooks_t( ) {
 	//g.m_interfaces->events( ).hook( )->add( static_cast< void * >( FireEventClientSide ), 8 );
 	g.m_interfaces->client( ).hook( )->add( frame_stage_notify, 36 );
 	g.m_interfaces->client( ).hook( )->add( LevelInitPostEntity, 6 );
+	oLockCursor = (lock_cursor_t)g.m_interfaces->surface( ).hook( )->add( LockCursor, 67 );
 	//g.m_interfaces->viewrender( ).hook( )->add( static_cast< void * >( RenderSmokeOverlay ), 40 );
 	
 	g.m_interfaces->client_mode( ).hook( )->add( create_move, 24 );
