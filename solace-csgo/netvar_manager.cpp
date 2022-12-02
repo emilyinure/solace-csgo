@@ -100,7 +100,7 @@ void prediction_netvar_manager::init ( datamap_t *map ) {
 	val = ( 1.f / AssignRangeMultiplier( 20, 2000. ) );
 	vars.push_back( new managed_vec( g.m_offsets->m_player.m_vecBaseVelocity, val, "m_vecBaseVelocity" ) );
 
-	vars.push_back( new managed_vec( g.m_offsets->m_player.m_network_origin, 0.031250, "network_origin", true ) );
+	//vars.push_back( new managed_vec( g.m_offsets->m_player.m_network_origin, 0.031250, "network_origin", true ) );
 	vars.push_back( new managed_vec( g.m_offsets->m_player.m_velocity, 0.031250, "m_velocity", true ) );
 
 	vars.push_back( new managed_vec( g.m_offsets->m_player.m_punch_angle, 0.031250, "m_viewPunchAngle", true ) );

@@ -446,8 +446,8 @@ void render_t::Rounded( int x, int y, int w, int h, int iSmooth, color Color ) {
 	for ( int i = 0; i < 4; i++ ) {
 		std::vector< render_t::vertex_t > verts = { {float(pt[ i ].x) , float( pt[ i ].y ), 0, 1, Color} };
 		for ( float k = fDegree; k <= fDegree + 90.f; k += 1 ) {
-			float new_x = pt[ i ].x + ( cos( k * ( M_PI / 180. ) ) * iSmooth );
-			float new_y = pt[ i ].y + ( sin( k * ( M_PI / 180. ) ) * iSmooth );
+			float new_x = pt[ i ].x + round( cos( k * ( M_PI / 180. ) ) * iSmooth );
+			float new_y = pt[ i ].y + round( sin( k * ( M_PI / 180. ) ) * iSmooth );
 			verts.push_back( { new_x , new_y, 0, 1, Color } );
 		}
 		render_trianglefan( verts.data( ), verts.size( ) - 2 );

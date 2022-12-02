@@ -280,8 +280,6 @@ void c_g::UpdateInformation( ) {
 	float flVelToRightDot = m_vecVelocityNormalizedNonZero.dot(vecRight);
 	float flVelToForwardDot = m_vecVelocityNormalizedNonZero.dot(vecForward);
 
-	// We're interested in if the player's desired direction (indicated by their held buttons) is opposite their current velocity.
-	// This indicates a strafing direction change in progress.
 	//bool bPreviouslyOnLadder = state->m_bOnLadder;
 	//bool m_bOnLadder = !m_local->m_ground_entity( ) && m_local->move_type( ) == MoveType_t::MOVETYPE_LADDER;
 	//bool bStartedLadderingThisFrame = ( !bPreviouslyOnLadder && m_bOnLadder );
@@ -292,6 +290,9 @@ void c_g::UpdateInformation( ) {
 	//		m_local->anim_overlay()[ ]( ANIMATION_LAYER_MOVEMENT_LAND_OR_CLIMB, SelectSequenceFromActMods( ACT_CSGO_CLIMB_LADDER ) );
 	//	}
 	//}
+	
+	// We're interested in if the player's desired direction (indicated by their held buttons) is opposite their current velocity.
+	// This indicates a strafing direction change in progress.
 	bool bStrafeRight = (m_flSpeedAsPortionOfWalkTopSpeed >= 0.73f && moveRight && !moveLeft && flVelToRightDot < -0.63f);
 	bool bStrafeLeft = (m_flSpeedAsPortionOfWalkTopSpeed >= 0.73f && moveLeft && !moveRight && flVelToRightDot > 0.63f);
 	bool bStrafeForward = (m_flSpeedAsPortionOfWalkTopSpeed >= 0.65f && moveForward && !moveBackward && flVelToForwardDot < -0.55f);

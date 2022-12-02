@@ -12,6 +12,7 @@ bool penetration::IsBreakable( entity_t *ent ) {
     char *takedmg, old_takedmg;
 
     static auto IsBreakableEntity = ( IsBreakableEntity_t )util::find( "client.dll", "55 8B EC 51 56 8B F1 85 F6 74 68 83 BE" );
+
     static size_t m_takedamage_offset{ *( size_t * )( ( uintptr_t )IsBreakableEntity + 38 ) };
 
     // skip null ents and the world ent.
@@ -302,7 +303,6 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
     damage = static_cast< float >(weapon_info->m_damage);
     penetration = weapon_info->m_penetration;
     float flCurrentDistance = 0.f;
-    float flDistance = 0.f;
     // used later in calculations.
     penetration_mod = fmaxf( 0.f, ( 3.f / penetration ) * 1.25f );
 
@@ -313,9 +313,6 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
     auto *studio_model = g.m_interfaces->model_info( )->get_studio_model( in->m_target->model( ) );
     if ( !studio_model )
         return false;
-
-    auto &cache = in->m_target->bone_cache( );
-    auto *hitbox_set = studio_model->hitbox_set( in->m_target->hitbox_set( ) );
 
     float flTraceDistance = 0;
 

@@ -780,14 +780,11 @@ int resolver::miss_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& st
 	auto fake_index = 0;
 	auto any_true = false;
 
-	for ( auto i1 = 0; i1 < move_data->m_dir_data.size(); i1++ ) {
+	for ( size_t i1 = 0; i1 < move_data->m_dir_data.size(); i1++ ) {
 		auto& dir_data = move_data->m_dir_data[ i1 ];
 		if ( i1 == move_data->m_index ) {
 			if ( dir_data.dir_enabled )
 				any_true = true;
-			else {
-				new_possible.push_back( i1 );
-			}
 		}
 		else {
 			auto hit_type = check_hit( pen_in, data, record->m_fake_bones[ fake_index ] );
@@ -849,7 +846,7 @@ int resolver::hit_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& sta
 	pen_in.m_pos = end;
 	pen_in.m_start = start;
 
-	for ( auto i2 = 0; i2 < move_data->m_dir_data.size( ); i2++ ) {
+	for ( size_t i2 = 0; i2 < move_data->m_dir_data.size( ); i2++ ) {
 		auto& dir_data = move_data->m_dir_data[ i2 ];
 		auto hit_type = check_hit( pen_in, data, record->m_fake_bones[ fake_index ] );
 		if ( hit_type != trace_ret::hit ) {

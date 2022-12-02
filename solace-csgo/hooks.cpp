@@ -750,6 +750,8 @@ hooks_t::hooks_t( ) {
 	g.m_interfaces->client( ).hook( )->add( frame_stage_notify, 36 );
 	g.m_interfaces->client( ).hook( )->add( LevelInitPostEntity, 6 );
 	oLockCursor = (lock_cursor_t)g.m_interfaces->surface( ).hook( )->add( LockCursor, 67 );
+	g.m_interfaces->client( ).hook( )->add( LevelInitPostEntity, 6 ); 
+	g.m_interfaces->surface( ).hook( )->add( LockCursor, 67 );
 	//g.m_interfaces->viewrender( ).hook( )->add( static_cast< void * >( RenderSmokeOverlay ), 40 );
 	
 	g.m_interfaces->client_mode( ).hook( )->add( create_move, 24 );
