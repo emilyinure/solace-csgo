@@ -233,7 +233,7 @@ void penetration::ClipTraceToPlayer( vec3_t &start, const vec3_t &end, uint32_t 
     // set some local vars.
     pos = player->origin( ) + ( ( player->mins( ) + player->maxs( ) ) * 0.5f );
     to = pos - start;
-    dir = start - end;
+    dir = end - start;
     len = dir.length( );
     dir /= len;
     range_along = dir.dot( to );
@@ -252,7 +252,7 @@ void penetration::ClipTraceToPlayer( vec3_t &start, const vec3_t &end, uint32_t 
         range = ( pos - on_ray ).length( );
     }
 
-    if ( /*min <= range &&*/ range <= 60.f ) {
+    if ( range >= 0.f && range <= 60.f ) {
         // clip to player.
         g.m_interfaces->trace(  )->clip_ray_to_entity( ray_t( start, end ), mask, player, &new_trace );
 

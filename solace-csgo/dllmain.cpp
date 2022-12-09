@@ -1,10 +1,20 @@
 #include "aimbot.h"
 #include "sdk.h"
+#include "hooks.h"
 
 
 unsigned long _stdcall initialize ( void *instance ) {
 	while ( !GetModuleHandleA( "serverbrowser.dll" ) )
 		Sleep( 200 );
+
+	interfaces_t m_interfaces;
+	g.m_interfaces = &m_interfaces;
+	offsets_t m_offsets;
+	g.m_offsets = &m_offsets;
+	hooks_t m_hooks;
+	g.m_hooks = &m_hooks;
+	render_t m_render;
+	g.m_render = &m_render;
 
 	try {
 		g.init_cheat( );

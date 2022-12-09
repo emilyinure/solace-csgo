@@ -294,23 +294,23 @@ float resolver::get_freestand_yaw( player_t *target ) const {
 	return best_rotation;
 }
 
-void resolver::ResolveStand( ent_info_t *data, std::shared_ptr<player_record_t> record ) const {
+void resolver::ResolveStand( ent_info_t* data, std::shared_ptr<player_record_t> record ) const {
 	// get predicted away angle for the player.
 	auto away = GetAwayAngle( record );
 
 	// pointer for easy access.
-	auto *move = &data->m_walk_record;
+	auto* move = &data->m_walk_record;
 	data->m_resolver_data.m_moved = false;
 
 	// we have a valid moving record.
-	if (data->m_manual_update && !record->m_ukn_vel)
-	{
+	if ( data->m_manual_update && !record->m_ukn_vel ) {
 		record->m_mode = Modes::RESOLVE_BODY;
 		record->m_base_angle = record->m_body;
 		record->m_eye_angles.y = record->m_body;
 		record->m_body_reliable = true;
 		return;
 	}
+
 	if ( move->m_sim_time > 0.f ) {
 		const auto delta = move->m_origin - record->m_origin;
 
@@ -319,28 +319,30 @@ void resolver::ResolveStand( ent_info_t *data, std::shared_ptr<player_record_t> 
 			// indicate that we are using the moving lby.
 			data->m_resolver_data.m_moved = true;
 		}
-		
-		if (record->m_ukn_vel) 
-			data->m_resolver_data.m_body_update_time = -1;
+	}
 
-		if ( data->m_resolver_data.m_body_update_time > 0 && record->m_anim_time >= data->m_resolver_data.m_body_update_time && !record->m_ukn_vel ) {
-			// only shoot the LBY flick 3 times.
-			// if we happen to miss then we most likely mispredicted.
-			if ( data->m_resolver_data.m_mode_data[resolver_data::LBY_MOVING].m_index <= 2 ) {
-				// set angles to current LBY.
-				record->m_eye_angles.y = record->m_body;
+	if ( record->m_ukn_vel )
+		data->m_resolver_data.m_body_update_time = -1;
 
-				// predict next body update.
-				data->m_resolver_data.m_body_update_time = record->m_anim_time + 1.1f;
+	if ( data->m_resolver_data.m_body_update_time > 0 && record->m_anim_time >= data->m_resolver_data.m_body_update_time ) {
+		// only shoot the LBY flick 3 times.
+		// if we happen to miss then we most likely mispredicted.
+		if ( data->m_resolver_data.m_mode_data[ resolver_data::LBY_MOVING ].m_index <= 2 ) {
+			// set angles to current LBY.
+			record->m_eye_angles.y = record->m_body;
 
-				// set the resolve mode.
-				record->m_mode = Modes::RESOLVE_BODY;
-				record->m_base_angle = record->m_body;
+			// predict next body update.
+			data->m_resolver_data.m_body_update_time = record->m_anim_time + 1.1f;
 
-				return;
-			}
+			// set the resolve mode.
+			record->m_mode = Modes::RESOLVE_BODY;
+			record->m_base_angle = record->m_body;
+
+			return;
 		}
 	}
+
+
 	if ( data->m_resolver_data.m_moved ) {
 		const auto delta = record->m_anim_time - move->m_anim_time;
 

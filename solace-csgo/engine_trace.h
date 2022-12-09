@@ -113,7 +113,12 @@ class player_t;
 #define MASK_NPCWORLDSTATIC		(CONTENTS_SOLID|CONTENTS_WINDOW|CONTENTS_MONSTERCLIP|CONTENTS_GRATE) 					/**< just the world, used for route rebuilding */
 #define MASK_SPLITAREAPORTAL	(CONTENTS_WATER|CONTENTS_SLIME) 									/**< These are things that can split areaportals */
 
-class IHandleEntity;
+class IHandleEntity {
+public:
+	virtual ~IHandleEntity( ) {}
+	virtual void SetRefEHandle( const int& handle ) = 0;
+	virtual const int& GetRefEHandle( ) const = 0;
+};
 
 struct ray_t {
 	vec_aligned_t m_start; // starting point, centered within the extents

@@ -34,6 +34,8 @@ namespace math {
 	float minimum_distance( vec3_t v, vec3_t w, vec3_t p );
 	float normalize_angle( float ang, float max );
 
+	float AngleDiff( float destAngle, float srcAngle );
+
 	void sin_cos ( float r, float *s, float *c );
 
 	vec3_t get_closest_on_line ( vec3_t start, vec3_t end, vec3_t target );

@@ -2,7 +2,7 @@
 class anim_state;
 class c_client_class;
 #include "weapon_info.h"
-
+#include "animstate.h"
 
 class networkable_t {
 public:
@@ -114,23 +114,6 @@ enum item_definition_indexes {
 
 class CStudioHdr;
 class entity_t;
-class animation_layer_t {
-public:
-	float   m_anim_time;			// 0x0000
-	float   m_fade_out_time;		// 0x0004
-	CStudioHdr *m_pDispatchedStudioHdr;				// 0x0008
-	int     m_nDispatchedSrc;				// 0x000C
-	int     m_nDispatchedDst;				// 0x0010
-	int     m_order;				// 0x0014
-	int     m_sequence;				// 0x0018
-	float   m_prev_cycle;			// 0x001C
-	float   m_weight;				// 0x0020
-	float   m_weight_delta_rate;	// 0x0024
-	float   m_playback_rate;		// 0x0028
-	float   m_cycle;				// 0x002C
-	entity_t *m_owner;				// 0x0030
-	int     m_bits;					// 0x0034
-}; // size: 0x0038
 
 class bone_accessor_t {
 public:

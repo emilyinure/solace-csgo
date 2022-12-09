@@ -177,6 +177,21 @@ float math::normalize_angle( float ang, float max ) {
 	return ang;
 }
 
+float math::AngleDiff( float destAngle, float srcAngle ) {
+	float delta;
+
+	delta = fmodf( destAngle - srcAngle, 360.0f );
+	if ( destAngle > srcAngle ) {
+		if ( delta >= 180 )
+			delta -= 360;
+	}
+	else {
+		if ( delta <= -180 )
+			delta += 360;
+	}
+	return delta;
+}
+
 void math::sin_cos ( float r, float *s, float *c ) {
 	*s = std::sin( r );
 	*c = std::cos( r );

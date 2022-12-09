@@ -37,6 +37,8 @@ struct player_record_t {
 	float m_old_sim_time = 0.0f;
 	float m_anim_time = 0.0f;
 	float m_cycle = 0.f;
+	float feet_cycle = 0.f;
+	float feet_yaw_rate = 0.f;
 	int m_sequence = 0;
 	animation_layer_t m_layers[ 15 ]{};
 	vec3_t           m_origin, m_abs_origin;

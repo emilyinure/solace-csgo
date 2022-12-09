@@ -26,9 +26,9 @@ public:
 		return m_nGrowSize < 0;
 	}
 
+	int m_nAllocationCount;
 protected:
 	T *m_pMemory;
-	int m_nAllocationCount;
 	int m_nGrowSize;
 };
 
@@ -78,27 +78,27 @@ public:
 		m_Size = 0;
 	}
 
-	__forceinline int AddToTail( ) {
-		return InsertBefore( m_Size );
-	}
+	//__forceinline int AddToTail( ) {
+	//	return InsertBefore( m_Size );
+	//}
 
-	__forceinline int InsertBefore( int elem ) {
-		GrowVector( );
-		ShiftElementsRight( elem );
-		Construct( &Element( elem ) );
+	//__forceinline int InsertBefore( int elem ) {
+	//	GrowVector( );
+	//	ShiftElementsRight( elem );
+	//	Construct( &Element( elem ) );
+	//
+	//	return elem;
+	//}
 
-		return elem;
-	}
+	//__forceinline void GrowVector( int num = 1 ) {
+	//	if ( m_Size + num > m_Memory.m_nAllocationCount )
+	//		m_Memory.Grow( m_Size + num - m_Memory.m_nAllocationCount );
+	//
+	//	m_Size += num;
+	//	ResetDbgInfo( );
+	//}
 
 protected:
-	__forceinline void GrowVector( int num = 1 ) {
-		if ( m_Size + num > m_Memory.NumAllocated( ) )
-			m_Memory.Grow( m_Size + num - m_Memory.NumAllocated( ) );
-
-		m_Size += num;
-		ResetDbgInfo( );
-	}
-
 	__forceinline void ShiftElementsRight( int elem, int num = 1 ) {
 		const int numToMove = m_Size - elem - num;
 		if ( ( numToMove > 0 ) && ( num > 0 ) )

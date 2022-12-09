@@ -114,6 +114,8 @@ player_record_t::player_record_t (ent_info_t * info, float last_sim ) {
 	m_tick = g.m_interfaces->client_state(  )->m_server_tick;
 	m_ent->GetAnimLayers( m_layers );
 	g.m_interfaces->mdlcache( )->begin_lock( );
+	feet_cycle = m_layers[ 6 ].m_cycle;
+	feet_yaw_rate = m_layers[ 6 ].m_weight;
 	{
 		auto hdr = m_ent->GetModelPtr( );
 		for ( int i = 0; i < 15; i++ ) {
@@ -604,9 +606,27 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 			if (speed < 20.f
 				&& record->m_layers[6].m_weight != 1.0f
 				&& record->m_layers[6].m_weight != 0.0f
-				&& fabsf(record->m_layers[6].m_weight - m_records[1]->m_layers[6].m_weight) > 0.01f
+				&& record->m_layers[6].m_weight != m_records[1]->m_layers[6].m_weight
 				&& (record->m_flags & fl_onground))
 				record->m_ukn_vel = true;
+			//auto weapon = ( weapon_t* )g.m_interfaces->entity_list( )->get_client_entity_handle( record->m_ent->active_weapon( ) );
+			//auto max_speed = 260.f;
+			//if ( weapon ) {
+			//	auto data = g.m_interfaces->weapon_system( )->get_weapon_data( weapon->item_definition_index( ) );
+			//	if ( data )
+			//		max_speed = fmaxf( data->m_max_player_speed, 0.001f );
+			//}
+			//float temp = ( max_speed * 0.52f );
+			//if ( temp > 0.f ) {
+			//	float walk_speed = 1.1f / temp;
+			//	float max_dist = ( 1.f - ( 2.f * g.ticks_to_time( record->m_lag ) ) ) - walk_speed;
+			//	if ( speed < 40.f
+			//		&& record->m_layers[ 6 ].m_weight != 1.0f
+			//		&& record->m_layers[ 6 ].m_weight != 0.0f
+			//		&& fabsf( record->m_layers[ 6 ].m_weight - walk_speed ) > max_dist
+			//		&& ( record->m_flags & fl_onground ) )
+			//		record->m_ukn_vel = true;
+			//}
 			if( record->m_ukn_vel )
 				record->m_anim_velocity = vec3_t(0, 0, 0);
 			// get pointer to previous record.
@@ -682,7 +702,7 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 		const auto frametime = g.m_interfaces->globals( )->m_frametime;
 
 		g.m_interfaces->globals( )->m_curtime = record->m_anim_time;
-		g.m_interfaces->globals( )->m_frametime = g.m_interfaces->globals( )->m_curtime;
+		g.m_interfaces->globals( )->m_frametime = g.m_interfaces->globals( )->m_interval_per_tick;
 
 		if ( !m_teamate ) {
 			state->feetYawRate = 0.f;
@@ -717,6 +737,18 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 
 					if ( state->m_frame >= g.m_interfaces->globals( )->m_framecount )
 						state->m_frame = g.m_interfaces->globals( )->m_framecount - 1;
+					if ( m_records.size( ) >= 2 && m_records[ 1 ] ) {
+						state->feetYawRate = m_records[ 1 ]->feet_yaw_rate;
+						state->feetCycle = m_records[ 1 ]->feet_cycle;
+
+						m_ent->SetAnimLayers( m_records[ 1 ]->m_layers );
+					}
+					else {
+						state->feetYawRate = record->feet_yaw_rate;
+						state->feetCycle = record->feet_cycle;
+
+						m_ent->SetAnimLayers( record->m_layers );
+					}
 
 					m_ent->update_client_side_animation( );
 
@@ -742,6 +774,18 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 				m_ent->eye_angles( ) = record->m_eye_angles;
 				if ( state->m_frame >= g.m_interfaces->globals( )->m_framecount )
 					state->m_frame = g.m_interfaces->globals( )->m_framecount - 1;
+				if ( m_records.size( ) >= 2 && m_records[ 1 ] ) {
+					state->feetYawRate = m_records[ 1 ]->feet_yaw_rate;
+					state->feetCycle = m_records[ 1 ]->feet_cycle;
+
+					m_ent->SetAnimLayers( m_records[ 1 ]->m_layers );
+				}
+				else {
+					state->feetYawRate = record->feet_yaw_rate;
+					state->feetCycle = record->feet_cycle;
+
+					m_ent->SetAnimLayers( record->m_layers );
+				}
 
 				m_ent->update_client_side_animation( );
 				record->m_abs_angles = m_ent->abs_angles( );
@@ -755,6 +799,18 @@ void ent_info_t::UpdateAnimations( std::shared_ptr<player_record_t> record ) {
 			if ( state->m_frame >= g.m_interfaces->globals( )->m_framecount )
 				state->m_frame = g.m_interfaces->globals( )->m_framecount - 1;
 
+			if ( m_records.size( ) >= 2 && m_records[ 1 ] ) {
+				state->feetYawRate = m_records[ 1 ]->feet_yaw_rate;
+				state->feetCycle = m_records[ 1 ]->feet_cycle;
+
+				m_ent->SetAnimLayers( m_records[ 1 ]->m_layers );
+			}
+			else {
+				state->feetYawRate = record->feet_yaw_rate;
+				state->feetCycle = record->feet_cycle;
+
+				m_ent->SetAnimLayers( record->m_layers );
+			}
 
 			m_ent->update_client_side_animation( );
 			record->m_abs_angles = m_ent->abs_angles( );

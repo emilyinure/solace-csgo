@@ -53,6 +53,7 @@ auto render_t::setup( IDirect3DDevice9 *device ) -> void {
 		this->device_->GetViewport( &this->screen_size_ );
 					} );
 }
+
 auto render_t::text( font_t &font, float x, float y, color col, const char *text, const int centered ) -> void {
 	RECT rect = { 0, 0, 0, 0 };
 
@@ -109,120 +110,15 @@ auto render_t::text( font_t &font, float x, float y, color col, const char *text
 
 	if ( centered & Horizontal )
 		x -= text_size / 2.f;
+
 	text_size = get_text_height( text, font );
+
 	if ( centered & Vertical )
 		y -= text_size / 2.f;
 
 	draw_text( rect, col, x, y );
 }
-bool render_t::draw_rounded_box( int x, int y, int width, int height, int precision, int offset_x, int offset_y, color col ) const {
 
-	vertex_t *m_pVertexBuffer = nullptr;
-	const auto m_PrimCount = 0;
-
-	if ( !width || !height ) {
-		return false;
-	}
-
-	if ( width < offset_x * 2 ) {
-		offset_x = 0;
-		offset_y = 0;
-		precision = 0;
-	}
-
-	if ( height < offset_y * 2 ) {
-		offset_x = 0;
-		offset_y = 0;
-		precision = 0;
-	}
-
-	if ( precision && ( offset_x == 0 || offset_y == 0 ) ) {
-		precision = 0;
-	} else if ( ( offset_x && offset_y ) && precision < 1 ) {
-		offset_x = 0;
-		offset_y = 0;
-	}
-
-	//first part
-	auto f_offsetX = static_cast< float >( offset_x );
-	auto f_offsetY = static_cast< float >( offset_y );
-	auto f_width = static_cast< float >( width );
-	auto f_height = static_cast< float >( height );
-	auto f_x = static_cast< float >( x );
-	auto f_y = static_cast< float >( y );
-	vertex_t vertices[ 18 ] = {
-	{ static_cast< float >(x),                        static_cast< float >(y + height - offset_y),    0.0f, 1.0f, col },
-	{ static_cast< float >(x),                        static_cast< float >(y + offset_y),            0.0f, 1.0f, col },
-	{ static_cast< float >(x + offset_x),            static_cast< float >(y + height - offset_y),    0.0f, 1.0f, col },
-	{ static_cast< float >(x + offset_x),            static_cast< float >(y + offset_y),            0.0f, 1.0f, col },
-	{ static_cast< float >(x + width - offset_x),    static_cast< float >(y + offset_y),            0.0f, 1.0f, col },
-	{ static_cast< float >(x + offset_x),            static_cast< float >(y),                        0.0f, 1.0f, col },
-	{ static_cast< float >(x + width - offset_x),    static_cast< float >(y),                        0.0f, 1.0f, col },
-
-
-	{ static_cast< float >(x + width - offset_x),    static_cast< float >(y),                        0.0f, 1.0f, col },
-	{ static_cast< float >(x + width - offset_x),    static_cast< float >(y + offset_y),            0.0f, 1.0f, col },
-	{ static_cast< float >(x + width - offset_x),    static_cast< float >(y + offset_y),            0.0f, 1.0f, col },
-	 { static_cast< float >(x + width),                static_cast< float >(y + offset_y),            0.0f, 1.0f, col },
-
-
-	 { static_cast< float >(x + width),                static_cast< float >(y + offset_y),            0.0f, 1.0f, col },
-	 { static_cast< float >(x + width),                static_cast< float >(y + height - offset_y),    0.0f, 1.0f, col },
-	 { static_cast< float >(x + width - offset_x),    static_cast< float >(y + offset_y),            0.0f, 1.0f, col },
-	 { static_cast< float >(x + width - offset_x),    static_cast< float >(y + height - offset_y),    0.0f, 1.0f, col },
-	 { static_cast< float >(x + offset_x),            static_cast< float >(y + height - offset_y),    0.0f, 1.0f, col },
-	 { static_cast< float >(x + width - offset_x),    static_cast< float >(y + height),            0.0f, 1.0f, col },
-	 { static_cast< float >(x + offset_x),            static_cast< float >(y + height),            0.0f, 1.0f, col }
-	};
-
-	if ( precision ) {
-		++precision;
-
-		//m_PrimCount = precision;
-		//
-		//const int vertex_count = m_PrimCount + 2;
-		//m_pVertexBuffer = new vertex_t[ static_cast< size_t >(vertex_count) * 4 ]( );
-		//
-		//const vertex_t &v0 = m_pVertexBuffer[ vertex_count * 0 ] = { f_x + f_width - f_offsetX,    f_y + f_offsetY,            0.0f, 1.0f, col };
-		//const vertex_t &v1 = m_pVertexBuffer[ vertex_count * 1 ] = { f_x + f_offsetX,            f_y + f_offsetY,            0.0f, 1.0f, col };
-		//const vertex_t &v2 = m_pVertexBuffer[ vertex_count * 2 ] = { f_x + f_offsetX,            f_y + f_height - f_offsetY,    0.0f, 1.0f, col };
-		//const vertex_t &v3 = m_pVertexBuffer[ vertex_count * 3 ] = { f_x + f_width - f_offsetX,    f_y + f_height - f_offsetY,    0.0f, 1.0f, col };
-		//
-		//float inc = (M_PI_F / 2) / static_cast< float >( m_PrimCount - 1 );
-		//float ang = 0;
-		//for ( int i = 0; i <= m_PrimCount; ++i ) {
-		//	float d_x = cosf( ang ) * f_offsetX;
-		//	float d_y = sinf( ang ) * f_offsetY;
-		//
-		//	m_pVertexBuffer[ vertex_count * 0 + i + 1 ] = { v0.x + d_x, v0.y - d_y, 0.0f, 1.0f, col };
-		//	m_pVertexBuffer[ vertex_count * 1 + i + 1 ] = { v1.x - d_x, v1.y - d_y, 0.0f, 1.0f, col };
-		//	m_pVertexBuffer[ vertex_count * 2 + i + 1 ] = { v2.x - d_x, v2.y + d_y, 0.0f, 1.0f, col };
-		//	m_pVertexBuffer[ vertex_count * 3 + i + 1 ] = { v3.x + d_x, v3.y + d_y, 0.0f, 1.0f, col };
-		//	ang += inc;
-		//}
-	}
-
-	if ( !device_ ) {
-		return false;
-	}
-
-	this->device_->SetFVF( D3DFVF_XYZRHW | D3DFVF_DIFFUSE );
-	auto hr = device_->DrawPrimitiveUP( D3DPT_TRIANGLESTRIP, 16, vertices, sizeof( vertex_t ) );
-	if ( FAILED( hr ) ) {
-		return false;
-	}
-
-	if ( m_pVertexBuffer ) {
-		for ( auto i = 0; i < 4; ++i ) {
-			hr = device_->DrawPrimitiveUP( D3DPT_TRIANGLEFAN, m_PrimCount, m_pVertexBuffer + ( m_PrimCount + 2 ) * i, sizeof( vertex_t ) );
-			if ( FAILED( hr ) ) {
-				return false;
-			}
-		}
-	}
-
-	return ( SUCCEEDED( hr ) );
-}
 void render_t::DrawLine( long Xa, long Ya, long Xb, long Yb, DWORD dwWidth, color Color ) {
 }
 auto render_t::render_triangle( vertex_t* vert, int count ) const -> void {

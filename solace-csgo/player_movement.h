@@ -44,7 +44,7 @@ public:
 	bool    game_code_moved_player : 1;
 	int     player_handle;
 	int     impulse_command;
-	vec3_t	view_angles;
+	ang_t	view_angles;
 	vec3_t	abs_view_angles;
 	int     buttons;
 	int     old_buttons;
@@ -102,8 +102,7 @@ public:
 public:
 
 	void SuppressHostEvents(void* player) {
-		return;
-		static auto addr = *address(util::find("client.dll", "A1 ? ? ? ? 0F 94 C1 85 C0")).as< DWORD* >(1);
+		static auto addr = **address(util::find("client.dll", "A1 ? ? ? ? 0F 94 C1 85 C0")).as< DWORD** >(1);
 		auto next = addr;
 		while (next)
 		{
@@ -111,7 +110,7 @@ public:
 			*(DWORD*)(next + 8) = player != nullptr;
 			if (*(DWORD*)(next + 16) > 0)
 				*(DWORD*)(next + 16) = 0;
-			next = *(DWORD*)(addr + 4);
+			next = *(DWORD*)( next + 4);
 		}
 	}
 

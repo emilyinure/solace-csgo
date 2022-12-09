@@ -20,15 +20,43 @@
 #include <cassert>
 
 void c_g::init_cheat( ) {
-	m_interfaces = new interfaces_t( );
-	m_render = new render_t( );
-	m_offsets = new offsets_t( );
-	m_hooks = new hooks_t( );
 	random_seed = reinterpret_cast< random_seed_t >( GetProcAddress( GetModuleHandleA( "vstdlib.dll" ), "RandomSeed" ) );
 	random_int = reinterpret_cast< random_int_t >( GetProcAddress( GetModuleHandleA( "vstdlib.dll" ), "RandomInt" ) );
 	random_float = reinterpret_cast< random_float_t >( GetProcAddress( GetModuleHandleA( "vstdlib.dll" ), "RandomFloat" ) );
 	events::init( );
 	menu.init( );
+}
+
+void c_g::ModifyEyePosition( anim_state* state, matrix_t* mat, vec3_t* pos ) {
+	//  if ( *(this + 0x50) && (*(this + 0x100) || *(this + 0x94) != 0.0 || !sub_102C9480(*(this + 0x50))) )
+	state->m_bSmoothHeightValid = false;
+	if ( state->m_player &&
+		( state->m_land || state->m_player->duck_amount( ) != 0.f || !state->m_player->m_ground_entity( ) ) ) {
+		const auto v5 = 8;
+
+		if constexpr ( v5 != -1 ) {
+			const vec3_t head_pos(
+				mat[ 8 ][ 0 ][ 3 ],
+				mat[ 8 ][ 1 ][ 3 ],
+				mat[ 8 ][ 2 ][ 3 ] );
+
+			const auto v12 = head_pos;
+			const float v7 = v12.z + 1.7;
+
+			const auto v8 = pos->z;
+			if ( v8 > v7 ) // if (v8 > (v12 + 1.7))
+			{
+				auto v13 = 0.f;
+				const auto v3 = pos->z - v7;
+
+				const float v4 = ( v3 - 4.f ) * 0.16666667;
+				if ( v4 >= 0.f )
+					v13 = std::fminf( v4, 1.f );
+
+				pos->z = static_cast< float >( ( ( v7 - ( *pos ).z ) ) * ( ( static_cast< double >( v13 ) * v13 * 3.0 ) - ( static_cast< double >( v13 ) * v13 * 2.0 * v13 ) ) ) + ( *pos ).z;
+			}
+		}
+	}
 }
 
 void c_g::release ( ) const {
@@ -38,9 +66,6 @@ void c_g::release ( ) const {
 		g.m_interfaces->mem_alloc( )->free( m_pPostPred );
 	}
 	events::destroy( );
-	delete m_hooks;
-	delete m_offsets;
-	delete m_interfaces;
 }
 
 void c_g::on_render ( IDirect3DDevice9 *device ) {
@@ -74,8 +99,8 @@ void c_g::on_render ( IDirect3DDevice9 *device ) {
 	m_render->finish( );
 }
 
-void c_g::on_tick( cmd_t *cmd ) {
-	m_local = static_cast< player_t * >( m_interfaces->entity_list( )->get_client_entity( m_interfaces->engine( )->local_player_index( ) ) );
+void c_g::on_tick( cmd_t* cmd ) {
+	m_local = static_cast< player_t* >( m_interfaces->entity_list( )->get_client_entity( m_interfaces->engine( )->local_player_index( ) ) );
 
 	if ( !cmd || !cmd->m_command_number )
 		return;
@@ -88,7 +113,7 @@ void c_g::on_tick( cmd_t *cmd ) {
 		m_cmd->m_buttons &= ~IN_ATTACK2;
 	}
 
-	auto *nci = g.m_interfaces->engine( )->get_net_channel_info( );
+	auto* nci = g.m_interfaces->engine( )->get_net_channel_info( );
 	if ( nci )
 		m_latency = nci->GetLatency( 0 );
 
@@ -122,36 +147,38 @@ void c_g::on_tick( cmd_t *cmd ) {
 
 	if ( m_local && m_local->alive( ) ) {
 		prediction::update( );
-		
+
 		m_running_client = true;
 		m_flags = m_local->flags( );
 		m_onground = ( m_flags & fl_onground );
-	} else {
+	}
+	else {
 		m_running_client = false;
 		return;
 	}
-	
+
 	//if ( m_local ) {
 	//	CPredictionCopy CopyHelper( PC_EVERYTHING, m_pStartData, PC_DATA_PACKED, m_local, PC_DATA_NORMAL );
 	//	memcpy( m_pEndData, m_pStartData, sz );
 	//}
 
 	m_last_lag = m_lag;
-	m_lag = g.m_interfaces->client_state()->m_choked_commands;
-	
+	m_lag = g.m_interfaces->client_state( )->m_choked_commands;
+
 	//cmd->m_buttons |= IN_BULLRUSH; // allow unlimited ducking
 
 	g_block_bot.on_tick( );   //run all of our movement changing code before prediction
 	g_movement.auto_strafe( );
 	g_movement.DoPrespeed( );
-	g_movement.edge_bug();
+	//g_movement.edge_bug( );
 	g_movement.bhop( );
 	g_hvh.fake_walk( );
 	g_movement.auto_peek( );
 	g_movement.PreciseMove( );
-	g_hvh.SendPacket();
-	g_hvh.break_resolver();
+	g_hvh.SendPacket( );
+	g_hvh.break_resolver( );
 	g_movement.QuickStop( );
+
 
 	if ( start_move( m_cmd ) ) {
 		g_aimbot.on_tick( );
@@ -165,7 +192,7 @@ void c_g::on_tick( cmd_t *cmd ) {
 
 		if ( g.m_shift )
 			*g.m_packet = false;
-		
+
 		m_cmd->m_viewangles.y = math::normalize_angle( m_cmd->m_viewangles.y, 180.f );   //clamp view to bounds, avoid kicks etc
 		m_cmd->m_viewangles.x = std::clamp<float>( m_cmd->m_viewangles.x, -89.f, 89.f );
 		m_cmd->m_viewangles.z = 0;
@@ -195,7 +222,7 @@ void c_g::UpdateAnimations( ) const {
 	if ( !m_local || !m_running_client )
 		return;
 
-	auto *state = m_local->get_anim_state( );
+	auto* state = m_local->get_anim_state( );
 	if ( !state )
 		return;
 
@@ -210,8 +237,35 @@ void c_g::UpdateAnimations( ) const {
 }
 
 void c_g::UpdateInformation( ) {
-	if ( g.m_lag > 0 && !(g.m_can_fire && (g.m_cmd->m_buttons & IN_ATTACK)))
+	if ( g.m_lag > 0 ) {
+		//float flPitch = ( g.m_cmd->m_viewangles.x + 90.f ) / 180.f;
+		//
+		//g.m_poses[ 12 ] = flPitch;
+		//
+		//g.m_local->SetAnimLayers( g.m_layers );
+		//g.m_local->SetPoseParameters( g.m_poses );
+		//m_local->set_abs_angles( ang_t( 0.f, g.m_abs_yaw, 0.f ) );
+		//
+		//g.m_interfaces->mdlcache( )->begin_coarse_lock( );
+		//g.m_interfaces->mdlcache( )->begin_lock( );
+		//g.m_bones_setup = g_bones.BuildBonesStripped( m_local, bone_used_by_anything, g.m_real_bones, &g.m_ipk );
+		//g.m_interfaces->mdlcache( )->end_lock( );
+		//g.m_interfaces->mdlcache( )->end_coarse_lock( );
+		//if ( g.m_bones_setup ) {
+		//	const auto abs_origin = g.m_local->origin( );
+		//	for ( auto i = 0; i < 128; i++ ) {
+		//		g.m_real_bones[ i ].mat_val[ 0 ][ 3 ] -= abs_origin.x;
+		//		g.m_real_bones[ i ].mat_val[ 1 ][ 3 ] -= abs_origin.y;
+		//		g.m_real_bones[ i ].mat_val[ 2 ][ 3 ] -= abs_origin.z;
+		//	}
+		//}
 		return;
+	}
+	auto* state = g.m_local->get_anim_state( );
+	if ( !state )
+		return;
+	if ( !g.m_real_bones )
+		g.m_real_bones = static_cast< bone_array_t* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
 	//if (!m_animstate)
 	//{
 	//	m_animstate = CreateCSGOPlayerAnimstate(g.m_local);
@@ -222,9 +276,6 @@ void c_g::UpdateInformation( ) {
 	//	// note new spawn time.
 	//	spawn_time = g.m_local->spawn_time();
 	//}
-	auto* state = g.m_local->get_anim_state();
-	if (!state)
-		return;
 	g_hvh.m_side = -g_hvh.m_side;
 	// update time.
 	m_anim_frame = g.m_interfaces->globals(  )->m_curtime - m_anim_time;
@@ -300,6 +351,11 @@ void c_g::UpdateInformation( ) {
 	*(bool*)(g.m_local + 14816) = (bStrafeRight || bStrafeLeft || bStrafeForward || bStrafeBackward);
 	g.m_hooks->players_hook( g.m_local->index( ) - 1 )->get_original< void( __thiscall * ) ( player_t * ) >( 218 )( g.m_local );
 
+	//if ( state->m_flSpeedAsPortionOfWalkTopSpeed > 0.25 )
+	//	m_activity.add_modifier( "moving" );
+	//if ( state->m_dip_cycle > 0.55000001 )
+	//	m_activity.add_modifier( "crouch" );
+
 	// store updated abs yaw.
 	m_abs_yaw = state->m_goal_feet_yaw;// *(float*)(m_animstate + 112);
 
@@ -330,6 +386,7 @@ void c_g::UpdateInformation( ) {
 	m_ground = state->m_ground;// *(bool*)(m_animstate + 248);
 
 	m_local->GetPoseParameters( m_poses );
+	m_local->GetAnimLayers( m_layers );
 
 	weapon_world_model_t* weapon_world_model = nullptr;
 	if ( g.m_weapon ) {
@@ -356,12 +413,10 @@ void c_g::UpdateInformation( ) {
 	//}
 
 	//m_animstate->update( g.m_local->eye_angles( ) );
-	if ( !g.m_real_bones )
-		g.m_real_bones = static_cast< bone_array_t * >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
 
 	g.m_interfaces->mdlcache()->begin_coarse_lock();
 	g.m_interfaces->mdlcache()->begin_lock();
-	g.m_bones_setup = g_bones.BuildBonesStripped( m_local, bone_used_by_anything, g.m_real_bones, &g.m_ipk );
+	g.m_bones_setup = g_bones.BuildBonesStripped( m_local, bone_used_by_anything & ~bone_used_by_bone_merge, g.m_real_bones, &g.m_ipk );
 	g.m_interfaces->mdlcache()->end_lock();
 	g.m_interfaces->mdlcache()->end_coarse_lock();
 	if( g.m_bones_setup ) {
@@ -607,7 +662,7 @@ void c_g::generate_shoot_position( ) {
 	}
 	m_local->get_eye_pos( &m_shoot_pos ); // get proper shoot position, we can regenerate a more accurate one where its needed
 	if ( g.m_bones_setup && bone_cache ) {
-		m_local->get_anim_state( )->ModifyEyePosition( g.m_real_bones, &m_shoot_pos );
+		g.ModifyEyePosition( g.m_local->get_anim_state(), g.m_real_bones, &m_shoot_pos );
 		for ( auto i = 0; i < 128; i++ ) {
 			g.m_real_bones[ i ].mat_val[ 0 ][ 3 ] -= abs_origin.x; // adjust bones positions back to 3d origin
 			g.m_real_bones[ i ].mat_val[ 1 ][ 3 ] -= abs_origin.y;

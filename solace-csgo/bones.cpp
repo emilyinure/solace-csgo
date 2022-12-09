@@ -156,7 +156,7 @@ bool bones_t::setup( player_t *player, bone_array_t *out, std::shared_ptr<player
 	g.m_interfaces->mdlcache( )->begin_coarse_lock( );
 	g.m_interfaces->mdlcache( )->begin_lock( );
 
-	record->m_setup = BuildBones( player, bone_used_by_anything, out, record, ipk );
+	record->m_setup = BuildBones( player, bone_used_by_anything & ~bone_used_by_bone_merge, out, record, ipk );
 
 	g.m_interfaces->mdlcache( )->end_lock( );
 	g.m_interfaces->mdlcache( )->end_coarse_lock( );
@@ -569,6 +569,12 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 	if ( !backup_matrix )
 		return false;
 
+	const auto curtime = g.m_interfaces->globals( )->m_curtime;
+	const auto frametime = g.m_interfaces->globals( )->m_frametime;
+
+	g.m_interfaces->globals( )->m_curtime = record->m_pred_time;
+	g.m_interfaces->globals( )->m_frametime = g.m_interfaces->globals( )->m_interval_per_tick;
+
 	// backup original.
 	const auto mins = target->mins( ), maxs = target->maxs( );
 	const vec3_t backup_origin = target->abs_origin( );
@@ -635,5 +641,7 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 
 	target->m_fEffects( ) = old_effects;
 	g.m_interfaces->mem_alloc(  )->free( computed );
+	g.m_interfaces->globals( )->m_curtime = curtime;
+	g.m_interfaces->globals( )->m_frametime = frametime;
 	return true;
 }

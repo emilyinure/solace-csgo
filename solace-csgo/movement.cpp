@@ -253,7 +253,7 @@ bool bCheck() // checks for edgebug
 }
 
 void movement::edge_bug() {
-	return;
+	//return;
 	auto* map = g.m_local->GetPredDescMap();
 
 	if (map) {
@@ -440,10 +440,10 @@ void movement::DoPrespeed( ) {
 	strafe = ideal;
 
 	// calculate time.
-	time = 320.f / speed;
+	time = 140.f / speed;
 
 	// clamp time.
-	time = std::clamp<float>( time, 0.35f, 2.f );
+	time = std::clamp<float>( time, 0.5f, 10.f );
 
 	// init step.
 	step = strafe;
@@ -488,7 +488,7 @@ void movement::DoPrespeed( ) {
 					// compute the angle of the normal
 					// and push us away from the object.
 					angle = RAD2DEG( std::atan2( plane.y, plane.x ) );
-					step = -math::normalize_angle( m_circle_yaw - angle, 180.f ) * 0.2f;
+					step = -math::normalize_angle( m_circle_yaw - angle, 180.f ) * 0.1f;
 				}
 			}
 		}

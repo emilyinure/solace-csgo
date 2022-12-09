@@ -1,5 +1,4 @@
-﻿#pragma once
-#include <string.h>
+﻿#include <string.h>
 
 namespace std {
 	enum class byte : unsigned char;

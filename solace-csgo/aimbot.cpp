@@ -319,38 +319,26 @@ bool aimbot_t::collides( math::custom_ray_t ray, ent_info_t *info, bone_array_t 
 	return false;
 }
 
-float AngleDiff( float destAngle, float srcAngle ) {
-	float delta;
-
-	delta = fmodf( destAngle - srcAngle, 360.0f );
-	if ( destAngle > srcAngle ) {
-		if ( delta >= 180 )
-			delta -= 360;
-	}
-	else {
-		if ( delta <= -180 )
-			delta += 360;
-	}
-	return delta;
-}
 
 bool aimbot_t::get_aim_matrix ( ang_t angle, bone_array_t *bones ) {
 	auto *state = g.m_local->get_anim_state( );
 	if ( !state )
 		return false;
-	float backup_pose = g.m_local->pose_parameters( )[ 12 ];
-	
-	angle.x = std::clamp( angle.x, -90.f, 90.f );
 
-	float flPitch = AngleDiff( angle.x, 0 );
-	if ( flPitch > 0 ) {
-		flPitch = ( flPitch / state->m_max_pitch ) * 90.f;
-	}
-	else {
-		flPitch = ( flPitch / state->m_min_pitch ) * -90.f;
-	}
+	float backup_pose[ 24 ];
+	animation_layer_t backup_layers[ 15 ];
+
+	g.m_local->GetAnimLayers( backup_layers );
+	g.m_local->GetPoseParameters( backup_pose );
+
+	g.m_local->SetAnimLayers( g.m_layers );
+	g.m_local->SetPoseParameters( g.m_poses );
+
+	float flPitch = ( angle.x + 90.f ) / 180.f;
 
 	g.m_local->pose_parameters( )[ 12 ] = flPitch;
+
+	g.m_local->set_abs_angles( ang_t( 0.f, g.m_abs_yaw, 0.f ) );
 
 	CIKContext backup_ik;
 	memcpy( &backup_ik, &g.m_ipk, sizeof( CIKContext ) );
@@ -358,13 +346,14 @@ bool aimbot_t::get_aim_matrix ( ang_t angle, bone_array_t *bones ) {
 	g.m_interfaces->mdlcache()->begin_coarse_lock();
 	g.m_interfaces->mdlcache()->begin_lock();
 	// we have setup this record bones.
-	const auto ret = g_bones.BuildBonesStripped( g.m_local, bone_used_by_hitbox, bones, &g.m_ipk );
+	const auto ret = g_bones.BuildBonesStripped( g.m_local, bone_used_by_anything & ~bone_used_by_bone_merge, bones, &g.m_ipk );
 	g.m_interfaces->mdlcache()->end_lock();
 	g.m_interfaces->mdlcache()->end_coarse_lock();
 
 	memcpy( &g.m_ipk, &backup_ik, sizeof( CIKContext ) );
 
-	g.m_local->pose_parameters( )[ 12 ] = backup_pose;
+	g.m_local->SetAnimLayers( backup_layers );
+	g.m_local->SetPoseParameters( backup_pose );
 
 	return ret;
 }

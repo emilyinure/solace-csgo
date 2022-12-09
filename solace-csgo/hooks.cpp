@@ -195,99 +195,108 @@ bool __fastcall setupbones( animating_t *anim, uint32_t edx, matrix_t *out, int 
 	
 }
 
-bool __fastcall is_player( player_t *player, uint32_t edx ) {
-	auto *vmt = g.m_hooks->players_hook( player->index( ) - 1 );
+bool __fastcall is_player( player_t* player, uint32_t edx ) {
+	auto* vmt = g.m_hooks->players_hook( player->index( ) - 1 );
 	static auto shouldskipanim = util::find( "client.dll", "84 C0 75 ? 5F C3 8B 0D ? ? ? ?" );
 	if ( g_player_manager.m_animating && _ReturnAddress( ) == shouldskipanim )
 		return false;
-	return vmt->get_original<bool( __thiscall * )( player_t * )>( 152 )( player );
+	return vmt->get_original<bool( __thiscall* )( player_t* )>( 152 )( player );
 }
 
-void __fastcall EstimateAbsVelocity( player_t *_this, uint32_t edx, vec3_t &vec ) {
-	const auto velocity = _this->abs_vel( );
-	vec.x = velocity.x;
-	vec.y = velocity.y;
-	vec.z = velocity.z;
+void __fastcall EstimateAbsVelocity(player_t *_this, uint32_t edx,
+                                    vec3_t &vec) {
+  const auto velocity = _this->abs_vel();
+  vec.x = velocity.x;
+  vec.y = velocity.y;
+  vec.z = velocity.z;
 }
-void  __fastcall AllocateIntermediateData( player_t *_this, uint32_t edx ) {
-	g.m_local = static_cast< player_t* >( g.m_interfaces->entity_list( )->get_client_entity( g.m_interfaces->engine( )->local_player_index( ) ) );
-	if ( _this != g.m_local )
-		return;
-	const auto map = g.m_local->GetPredDescMap( );
-	if ( !map )
-		return;
-	const typedescription_t type_description{ FIELD_FLOAT, "m_velocityModifier", static_cast< int >( g.m_offsets->m_player.velocity_modifier ), 1, 0x100, "", sizeof( float ), 0.00390625f };
-	const auto type_array = new typedescription_t[ map->m_num_fields + 1 ];
-	memcpy( type_array, map->m_desc, sizeof( typedescription_t ) * map->m_num_fields );
-	type_array[ map->m_num_fields ] = type_description;
-	map->m_desc = type_array;
-	map->m_pOptimizedDataMap = nullptr;
-	map->m_num_fields++;
-	map->m_packed_size = 0;
-	g.m_map_setup = CPredictionCopy::PrepareDataMap( map );
-	
-}
-void hooks_t::CustomEntityListener::OnEntityCreated ( entity_t *ent ) {
-	if ( !ent || !ent->is_player( ) )
-		return;
-	auto *vmt = g.m_hooks->players_hook( ent->index( ) - 1 );
-	if ( vmt ) {
-		vmt->reset( );
-		vmt->init( reinterpret_cast< uintptr_t >(ent) );
-		vmt->add( update_anims, 218 );
-		vmt->add( is_player, 152 );
-		vmt->add( EstimateAbsVelocity, 141 );
-	}
-	//vmt = g.m_hooks->renderables_hook( ent->index( ) - 1 );
-	//if ( vmt ) {
-	//	vmt->reset( );
-	//	vmt->init( reinterpret_cast< uintptr_t >( ent->animating(  ) ) );
-	//	//vmt->add( setupbones, 13 );
-	//}
+void __fastcall AllocateIntermediateData(player_t *_this, uint32_t edx) {
+  g.m_local = static_cast<player_t *>(g.m_interfaces->entity_list()->get_client_entity(
+          g.m_interfaces->engine()->local_player_index()));
+  if (_this != g.m_local) return;
+  const auto map = g.m_local->GetPredDescMap();
+  if (!map) return;
+  const typedescription_t type_description{
+      FIELD_FLOAT,
+      "m_velocityModifier",
+      static_cast<int>(g.m_offsets->m_player.velocity_modifier),
+      1,
+      0x100,
+      "",
+      sizeof(float),
+      0.00390625f};
+  const auto type_array = new typedescription_t[map->m_num_fields + 1];
+  memcpy(type_array, map->m_desc,
+         sizeof(typedescription_t) * map->m_num_fields);
+  type_array[map->m_num_fields] = type_description;
+  map->m_desc = type_array;
+  map->m_pOptimizedDataMap = nullptr;
+  map->m_num_fields++;
+  map->m_packed_size = 0;
+  g.m_map_setup = CPredictionCopy::PrepareDataMap(map);
 }
 
-void hooks_t::CustomEntityListener::OnEntityDeleted ( entity_t *ent ) {
-	if ( ent && ent->index( ) >= 1 && ent->index( ) <= 64 ) {
+void hooks_t::CustomEntityListener::OnEntityCreated(entity_t *ent) {
+  if (!ent || !ent->is_player()) return;
+  auto *vmt = g.m_hooks->players_hook(ent->index() - 1);
+  if (vmt) {
+    vmt->reset();
+    vmt->init(reinterpret_cast<uintptr_t>(ent));
+    vmt->add(update_anims, 218);
+    vmt->add(is_player, 152);
+    vmt->add(EstimateAbsVelocity, 141);
+  }
+  // vmt = g.m_hooks->renderables_hook( ent->index( ) - 1 );
+  // if ( vmt ) {
+  //	vmt->reset( );
+  //	vmt->init( reinterpret_cast< uintptr_t >( ent->animating(  ) ) );
+  //	//vmt->add( setupbones, 13 );
+  //}
+}
 
-
-		auto *vmt = g.m_hooks->players_hook( ent->index( ) - 1 );
-		if ( vmt ) {
-			vmt->reset( );
-		}
-	}
+void hooks_t::CustomEntityListener::OnEntityDeleted(entity_t *ent) {
+  if (ent && ent->index() >= 1 && ent->index() <= 64) {
+    auto *vmt = g.m_hooks->players_hook(ent->index() - 1);
+    if (vmt) {
+      vmt->reset();
+    }
+  }
 }
 
 
 
-void __stdcall frame_stage_notify( client_frame_stage_t stage ) {
-	if ( stage != FRAME_START )
-		g.m_stage = stage;
+void __stdcall frame_stage_notify(client_frame_stage_t stage) {
+  if (stage != FRAME_START) g.m_stage = stage;
 
-	if ( !g.m_interfaces->engine( )->is_connected( ) || !g.m_interfaces->engine( )->in_game( ) || !g.m_local )
-		return g.m_interfaces->client( ).hook( )->get_original<decltype( &frame_stage_notify )>( 36 )( stage );
+  if (!g.m_interfaces->engine()->is_connected() ||
+      !g.m_interfaces->engine()->in_game() || !g.m_local)
+    return g.m_interfaces->client()
+        .hook()
+        ->get_original<decltype(&frame_stage_notify)>(36)(stage);
 
-	if ( stage == FRAME_RENDER_START && g.m_local->alive() ) {
-		// apply local player animated angles.
-		g.SetAngles( );
+  if (stage == FRAME_RENDER_START && g.m_local->alive()) {
+    // apply local player animated angles.
+    g.SetAngles();
 
-		// apply local player animation fix.
-		g.UpdateAnimations( );
+    // apply local player animation fix.
+    g.UpdateAnimations();
 
-		if ( settings::visuals::world::wire_smoke ) {
-			static auto smoke_count = *reinterpret_cast< uintptr_t* >( util::find("client.dll", "A3 ? ? ? ? 57 8B CB") + 0x1 );
-			if ( smoke_count )
-				*reinterpret_cast< int* >( smoke_count ) = 0;
-		}
-	}
+    if (settings::visuals::world::wire_smoke) {
+      static auto smoke_count = *reinterpret_cast<uintptr_t *>(
+          util::find("client.dll", "A3 ? ? ? ? 57 8B CB") + 0x1);
+      if (smoke_count) *reinterpret_cast<int *>(smoke_count) = 0;
+    }
+  }
 
-	g.m_interfaces->client( ).hook( )->get_original<decltype( &frame_stage_notify )>( 36 )( stage );
+  g.m_interfaces->client().hook()->get_original<decltype(&frame_stage_notify)>(
+      36)(stage);
 
-	if ( stage == FRAME_NET_UPDATE_POSTDATAUPDATE_END ) {
-		g_player_manager.update( );
-	} 
-	//else if ( stage == FRAME_NET_UPDATE_START ) {
-	//	g_esp.NoSmoke( );
-	//}
+  if (stage == FRAME_NET_UPDATE_POSTDATAUPDATE_END) {
+    g_player_manager.update();
+  }
+  // else if ( stage == FRAME_NET_UPDATE_START ) {
+  //	g_esp.NoSmoke( );
+  //}
 }
 
 void __fastcall draw_model_execute( void *this_ptr, uint32_t edx, uintptr_t ctx, void *state,
@@ -421,23 +430,26 @@ int __fastcall SendDatagram( i_net_channel *this_ptr, uint32_t edx, void *data )
 	return ret;
 }
 
-void __fastcall ProcessPacket( i_net_channel *this_ptr, uint32_t edx, void *packet, bool header ) {
-	m_net_hook.get_original< ProcessPacket_t >( 41 )( this_ptr, packet, header );
-	
-	g.UpdateIncomingSequences( this_ptr );
+void __fastcall ProcessPacket(i_net_channel *this_ptr, uint32_t edx,
+                              void *packet, bool header) {
+  m_net_hook.get_original<ProcessPacket_t>(41)(this_ptr, packet, header);
 
-	// get this from CL_FireEvents string "Failed to execute event for classId" in engine.dll
-	for ( event_info_t *it{ g.m_interfaces->client_state(  )->m_events }; it != nullptr; it = it->m_next ) {
-		if ( !it->m_client_class )
-			continue;
-	
-		// set all delays to instant.
-		it->m_fire_delay = 0.f;
-	}
-	
-	// game events are actually fired in OnRenderStart which is WAY later after they are received
-	// effective delay by lerp time, now we call them right after theyre received (all receive proxies are invoked without delay).
-	g.m_interfaces->engine()->FireEvents( );
+  g.UpdateIncomingSequences(this_ptr);
+
+  // get this from CL_FireEvents string "Failed to execute event for classId" in
+  // engine.dll
+  for (event_info_t *it{g.m_interfaces->client_state()->m_events};
+       it != nullptr; it = it->m_next) {
+    if (!it->m_client_class) continue;
+
+    // set all delays to instant.
+    it->m_fire_delay = 0.f;
+  }
+
+  // game events are actually fired in OnRenderStart which is WAY later after
+  // they are received effective delay by lerp time, now we call them right
+  // after theyre received (all receive proxies are invoked without delay).
+  g.m_interfaces->engine()->FireEvents();
 }
 
 void __fastcall SetChoked( i_net_channel *this_ptr, uint32_t edx) {

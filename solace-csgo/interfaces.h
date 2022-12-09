@@ -10,23 +10,23 @@ public:
 		const char *lib = "";
 		const char *ver = "";
 		t *ptr = nullptr;
-		c_hook *m_hook;
+		c_hook m_hook;
 	public:
-		~c_base_interface( ) { if ( m_hook ) { m_hook->~c_hook(); delete m_hook; } }
+		~c_base_interface( ) { m_hook.reset( ); }
 		c_base_interface( const char *lib, const char *ver, bool hook = true ) : lib( lib ), ver( ver ) { 
 			ptr = util::capture_interface< t *>( lib, ver ); 
-			if ( hook ) m_hook = new c_hook( reinterpret_cast< uintptr_t >( ptr ) ); 
+			if ( hook ) m_hook.init( reinterpret_cast< uintptr_t >( ptr ) ); 
 		}
 		c_base_interface( void *ptr_, bool hook = true ) { 
 			ptr = static_cast< t * >( ptr_ ); 
-			if ( hook ) m_hook = new c_hook( reinterpret_cast< uintptr_t >( ptr ) ); 
+			if ( hook ) m_hook.init( reinterpret_cast< uintptr_t >( ptr ) );
 		}
 		__forceinline t *operator->( ) { return ptr; }
 		__forceinline operator t *( ) { return ptr; }
 		explicit __forceinline operator bool( ) const { return ptr; }
 		explicit __forceinline operator address( ) const { return address( ptr ); }
 		explicit __forceinline operator void *( ) const { return ptr; }
-		__forceinline c_hook *&hook( ) { return m_hook; }
+		__forceinline c_hook *hook( ) { return &m_hook; }
 	};
 protected:
 

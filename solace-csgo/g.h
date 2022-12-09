@@ -5,6 +5,7 @@
 
 #include "hvh.h"
 #include "vec3.h"
+#include "animstate.h"
 
 class cmd_t;
 class interfaces_t;
@@ -94,7 +95,8 @@ public:
 	bool  *m_packet;
 	bool  *m_final_packet;
 	bool m_shot = false;
-	float m_poses[24];
+	float m_poses[ 24 ];
+	animation_layer_t m_layers[ 15 ];
 	float m_abs_yaw = 0;
 	float m_anim_time = 0;
 	ang_t m_angle;
@@ -118,6 +120,7 @@ public:
 	int restore_choke;
 	void * m_unpred_ground;
 	bool m_ran;
+	//activity_modifiers_wrapper m_activity;
 
 	struct choked_log {
 		vec3_t shoot_pos;
@@ -137,6 +140,7 @@ public:
 
 	void  init_cheat( );
 
+	void ModifyEyePosition( anim_state* state, matrix_t* mat, vec3_t* pos );
 	void release ( ) const;
 	void on_render ( IDirect3DDevice9 *device );
 	void on_tick ( cmd_t * cmd );
