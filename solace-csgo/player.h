@@ -518,6 +518,7 @@ public:
 		return ( *( original_fn** )this )[ 429 ]( this );
 	}
 	//VFUNC( get_weapon_info( ), 446, weapon_info_t *( __thiscall * )( void * ) )
+    OFFSET( float, postpone_fire_time,  g.m_offsets->m_weapon.m_flPostponeFireReadyTime);
 	OFFSET( bool, pin_pulled, g.m_offsets->m_weapon.m_pin_pulled );
 	OFFSET( bool, smoke_effect_begin_tick, g.m_offsets->m_weapon.smoke_effect_begin_tick );
 	OFFSET( float, throw_time, g.m_offsets->m_weapon.m_throw_time );
@@ -636,8 +637,10 @@ public:
 		OFFSET( int, m_buttons_unpressed, 0x31E4 )
 		OFFSET( int, m_next_think, 0xF8 )
 		OFFSET( cmd_t *, m_cmd, 0x3314 )
-		OFFSET( cmd_t, m_cmd_ukn, 0x326C )
-		OFFSET( int, m_ground_entity, g.m_offsets->m_player.m_ground_ent );
+                OFFSET(cmd_t, m_cmd_ukn, 0x326C)
+                OFFSET(int, m_ground_entity,
+                       g.m_offsets->m_player.m_ground_ent);
+                OFFSET(float, stamina, g.m_offsets->m_player.m_stamina);
 	OFFSET( ang_t, aim_punch, g.m_offsets->m_player.m_aim_punch_angle );
 	OFFSET( ang_t, punch, g.m_offsets->m_player.m_punch_angle );
 	OFFSET( int, armor, g.m_offsets->m_player.m_armor );

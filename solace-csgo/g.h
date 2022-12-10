@@ -58,6 +58,7 @@ public:
 
 	bool m_running_client = false;
 	float spawn_time = 0;
+     
 	
 	bool m_in_pred = false;
 	ang_t m_view_angles = ang_t();

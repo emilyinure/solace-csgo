@@ -256,9 +256,6 @@
     <ClInclude Include="buy_bot.h">
       <Filter>g\features</Filter>
     </ClInclude>
-    <ClInclude Include="grenade_pred.h">
-      <Filter>g\features</Filter>
-    </ClInclude>
     <ClInclude Include="controls\column.hh">
       <Filter>helpers\render\controls</Filter>
     </ClInclude>

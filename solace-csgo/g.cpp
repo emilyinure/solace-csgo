@@ -99,106 +99,120 @@ void c_g::on_render ( IDirect3DDevice9 *device ) {
 	m_render->finish( );
 }
 
-void c_g::on_tick( cmd_t* cmd ) {
-	m_local = static_cast< player_t* >( m_interfaces->entity_list( )->get_client_entity( m_interfaces->engine( )->local_player_index( ) ) );
+void c_g::on_tick(cmd_t* cmd) {
+  m_local =
+      static_cast<player_t*>(m_interfaces->entity_list()->get_client_entity(
+          m_interfaces->engine()->local_player_index()));
 
-	if ( !cmd || !cmd->m_command_number )
-		return;
+  if (!cmd || !cmd->m_command_number) return;
 
-	m_cmd = cmd;                        //save everything we need from the engine
-	m_view_angles = cmd->m_viewangles;
+  m_cmd = cmd;  // save everything we need from the engine
+  m_view_angles = cmd->m_viewangles;
 
-	if ( menu.open ) {
-		m_cmd->m_buttons &= ~IN_ATTACK;
-		m_cmd->m_buttons &= ~IN_ATTACK2;
-	}
+  if (menu.open) {
+    m_cmd->m_buttons &= ~IN_ATTACK;
+    m_cmd->m_buttons &= ~IN_ATTACK2;
+  }
 
-	auto* nci = g.m_interfaces->engine( )->get_net_channel_info( );
-	if ( nci )
-		m_latency = nci->GetLatency( 0 );
+  auto* nci = g.m_interfaces->engine()->get_net_channel_info();
+  if (nci) m_latency = nci->GetLatency(0);
 
-	static auto* cl_updaterate = g.m_interfaces->console( )->get_convar( "cl_updaterate" );
-	static auto* sv_minupdaterate = g.m_interfaces->console( )->get_convar( "sv_minupdaterate" );
-	static auto* sv_maxupdaterate = g.m_interfaces->console( )->get_convar( "sv_maxupdaterate" );
+  static auto* cl_updaterate =
+      g.m_interfaces->console()->get_convar("cl_updaterate");
+  static auto* sv_minupdaterate =
+      g.m_interfaces->console()->get_convar("sv_minupdaterate");
+  static auto* sv_maxupdaterate =
+      g.m_interfaces->console()->get_convar("sv_maxupdaterate");
 
-	static auto* sv_client_min_interp_ratio = g.m_interfaces->console( )->get_convar( "sv_client_min_interp_ratio" );
-	static auto* sv_client_max_interp_ratio = g.m_interfaces->console( )->get_convar( "sv_client_max_interp_ratio" );
+  static auto* sv_client_min_interp_ratio =
+      g.m_interfaces->console()->get_convar("sv_client_min_interp_ratio");
+  static auto* sv_client_max_interp_ratio =
+      g.m_interfaces->console()->get_convar("sv_client_max_interp_ratio");
 
-	static auto* cl_interp = g.m_interfaces->console( )->get_convar( "cl_interp" );
-	static auto* cl_interp_ratio = g.m_interfaces->console( )->get_convar( "cl_interp_ratio" );
+  static auto* cl_interp = g.m_interfaces->console()->get_convar("cl_interp");
+  static auto* cl_interp_ratio =
+      g.m_interfaces->console()->get_convar("cl_interp_ratio");
 
-	float updaterate = cl_updaterate->GetFloat( );
+  float updaterate = cl_updaterate->GetFloat();
 
-	float minupdaterate = sv_minupdaterate->GetFloat( );
-	float maxupdaterate = sv_maxupdaterate->GetFloat( );
+  float minupdaterate = sv_minupdaterate->GetFloat();
+  float maxupdaterate = sv_maxupdaterate->GetFloat();
 
-	float min_interp = sv_client_min_interp_ratio->GetFloat( );
-	float max_interp = sv_client_max_interp_ratio->GetFloat( );
+  float min_interp = sv_client_min_interp_ratio->GetFloat();
+  float max_interp = sv_client_max_interp_ratio->GetFloat();
 
-	float flLerpAmount = cl_interp->GetFloat( );
-	float flLerpRatio = cl_interp_ratio->GetFloat( );
+  float flLerpAmount = cl_interp->GetFloat();
+  float flLerpRatio = cl_interp_ratio->GetFloat();
 
-	flLerpRatio = std::clamp<float>( flLerpRatio, min_interp, max_interp );
-	if ( flLerpRatio == 0.0f )
-		flLerpRatio = 1.0f;
+  flLerpRatio = std::clamp<float>(flLerpRatio, min_interp, max_interp);
+  if (flLerpRatio == 0.0f) flLerpRatio = 1.0f;
 
-	float updateRate = std::clamp<float>( updaterate, minupdaterate, maxupdaterate );
-	m_lerp = std::fmaxf( flLerpAmount, flLerpRatio / updateRate );
+  float updateRate =
+      std::clamp<float>(updaterate, minupdaterate, maxupdaterate);
+  m_lerp = std::fmaxf(flLerpAmount, flLerpRatio / updateRate);
 
-	if ( m_local && m_local->alive( ) ) {
-		prediction::update( );
+  if (m_local && m_local->alive()) {
+    prediction::update();
 
-		m_running_client = true;
-		m_flags = m_local->flags( );
-		m_onground = ( m_flags & fl_onground );
-	}
-	else {
-		m_running_client = false;
-		return;
-	}
+    m_running_client = true;
+    m_flags = m_local->flags();
+    m_onground = (m_flags & fl_onground);
+  } else {
+    m_running_client = false;
+    return;
+  }
 
-	//if ( m_local ) {
-	//	CPredictionCopy CopyHelper( PC_EVERYTHING, m_pStartData, PC_DATA_PACKED, m_local, PC_DATA_NORMAL );
-	//	memcpy( m_pEndData, m_pStartData, sz );
-	//}
+  // if ( m_local ) {
+  //	CPredictionCopy CopyHelper( PC_EVERYTHING, m_pStartData, PC_DATA_PACKED,
+  //m_local, PC_DATA_NORMAL ); 	memcpy( m_pEndData, m_pStartData, sz );
+  //}
 
-	m_last_lag = m_lag;
-	m_lag = g.m_interfaces->client_state( )->m_choked_commands;
+  m_last_lag = m_lag;
+  m_lag = g.m_interfaces->client_state()->m_choked_commands;
 
-	//cmd->m_buttons |= IN_BULLRUSH; // allow unlimited ducking
+  // cmd->m_buttons |= IN_BULLRUSH; // allow unlimited ducking
 
-	g_block_bot.on_tick( );   //run all of our movement changing code before prediction
-	g_movement.auto_strafe( );
-	g_movement.DoPrespeed( );
-	//g_movement.edge_bug( );
-	g_movement.bhop( );
-	g_hvh.fake_walk( );
-	g_movement.auto_peek( );
-	g_movement.PreciseMove( );
-	g_hvh.SendPacket( );
-	g_hvh.break_resolver( );
-	g_movement.QuickStop( );
+  g_block_bot
+      .on_tick();  // run all of our movement changing code before prediction
+  g_movement.auto_strafe();
+  g_movement.DoPrespeed();
+  // g_movement.edge_bug( );
+  g_movement.bhop();
+  g_hvh.fake_walk();
+  g_movement.auto_peek();
+  g_movement.PreciseMove();
+  g_hvh.SendPacket();
+  g_hvh.break_resolver();
+  g_movement.QuickStop();
 
+  if (start_move(m_cmd)) {
+    if (g.m_weapon) {
+      if (g.m_weapon->postpone_fire_time() - 0.1f >
+              g.ticks_to_time(g.m_local->tick_base()) &&
+          g.m_weapon->postpone_fire_time() < FLT_MAX) {
+        g.m_cmd->m_buttons &= ~IN_ATTACK;
+      }
+    }  // else
+     //g.m_cmd->m_buttons |= IN_ATTACK;
+    g_aimbot.on_tick();
+    ang_t view_angles;
+    g.m_interfaces->engine()->get_view_angles(view_angles);
+    g_hvh.m_view_angle = view_angles.y;
+    g_hvh.AntiAim();
 
-	if ( start_move( m_cmd ) ) {
-		g_aimbot.on_tick( );
-		ang_t view_angles;
-		g.m_interfaces->engine( )->get_view_angles( view_angles );
-		g_hvh.m_view_angle = view_angles.y;
-		g_hvh.AntiAim( );
+    if (g.m_can_shift && g.m_can_fire && (m_cmd->m_buttons & IN_ATTACK))
+      g.m_shift = true;
 
-		if ( g.m_can_shift && g.m_can_fire && ( m_cmd->m_buttons & IN_ATTACK ) )
-			g.m_shift = true;
+    if (g.m_shift) *g.m_packet = false;
 
-		if ( g.m_shift )
-			*g.m_packet = false;
-
-		m_cmd->m_viewangles.y = math::normalize_angle( m_cmd->m_viewangles.y, 180.f );   //clamp view to bounds, avoid kicks etc
-		m_cmd->m_viewangles.x = std::clamp<float>( m_cmd->m_viewangles.x, -89.f, 89.f );
-		m_cmd->m_viewangles.z = 0;
-		math::correct_movement( m_cmd );
-		end_move( m_cmd );
-	}
+    m_cmd->m_viewangles.y = math::normalize_angle(
+        m_cmd->m_viewangles.y, 180.f);  // clamp view to bounds, avoid kicks etc
+    m_cmd->m_viewangles.x =
+        std::clamp<float>(m_cmd->m_viewangles.x, -89.f, 89.f);
+    m_cmd->m_viewangles.z = 0;
+    math::correct_movement(m_cmd);
+  }
+  end_move(m_cmd);
 }
 
 void c_g::SetAngles( ) const {
@@ -611,13 +625,6 @@ bool c_g::start_move( cmd_t *cmd ) {
 		CopyHelper.TransferData( "CM_Start", m_local->index( ), map ); // copy off a prestie local player datamap, used if we want to repredict
 
 		memcpy( m_pEndData, m_pStartData, sizeof( byte ) * size ); // override 
-	}
-
-	bool set = false;
-	if ( m_weapon && m_weapon->item_definition_index( ) == 64 ) {
-		set = !(g.m_cmd->m_buttons & IN_ATTACK);
-			
-		g.m_cmd->m_buttons |= IN_ATTACK;
 	}
 
 	prediction::start( cmd );

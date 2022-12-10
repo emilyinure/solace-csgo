@@ -23,27 +23,12 @@ AdaptiveAngle::AdaptiveAngle ( float yaw, float penalty ) {
 }
 
 void hvh::fake_walk() const {
-  auto velocity{g.m_local->velocity()};
-  int ticks{};
-  const auto max{15};
+  vec3_t velocity{g.m_local->velocity()};
+  int ticks{}, max{16};
+
   if (!settings::hvh::antiaim::fakewalk) return;
 
-  if (!g.m_interfaces->entity_list()->get_client_entity_handle(
-          g.m_local->m_ground_entity()))
-    return;
-
-  auto *map = g.m_local->GetPredDescMap();
-  if (!map) return;
-
-  const auto size = std::max(map->m_packed_size, 4);
-  const auto pre_pred = (byte *)malloc(sizeof(byte) * size);
-  memset(pre_pred, 0, size);
-
-  auto CopyHelper =
-      CPredictionCopy(PC_EVERYTHING, static_cast<byte *>(pre_pred), true,
-                      reinterpret_cast<const byte *>(g.m_local), false,
-                      CPredictionCopy::TRANSFERDATA_COPYONLY);
-  CopyHelper.TransferData("Pre_Fakewalk", g.m_local->index(), map);
+  if (!g.m_local->m_ground_entity()) return;
 
   // user was running previously and abrubtly held the fakewalk key
   // we should quick-stop under this circumstance to hit the 0.22 flick
@@ -57,113 +42,43 @@ void hvh::fake_walk() const {
   // https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/game/shared/gamemovement.cpp#L1612
 
   // calculate friction.
-  auto sv_friction = g.m_interfaces->console()->get_convar("sv_friction");
-  auto sv_stopspeed = g.m_interfaces->console()->get_convar("sv_stopspeed");
-  auto sv_accelerate = g.m_interfaces->console()->get_convar("sv_accelerate");
-  auto friction = sv_friction->GetFloat() * g.m_local->surface_friction();
+  static auto sv_friction =
+      g.m_interfaces->console()->get_convar("sv_friction");
+  static auto sv_stopspeed =
+      g.m_interfaces->console()->get_convar("sv_stopspeed");
+  float friction = sv_friction->GetFloat() * g.m_local->surface_friction();
 
-  const auto backup_view = g.m_cmd->m_viewangles;
-  const auto backup_fmove = g.m_cmd->m_forwardmove;
-  const auto backup_smove = g.m_cmd->m_sidemove;
   for (; ticks < g.m_max_lag; ++ticks) {
-    auto speed = velocity.length();
     // calculate speed.
+    float speed = velocity.length();
 
     // if too slow return.
     if (speed <= 0.1f) break;
 
-    // bleed off some speed, but if we have less than the bleed,
-    // threshold, bleed the threshold amount.
-    const auto control = std::max(speed, sv_stopspeed->GetFloat());
-
-    // calculate the drop amount.
-    const auto drop =
-        control * friction * g.m_interfaces->globals()->m_interval_per_tick;
-
-    // scale the velocity.
-    const auto newspeed = std::max(0.f, speed - drop);
-
-    g.m_cmd->m_viewangles = g.m_local->velocity().look(vec3_t());
-    g.m_cmd->m_forwardmove = ((newspeed > 0.1f) * newspeed);
-    g.m_cmd->m_sidemove = 0;
-    prediction::start(g.m_cmd);
-    velocity = g.m_local->velocity();
-  }
-  prediction::end();
-  CopyHelper =
-      CPredictionCopy(PC_EVERYTHING, reinterpret_cast<byte *>(g.m_local), false,
-                      static_cast<const byte *>(pre_pred), true,
-                      CPredictionCopy::TRANSFERDATA_COPYONLY);
-  CopyHelper.TransferData("Post_Fakewalk", g.m_local->index(), map);
-  free(pre_pred);
-
-  g.m_cmd->m_forwardmove = backup_fmove;
-  g.m_cmd->m_sidemove = backup_smove;
-  g.m_cmd->m_viewangles = backup_view;
-
-  // calculate speed.
-  const auto stop =
-      (ticks >
-           ((max - 1) - (g.m_interfaces->client_state()->m_choked_commands)) ||
-       !g.m_interfaces->client_state()->m_choked_commands);
-  ;
-  if (stop) {
-    velocity = g.m_local->velocity();
-    const auto speed = velocity.length();
-
-    if (speed > 0.1f) {
-      // bleed off some speed, but if we have less than the bleed, threshold,
-      // bleed the threshold amount.
-      const auto control = std::max(speed, sv_stopspeed->GetFloat());
-
-      // calculate the drop amount.
-      const auto drop =
-          control * friction * g.m_interfaces->globals()->m_interval_per_tick;
-
-      // scale the velocity.
-      const auto newspeed = std::max(0.f, speed - drop);
-
-      if (newspeed > 0.1f) {
-        g.m_view_angles = g.m_local->velocity().look(vec3_t());
-        g.m_cmd->m_forwardmove = newspeed;
-        g.m_cmd->m_sidemove = 0;
-        return;
-      }
-    }
-    g.m_cmd->m_forwardmove = 0;
-    g.m_cmd->m_sidemove = 0;
-  }
-  return;
-  // if too slow return.
-  auto speed = g.m_local->velocity().length();
-  if (speed > 0.1f) {
     // bleed off some speed, but if we have less than the bleed, threshold,
     // bleed the threshold amount.
-    auto control = std::max(speed, sv_stopspeed->GetFloat());
+    float control = std::max(speed, sv_stopspeed->GetFloat());
 
     // calculate the drop amount.
-    auto drop =
-        control * friction * g.m_interfaces->globals()->m_interval_per_tick;
+    float drop = control * friction * g.m_interfaces->globals()->m_interval_per_tick;
 
-    auto newspeed = std::max(0.f, speed - drop);
-    auto currentspeed = velocity.dot(-velocity.normalized());
+    // scale the velocity.
+    float newspeed = std::max(0.f, speed - drop);
 
-    // Reduce wishspeed by the amount of veer.
-    auto wish_speed = fminf(450.f, g.m_local->max_speed());
-    auto accelspeed = sv_accelerate->GetFloat() *
-                      g.m_interfaces->globals()->m_interval_per_tick *
-                      fmaxf(wish_speed, 250.f) * g.m_local->surface_friction();
-    auto addspeed = wish_speed - currentspeed;
+    if (newspeed != speed) {
+      // determine proportion of old speed we are using.
+      newspeed /= speed;
 
-    if (accelspeed > addspeed) accelspeed = addspeed;
-
-    if (newspeed > accelspeed) newspeed -= accelspeed;
-
-    // zero forwardmove and sidemove.
-    if (newspeed > accelspeed) {
-      // m_view_angles = velocity.look( vec3_t( ) );
-      g.m_cmd->m_forwardmove = 450;
+      // adjust velocity according to proportion.
+      velocity *= newspeed;
     }
+  }
+
+  // zero forwardmove and sidemove.
+  if (ticks > ((max - 1) -
+               g.m_interfaces->client_state()->m_choked_commands) ||
+      !g.m_interfaces->client_state()->m_choked_commands) {
+    g.m_cmd->m_forwardmove = g.m_cmd->m_sidemove = 0.f;
   }
 }
 
