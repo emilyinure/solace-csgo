@@ -610,11 +610,10 @@ void resolver::on_impact(IGameEvent* evt)
     struct ShotMatch_t
     {
         float delta = 0;
-        std::shared_ptr<shot_record_t> shot;
+        std::weak_ptr<shot_record_t> shot;
     };
     ShotMatch_t match;
     match.delta = std::numeric_limits<float>::max();
-    match.shot = nullptr;
 
     // iterate all shots.
     for (const auto& s : m_shots)
@@ -651,13 +650,13 @@ void resolver::on_impact(IGameEvent* evt)
         if (delta < match.delta)
         {
             match.delta = delta;
-            match.shot = s;
+            match.shot = std::weak_ptr<shot_record_t>(s);
         }
     }
 
     // no valid shotrecord was found.
     const auto& shot = match.shot;
-    if (!shot)
+    if (shot.expired())
         return;
 
     // g_cl.print( "imp %x time: %f lat: %f dmg: %f\n", shot->m_record, shot->m_time, shot->m_lat, shot->m_damage );
@@ -668,7 +667,7 @@ void resolver::on_impact(IGameEvent* evt)
     //	return;
 
     // not in nospread mode, see if the shot missed due to spread.
-    auto* const target = shot->m_target;
+    auto* const target = shot.lock()->m_target;
     if (!target)
         return;
 
@@ -809,7 +808,11 @@ void resolver::OnHurt(IGameEvent* evt)
 }
 int resolver::miss_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& start, vec3_t& end)
 {
+    if (impact->m_shot.expired())
+        return 0;
     auto shot = impact->m_shot.lock();
+    if (shot->m_record.expired())
+        return 0;
     auto record = shot->m_record.lock();
     ent_info_t& data = *record->m_info;
 
@@ -883,7 +886,11 @@ int resolver::miss_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& sta
 }
 int resolver::hit_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& start, vec3_t& end) const
 {
+    if (impact->m_shot.expired())
+        return 0;
     auto shot = impact->m_shot.lock();
+    if (shot->m_record.expired())
+        return 0;
     auto record = shot->m_record.lock();
     ent_info_t& data = *record->m_info;
 
@@ -976,7 +983,11 @@ int resolver::hit_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& star
 
 void resolver::resolve_hit(impact_record_t* impact) const
 {
+    if (impact->m_shot.expired())
+        return;
     auto shot = impact->m_shot.lock();
+    if (shot->m_record.expired())
+        return;
     auto record = shot->m_record.lock();
     auto& data = record->m_info;
 
@@ -1014,7 +1025,11 @@ void resolver::resolve_hit(impact_record_t* impact) const
 
 void resolver::resolve_miss(impact_record_t* impact)
 {
+    if (impact->m_shot.expired())
+        return;
     auto shot = impact->m_shot.lock();
+    if (shot->m_record.expired())
+        return;
     auto record = shot->m_record.lock();
     auto& data = *record->m_info;
 
@@ -1110,6 +1125,8 @@ void resolver::update_shots()
             continue;
         }
 
+        if (shot->m_record.expired())
+            continue;
 
         if (!shot->m_record.lock()->m_setup)
             continue;
