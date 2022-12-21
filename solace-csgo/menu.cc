@@ -167,7 +167,7 @@ auto c_menu::init( ) -> void {
 					stand_tab->add_child( std::make_shared<c_combobox>( "Fake", &settings::hvh::antiaim::fake_yaw, std::vector<const char *> { "Off", "Default", "Relative", "Relative jitter", "Rotate", "Random", "Local view" } ) );
 					stand_tab->add_child( std::make_shared<c_slider>( "Fake relative", &settings::hvh::antiaim::fake_relative, -180, 180 ) );
 					stand_tab->add_child( std::make_shared<c_slider>( "Fake jitter range", &settings::hvh::antiaim::fake_jitter_range, -180, 180 ) );
-					stand_tab->add_child( std::make_shared<c_combobox>( "Pitch", &settings::hvh::antiaim::pitch_stand, std::vector<const char *> { "Off", "Down", "Up", "Random", "Ideal" } ) );
+					stand_tab->add_child( std::make_shared<c_combobox>( "Pitch", &settings::hvh::antiaim::pitch_stand, std::vector<const char *> { "Off", "Down", "Up", "Random" } ) );
 					stand_tab->add_child( std::make_shared<c_combobox>( "Yaw offset", &settings::hvh::antiaim::yaw_stand, std::vector<const char *> { "Off", "Direction", "Jitter", "Rotate", "Random", "Distort" }));
 					stand_tab->add_child( std::make_shared<c_combobox>( "Yaw dir", &settings::hvh::antiaim::dir_stand, std::vector<const char *> { "Direction", "Backwards", "Left", "Right" } ) );
 					stand_tab->add_child( std::make_shared<c_slider>( "Stand jitter range", &settings::hvh::antiaim::jitter_range_stand, -180, 180 ) );
@@ -182,7 +182,7 @@ auto c_menu::init( ) -> void {
 					move_tab->add_child( std::make_shared<c_combobox>( "Fake", &settings::hvh::antiaim::fake_yaw, std::vector<const char *> { "Off", "Default", "Relative", "Relative jitter", "Rotate", "Random", "Local view" } ) );
 					move_tab->add_child( std::make_shared<c_slider>( "Fake relative", &settings::hvh::antiaim::fake_relative, -180, 180 ) );
 					move_tab->add_child( std::make_shared<c_slider>( "Fake jitter range", &settings::hvh::antiaim::fake_jitter_range, -180, 180 ) );
-					move_tab->add_child( std::make_shared<c_combobox>( "Pitch", &settings::hvh::antiaim::pitch_walk, std::vector<const char *> { "Off", "Down", "Up", "Random", "Ideal" } ) );
+					move_tab->add_child( std::make_shared<c_combobox>( "Pitch", &settings::hvh::antiaim::pitch_walk, std::vector<const char *> { "Off", "Down", "Up", "Random" } ) );
 					move_tab->add_child( std::make_shared<c_combobox>( "Yaw offset walking", &settings::hvh::antiaim::yaw_walk, std::vector<const char *> { "Off", "Direction", "Jitter", "Rotate", "Random", "Break" } ) );
 					move_tab->add_child( std::make_shared<c_combobox>( "Yaw dir walking", &settings::hvh::antiaim::dir_walk, std::vector<const char *> { "Direction", "Backwards", "Left", "Right" } ) );
 					move_tab->add_child( std::make_shared<c_slider>( "Walk jitter range", &settings::hvh::antiaim::jitter_range_walk, -180, 180 ) );
@@ -199,7 +199,7 @@ auto c_menu::init( ) -> void {
 					air_tab->add_child( std::make_shared<c_combobox>( "Fake", &settings::hvh::antiaim::fake_yaw, std::vector<const char *> { "Off", "Default", "Relative", "Relative jitter", "Rotate", "Random", "Local view" } ) );
 					air_tab->add_child( std::make_shared<c_slider>( "Fake relative", &settings::hvh::antiaim::fake_relative, -180, 180 ) );
 					air_tab->add_child( std::make_shared<c_slider>( "Fake jitter range", &settings::hvh::antiaim::fake_jitter_range, -180, 180 ) );
-					air_tab->add_child( std::make_shared<c_combobox>( "Pitch", &settings::hvh::antiaim::pitch_air, std::vector<const char *> { "Off", "Down", "Up", "Random", "Ideal" } ) );
+					air_tab->add_child( std::make_shared<c_combobox>( "Pitch", &settings::hvh::antiaim::pitch_air, std::vector<const char *> { "Off", "Down", "Up", "Random" } ) );
 					air_tab->add_child( std::make_shared<c_combobox>( "Yaw offset", &settings::hvh::antiaim::yaw_air, std::vector<const char *> { "Off", "Direction", "Jitter", "Rotate", "Random" } ) );
 					air_tab->add_child( std::make_shared<c_combobox>( "Yaw dir", &settings::hvh::antiaim::dir_air, std::vector<const char *> { "Direction", "Backwards", "Left", "Right" } ) );
 					air_tab->add_child( std::make_shared<c_slider>( "Air jitter range", &settings::hvh::antiaim::jitter_range_air, -180, 180 ) );

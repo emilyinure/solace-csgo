@@ -76,7 +76,8 @@ struct player_record_t {
 	void cache( int index = -1 ) const;
 
 	bool valid ( ) const;
-	player_record_t( ent_info_t * info, float last_sim );
+    player_record_t(ent_info_t* info, float last_sim);
+    float set_lerped_time(player_record_t* prev, player_record_t* next);
 	// lagfix stuff.
 	bool   m_broke_lc = false;
 	vec3_t m_pred_origin;
@@ -131,7 +132,7 @@ struct resolver_data {
 			bool backup_enabled = true;
 		};
 		std::vector< dir_data > m_dir_data = {};
-		int m_index = 0;
+		uint32_t m_index = 0;
 	} m_mode_data[ 3 ];
 	std::vector<anim_state> m_states = {};
 

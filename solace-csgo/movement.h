@@ -28,14 +28,17 @@ public:
 	bool m_invert;
 	vec3_t m_stop_pos;
 	float m_time_left;
+	
 
+    bool check_rotations(float start_yaw, vec3_t origin, vec3_t velocity, float& end_speed, float stamina, int iter);
 
-	void DoPrespeed( );
+    void DoPrespeed();
 
 	bool try_player_move( vec3_t& velocity, vec3_t& position, bool on_ground );
 	bool GetClosestPlane( vec3_t& plane );
-	void try_touch_ground_in_quadrants( const vec3_t& start, const vec3_t& end, unsigned int fMask, trace_t& pm );
-	bool try_player_move( vec3_t& velocity, vec3_t& position );
-	bool WillCollide( float time, float change, float start );
+    void try_touch_ground_in_quadrants(const vec3_t& start, const vec3_t& end, unsigned int fMask, trace_t& pm);
+    bool WillCollide(float change, float start, vec3_t* velocity = nullptr, vec3_t* origin = nullptr,
+                     bool* on_ground = nullptr, float* end_yaw = nullptr,
+                     float* stamina_ = nullptr);
 } inline g_movement;
 

@@ -124,11 +124,6 @@ void hvh::AntiAimPitch( ) const {
 		g.m_cmd->m_viewangles.x = ( safe ? -89.f : -720.f, safe ? 89.f : 720.f );
 		break;
 
-	case 4:
-		// ideal.
-		IdealPitch( );
-		break;
-
 	default:
 		break;
 	}
@@ -136,7 +131,7 @@ void hvh::AntiAimPitch( ) const {
 
 void hvh::AutoDirection( ) {
 	// constants.
-	constexpr const auto STEP{ 4.f };
+	constexpr const auto STEP{ 1.f };
 	constexpr const auto RANGE{ 32.f };
 
 	// best target.

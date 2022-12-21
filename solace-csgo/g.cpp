@@ -185,6 +185,7 @@ void c_g::on_tick(cmd_t* cmd) {
   g_hvh.break_resolver();
   g_movement.QuickStop();
 
+
   if (start_move(m_cmd)) {
     if (g.m_weapon) {
       if (g.m_weapon->postpone_fire_time() - 0.1f >
@@ -250,6 +251,14 @@ void c_g::UpdateAnimations( ) const {
 	m_local->set_abs_angles( ang_t( 0.f, g.m_abs_yaw, 0.f ) );
 }
 
+const char* const g_szWeaponPrefixLookupTable[] = {"knife",  "pistol", "smg", "rifle",   "shotgun",
+                                                   "sniper", "heavy",  "c4",  "grenade", "knife"};
+const char* c_g::GetWeaponPrefix(anim_state *state)
+{
+    static auto sig = util::find("client.dll", "53 56 8B F1 57 33 FF 8B 4E ? 8B 01");
+    return ((const char*(__thiscall*)(void*))sig)(state);
+}
+
 void c_g::UpdateInformation( ) {
 	if ( g.m_lag > 0 ) {
 		//float flPitch = ( g.m_cmd->m_viewangles.x + 90.f ) / 180.f;
@@ -280,16 +289,13 @@ void c_g::UpdateInformation( ) {
 		return;
 	if ( !g.m_real_bones )
 		g.m_real_bones = static_cast< bone_array_t* >( g.m_interfaces->mem_alloc( )->alloc( sizeof( bone_array_t ) * 128 ) );
-	//if (!m_animstate)
-	//{
-	//	m_animstate = CreateCSGOPlayerAnimstate(g.m_local);
-	//} else if (g.m_local->spawn_time() != spawn_time) {
-	//	// reset animation state.
-	//	m_animstate->reset();
-	//
-	//	// note new spawn time.
-	//	spawn_time = g.m_local->spawn_time();
-	//}
+	if (g.m_local->spawn_time() != spawn_time) {
+		// reset animation state.
+        state->ResetAnimationState();
+	
+		// note new spawn time.
+		spawn_time = g.m_local->spawn_time();
+	}
 	g_hvh.m_side = -g_hvh.m_side;
 	// update time.
 	m_anim_frame = g.m_interfaces->globals(  )->m_curtime - m_anim_time;
@@ -365,10 +371,12 @@ void c_g::UpdateInformation( ) {
 	*(bool*)(g.m_local + 14816) = (bStrafeRight || bStrafeLeft || bStrafeForward || bStrafeBackward);
 	g.m_hooks->players_hook( g.m_local->index( ) - 1 )->get_original< void( __thiscall * ) ( player_t * ) >( 218 )( g.m_local );
 
-	//if ( state->m_flSpeedAsPortionOfWalkTopSpeed > 0.25 )
-	//	m_activity.add_modifier( "moving" );
-	//if ( state->m_dip_cycle > 0.55000001 )
-	//	m_activity.add_modifier( "crouch" );
+    m_activity.add_modifier(GetWeaponPrefix(state));
+
+	if ( state->m_flSpeedAsPortionOfWalkTopSpeed > 0.25 )
+		m_activity.add_modifier( "moving" );
+	if ( state->m_dip_cycle > 0.55000001 )
+		m_activity.add_modifier( "crouch" );
 
 	// store updated abs yaw.
 	m_abs_yaw = state->m_goal_feet_yaw;// *(float*)(m_animstate + 112);

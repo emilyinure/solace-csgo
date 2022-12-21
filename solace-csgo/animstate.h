@@ -31,35 +31,35 @@ public:
 	int     m_bits;					// 0x0034
 }; // size: 0x0038
 
-//class activity_modifiers_wrapper {
-//private:
-//	uint32_t gap[ 0x4D ]{ 0 };
-//	CUtlVector<uint16_t> modifiers{};
-//
-//public:
-//	activity_modifiers_wrapper( ) = default;
-//
-//	explicit activity_modifiers_wrapper( CUtlVector<uint16_t> current_modifiers ) {
-//		modifiers.RemoveAll( );
-//		modifiers.GrowVector( current_modifiers.Count( ) );
-//
-//		for ( auto i = 0; i < current_modifiers.Count( ); i++ )
-//			modifiers[ i ] = current_modifiers[ i ];
-//	}
-//
-//	void add_modifier( const char* name ) {
-//		using add_activity_modifier_fn_t = void( __thiscall* )( activity_modifiers_wrapper*, const char* );
-//		static const auto add_activity_modifier =
-//			reinterpret_cast< add_activity_modifier_fn_t >( util::find( "server.dll", "55 8B EC 8B 55 ? 83 EC ? 56" ) );
-//
-//		if ( add_activity_modifier && name )
-//			add_activity_modifier( this, name );
-//	};
-//
-//	CUtlVector<uint16_t> get( ) const {
-//		return modifiers;
-//	}
-//};
+class activity_modifiers_wrapper {
+private:
+	uint32_t gap[ 0x4D ]{ 0 };
+	CUtlVector<uint16_t> modifiers{};
+
+public:
+	activity_modifiers_wrapper( ) = default;
+
+	explicit activity_modifiers_wrapper( CUtlVector<uint16_t> current_modifiers ) {
+		modifiers.RemoveAll( );
+		modifiers.GrowVector( current_modifiers.Count( ) );
+
+		for ( auto i = 0; i < current_modifiers.Count( ); i++ )
+			modifiers[ i ] = current_modifiers[ i ];
+	}
+
+	void add_modifier( const char* name ) {
+		using add_activity_modifier_fn_t = void( __thiscall* )( activity_modifiers_wrapper*, const char* );
+		static const auto add_activity_modifier =
+			reinterpret_cast< add_activity_modifier_fn_t >( util::find( "server.dll", "55 8B EC 8B 55 ? 83 EC ? 56" ) );
+
+		if ( add_activity_modifier && name )
+			add_activity_modifier( this, name );
+	};
+
+	CUtlVector<uint16_t> get( ) const {
+		return modifiers;
+	}
+};
 
 class anim_state {
 public:

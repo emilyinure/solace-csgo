@@ -14,20 +14,20 @@ class weapon_info_t;
 struct shot_record_t {
 	~shot_record_t( );
 	player_t *m_target{};
-	std::shared_ptr<player_record_t> m_record = nullptr;
+	std::weak_ptr<player_record_t> m_record;
 	float m_time{};
 	float m_pred_time{};
 	float m_lat{};
 	float m_damage{};
 	vec3_t m_pos;
 	bool m_matched = false;
-	std::shared_ptr<weapon_info_t> m_weapon_info;
+	weapon_info_t m_weapon_info;
 	bool m_updated_time;
 	int m_tick;
 };
 
 struct impact_record_t {
-	std::shared_ptr<shot_record_t> m_shot;
+    std::weak_ptr<shot_record_t> m_shot;
 	int m_tick;
 	vec3_t m_pos;
 	int m_index;

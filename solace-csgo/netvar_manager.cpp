@@ -30,11 +30,14 @@ void managed_vec::post_update( player_t *player ) {
 }
 
 void prediction_netvar_manager::pre_update( player_t *player ) {
+    called_once = true;
 	for ( auto *var : vars )
 		var->pre_update( player );
 }
 
 void prediction_netvar_manager::post_update( player_t *player ) {
+    if (!called_once)
+        return;
 	for ( auto *var : vars )
 		var->post_update( player );
 }
@@ -80,6 +83,9 @@ float AssignRangeMultiplier( int nBits, double range ) {
 }
 
 void prediction_netvar_manager::init ( datamap_t *map ) {
+    if (initalized)
+        return;
+    initalized = true;
 	float val = ( 1.f / AssignRangeMultiplier( 17, 4096.f - ( -4096.f ) ) );
 	vars.push_back( new shared_netvar( g.m_offsets->m_player.m_fall_velocity, val, "m_flFallVelocity" ) );
 	val = ( 1.f / AssignRangeMultiplier( 16, 128.f ) );

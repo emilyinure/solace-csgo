@@ -14,7 +14,9 @@ public:
 	}
 	mutable std::mutex queue_mutex;                  // Prevents data races to the job queue
 	mutable std::mutex queue_mutex2;                  // Prevents data races to the job queue
-	
+
+    std::queue<std::function<void()>> jobs = {};
+
 	bool busy( ) {
 		bool poolbusy = false;
 		{
@@ -24,7 +26,6 @@ public:
 		return poolbusy;
 	}
 
-	std::queue<std::function<void( )>> jobs;
 
 	static void ThreadLoop( );
 

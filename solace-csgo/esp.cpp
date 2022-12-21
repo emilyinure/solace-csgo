@@ -279,11 +279,12 @@ void esp_t::player ( player_t *ent ) {
 		g.m_render->outlined_rect( box.x, box.y, box.w, box.h, on_team ? color{ 0xFF, 0x08, 0xFF } : color{ 0x81, 0xFF, 0x21 } );
 		g.m_render->outlined_rect( box.x + 1, box.y + 1, box.w - 2, box.h - 2, color( 0, 0, 0, 200 ) );
 	}
-	if ( settings::visuals::players::health ) {
-		const area_t health_box( box.x - 6, box.y, 2, box.h );
+    if (settings::visuals::players::health)
+    {
+        const area_t health_box(box.x - 7, box.y, 3, box.h);
 		
-		g.m_render->outlined_rect( health_box.x - 1, health_box.y - 1, health_box.w + 2, health_box.h + 2, color( 0, 0, 0, 200 ) );
-		g.m_render->filled_rect( health_box.x, health_box.y, health_box.w, health_box.h, color( 0, 0, 0 ));
+		g.m_render->outlined_rect( health_box.x - 1, health_box.y - 1, health_box.w + 2, health_box.h + 2, color( 50, 50, 50, 150 ) );
+		g.m_render->filled_rect( health_box.x, health_box.y, health_box.w, health_box.h, color( 40, 40, 40 ));
 		const auto health_percent = static_cast< float >( ent->health( ) ) / 100.f;
 		g.m_render->filled_rect( health_box.x,
 		                         health_box.y + health_box.h * (1 - health_percent ),

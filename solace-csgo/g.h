@@ -121,7 +121,7 @@ public:
 	int restore_choke;
 	void * m_unpred_ground;
 	bool m_ran;
-	//activity_modifiers_wrapper m_activity;
+	activity_modifiers_wrapper m_activity;
 
 	struct choked_log {
 		vec3_t shoot_pos;
@@ -147,7 +147,8 @@ public:
 	void on_tick ( cmd_t * cmd );
 	void SetAngles ( ) const;
 	void UpdateAnimations ( ) const;
-	void UpdateInformation ( );
+    const char* GetWeaponPrefix(anim_state* state);
+    void UpdateInformation();
 	int time_to_ticks ( float time ) const;
 	float ticks_to_time ( int ticks ) const;
 	bool can_weapon_fire ( ) const;

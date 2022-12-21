@@ -22,7 +22,7 @@ namespace netvar_manager {
 			if ( prop.m_data_table && prop.m_elements > 0 ) {
 				if ( std::string( prop.m_var_name ).substr( 0, 1 ) == std::string( "0" ) )
 					continue;
-
+				
 				add_props_for_table( table_map, table_name_hash, table_name, prop.m_data_table, dump_vars, prop.m_offset + child_offset );
 			}
 

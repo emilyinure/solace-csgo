@@ -2,151 +2,6 @@
 #include "includes.h"
 #include "thread_handler.h"
 
-//template <typename T>
-//class CJobItemProcessor
-//{
-//public:
-//	typedef T ItemType_t;
-//	void Begin() {}
-//	// void Process( ItemType_t & ) {}
-//	void End() {}
-//};
-//
-//
-//template <typename T>
-//class CFuncJobItemProcessor : public CJobItemProcessor<T>
-//{
-//public:
-//	void Init(void (*pfnProcess)(T&), void (*pfnBegin)() = NULL, void (*pfnEnd)() = NULL)
-//	{
-//		m_pfnProcess = pfnProcess;
-//		m_pfnBegin = pfnBegin;
-//		m_pfnEnd = pfnEnd;
-//	}
-//
-//	//CFuncJobItemProcessor(OBJECT_TYPE_PTR pObject, void (FUNCTION_CLASS::*pfnProcess)( ITEM_TYPE & ), void (*pfnBegin)() = NULL, void (*pfnEnd)() = NULL );
-//	void Begin() { if (m_pfnBegin) (*m_pfnBegin)(); }
-//	void Process(T& item) { (*m_pfnProcess)(item); }
-//	void End() { if (m_pfnEnd) (*m_pfnEnd)(); }
-//
-//protected:
-//	void (*m_pfnProcess)(T&);
-//	void (*m_pfnBegin)();
-//	void (*m_pfnEnd)();
-//};
-//template <typename ITEM_TYPE, class ITEM_PROCESSOR_TYPE, int ID_TO_PREVENT_COMDATS_IN_PROFILES = 1>
-//class CParallelProcessor
-//{
-//public:
-//	CParallelProcessor()
-//	{
-//		m_pItems = m_pLimit = 0;
-//	}
-//
-//	void Run(ITEM_TYPE* pItems, unsigned nItems, int nChunkSize = 1, int nMaxParallel = INT_MAX, IThreadPool* pThreadPool = NULL)
-//	{
-//		if (nItems == 0)
-//			return;
-//
-//		m_nChunkSize = nChunkSize;
-//		if (!pThreadPool)
-//		{
-//			pThreadPool = g_pThreadPool;
-//		}
-//
-//		m_pItems = pItems;
-//		m_pLimit = pItems + nItems;
-//
-//		int nJobs = nItems - 1;
-//
-//		if (nJobs > nMaxParallel)
-//		{
-//			nJobs = nMaxParallel;
-//		}
-//
-//		if (!pThreadPool)									// only possible on linux
-//		{
-//			DoExecute();
-//			return;
-//		}
-//
-//		int nThreads = pThreadPool->NumThreads();
-//		if (nJobs > nThreads)
-//		{
-//			nJobs = nThreads;
-//		}
-//
-//		if (nJobs > 0)
-//		{
-//			CJob** jobs = (CJob**)stackalloc(nJobs * sizeof(CJob**));
-//			int i = nJobs;
-//
-//			while (i--)
-//			{
-//				jobs[i] = pThreadPool->QueueCall(this, &CParallelProcessor<ITEM_TYPE, ITEM_PROCESSOR_TYPE, ID_TO_PREVENT_COMDATS_IN_PROFILES>::DoExecute);
-//			}
-//
-//			DoExecute();
-//
-//			for (i = 0; i < nJobs; i++)
-//			{
-//				jobs[i]->Abort(); // will either abort ones that never got a thread, or noop on ones that did
-//				jobs[i]->Release();
-//			}
-//		}
-//		else
-//		{
-//			DoExecute();
-//		}
-//	}
-//
-//	ITEM_PROCESSOR_TYPE m_ItemProcessor;
-//
-//private:
-//	void DoExecute()
-//	{
-//		if (m_pItems < m_pLimit)
-//		{
-//#if defined(_X360)
-//			volatile int ignored = ID_TO_PREVENT_COMDATS_IN_PROFILES;
-//#endif
-//			m_ItemProcessor.Begin();
-//
-//			ITEM_TYPE* pLimit = m_pLimit;
-//
-//			int nChunkSize = m_nChunkSize;
-//			for (;;)
-//			{
-//				ITEM_TYPE* pCurrent = m_pItems.AtomicAdd(nChunkSize);
-//				ITEM_TYPE* pLast = MIN(pLimit, pCurrent + nChunkSize);
-//				while (pCurrent < pLast)
-//				{
-//					m_ItemProcessor.Process(*pCurrent);
-//					pCurrent++;
-//				}
-//				if (pCurrent >= pLimit)
-//				{
-//					break;
-//				}
-//			}
-//			m_ItemProcessor.End();
-//		}
-//	}
-//	CInterlockedPtr<ITEM_TYPE>	m_pItems;
-//	ITEM_TYPE* m_pLimit;
-//	int m_nChunkSize;
-//
-//};
-//
-//
-//class player_struc {
-//	
-//};
-//
-//void run_thread(CFuncJobItemProcessor<player_struc*> job) {
-//	static auto func = util::find("client.dll", "55 8B EC 83 EC ? 53 8B 5D ? 56 8B F1 57 8B 3D ? ? ? ?");
-//}
-
 
 bool bones_t::setup( player_t *player, bone_array_t *out, std::shared_ptr<player_record_t> record, CIKContext *ipk ) {
 	// if the record isnt setup yet.
@@ -491,6 +346,7 @@ void Studio_BuildMatrices( const studio_hdr_t *pStudioHdr, const ang_t &angles, 
 		}
 	}
 }
+
 bool bones_t::BuildBonesStripped( player_t *target, int mask, bone_array_t *out, CIKContext *ipk ) {
 	alignas( 16 ) vec3_t		     pos[ 128 ];
 	alignas( 16 ) quaternion_t     q[ 128 ];
@@ -514,9 +370,15 @@ bool bones_t::BuildBonesStripped( player_t *target, int mask, bone_array_t *out,
    //	ipk->ClearTargets();
    //	ipk->New();
    //}
+    const int backup_eflags = target->iEFlags();
 	const auto backup = target->m_Ipk( );
 	target->m_Ipk( ) = ipk;
-	m_running = true;
+    m_running = true;
+    target->InvalidatePhysicsRecursive(entity_t::ANGLES_CHANGED);
+    target->InvalidatePhysicsRecursive(entity_t::ANIMATION_CHANGED);
+    target->InvalidatePhysicsRecursive(entity_t::SEQUENCE_CHANGED);
+    target->iEFlags() &= ~(1 << 11);
+    target->iEFlags() |= (1 << 3);
 
 	// set bone array for write.
 	accessor->m_pBones = out;
@@ -544,7 +406,8 @@ bool bones_t::BuildBonesStripped( player_t *target, int mask, bone_array_t *out,
 
 	g.m_interfaces->mem_alloc( )->free( computed );
 	accessor->m_pBones = backup_matrix;
-	target->m_Ipk( ) = backup;
+    target->m_Ipk() = backup;
+    target->iEFlags() = backup_eflags;
 	return true;
 }
 bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::shared_ptr<player_record_t> record, CIKContext *ipk ) {
@@ -567,7 +430,8 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 	// likely cachedbonedata.
 	const auto backup_matrix = accessor->m_pBones;
 	if ( !backup_matrix )
-		return false;
+        return false;
+
 
 	const auto curtime = g.m_interfaces->globals( )->m_curtime;
 	const auto frametime = g.m_interfaces->globals( )->m_frametime;
@@ -579,12 +443,18 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 	const auto mins = target->mins( ), maxs = target->maxs( );
 	const vec3_t backup_origin = target->abs_origin( );
 	const ang_t backup_angles = target->abs_angles( );
+    const int backup_eflags = target->iEFlags();
 	target->GetPoseParameters( backup_poses );
 	target->GetAnimLayers( backup_layers );
 
 	// set non interpolated data.
-	const auto old_effects = target->m_fEffects( );
-	target->m_fEffects( ) |= 0x008;
+    const auto old_effects = target->m_fEffects();
+    target->iEFlags() &= ~0x1000;
+    target->iEFlags() &= ~(1 << 11);
+    target->iEFlags() |= (1 << 3);
+    target->InvalidatePhysicsRecursive(entity_t::ANGLES_CHANGED);
+    target->InvalidatePhysicsRecursive(entity_t::ANIMATION_CHANGED);
+    target->InvalidatePhysicsRecursive(entity_t::SEQUENCE_CHANGED);
 	target->set_abs_origin( record->m_pred_origin );
 	target->set_abs_angles( record->m_abs_angles );
 	target->SetPoseParameters( record->m_poses );
@@ -640,6 +510,7 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 	m_running = false;
 
 	target->m_fEffects( ) = old_effects;
+    target->iEFlags() = backup_eflags;
 	g.m_interfaces->mem_alloc(  )->free( computed );
 	g.m_interfaces->globals( )->m_curtime = curtime;
 	g.m_interfaces->globals( )->m_frametime = frametime;
