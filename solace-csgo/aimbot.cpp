@@ -308,7 +308,7 @@ void aimbot_t::get_points(ent_info_t* info, studio_hdr_t* studio_model)
     }
 }
 
-bool aimbot_t::collides(math::custom_ray_t ray, ent_info_t* info, bone_array_t bones[128], float add)
+bool aimbot_t::collides(math::custom_ray_t ray, ent_info_t* info, bone_array_t bones[128], float mult)
 {
     auto* studio_model = info->m_ent->model();
     if (!studio_model)
@@ -334,7 +334,7 @@ bool aimbot_t::collides(math::custom_ray_t ray, ent_info_t* info, bone_array_t b
 
             float m1, m2;
             const auto dist = math::distSegmentToSegmentSqr(ray.m_start, ray.m_end, vMin, vMax, m1, m2);
-            if (dist <= hitbox->radius * hitbox->radius)
+            if (dist <= (hitbox->radius * hitbox->radius) * mult)
             {
                 return true;
             }
@@ -713,7 +713,9 @@ player_record_t* aimbot_t::best_record(ent_info_t* info)
             continue;
         if (i->m_dormant)
             break;
-        if (i->m_shot || i->m_mode == resolver::RESOLVE_BODY || i->m_mode == resolver::RESOLVE_WALK)
+        if (i->m_shot)
+            continue;
+        if (i->m_mode == resolver::RESOLVE_BODY || i->m_mode == resolver::RESOLVE_WALK)
             return i.get();
         if (!best)
             best = i.get();
@@ -896,7 +898,7 @@ std::vector<ent_info_t*> aimbot_t::mp_threading() const
     g.m_interfaces->mem_alloc()->free(bones);
 
     while (g_thread_handler.busy())
-        ;
+        continue;
 
     g_thread_handler.stop();
 

@@ -348,7 +348,12 @@ public:
 	float spawn_time( ) {
 		static auto SpawnTime = *( uintptr_t * )( util::find( "client.dll", "F3 0F 5C 88 ? ? ? ? 0F" ) + 4 );
 		return *(float*)( this + SpawnTime );
-	}
+    }
+    __forceinline CUtlVector<animation_layer_t>& anim_overlay_vec()
+    {
+        static auto anim_overlay = *(uintptr_t*)(util::find("client.dll", "8B 80 ? ? ? ? 03 C1 74 ?") + 2);
+        return *reinterpret_cast<CUtlVector<animation_layer_t>*>(this + anim_overlay);
+    }
 	__forceinline animation_layer_t *&anim_overlay(  ) {
 		static auto anim_overlay = *( uintptr_t * )( util::find( "client.dll", "8B 80 ? ? ? ? 03 C1 74 ?") + 2 );
 		return *reinterpret_cast< animation_layer_t ** >(this + anim_overlay);
@@ -376,8 +381,9 @@ public:
 	}
 	bool on_team( entity_t *target ) {
 		return target->team( ) == team( );
-	}
-	OFFSET( int, team, g.m_offsets->m_player.m_team );
+    }
+    OFFSET(int, team, g.m_offsets->m_player.m_team);
+    OFFSET(float, last_bone_setup_time, g.m_offsets->m_player.m_last_bone_setup_time);
 	OFFSET( bool, killed_by_taser, g.m_offsets->m_player.m_killed_by_taser );
 	OFFSET( int, iEFlags, 0xE8 );
 	OFFSETPTR( float, encoder_controller, g.m_offsets->m_player.m_encoded_controller )

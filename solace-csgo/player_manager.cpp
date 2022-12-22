@@ -25,6 +25,7 @@ void player_record_t::cache(int index) const
         cache->m_pCachedBones = m_fake_bones[index];
     cache->m_CachedBoneCount = 128;
 
+    m_ent->last_bone_setup_time() = FLT_MAX;
     m_ent->origin() = m_pred_origin;
     m_ent->mins() = m_mins;
     m_ent->maxs() = m_maxs;
@@ -144,7 +145,7 @@ player_record_t::player_record_t(ent_info_t* info, float last_sim)
 
 template <class T> T Lerp(float flPercent, T const& A, T const& B)
 {
-    return (A - B) * flPercent;
+    return A + ((B - A) * flPercent);
 }
 
 float Approach(float target, float value, float speed)
@@ -637,17 +638,18 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                 // strip the on ground flag.
                 m_ent->flags() &= ~fl_onground;
 
-                // been onground for 2 consecutive ticks? fuck yeah.
-                if (record->m_flags & fl_onground && previous->m_flags & fl_onground)
+                float flLandTime = 0.0f;
+                bool bLandedOnServer = false;
+                if (record->m_layers[4].m_cycle != previous->m_layers[4].m_cycle &&
+                    record->m_layers[5].m_cycle != previous->m_layers[5].m_cycle && record->m_layers[5].m_cycle != 0)
+                {
                     m_ent->flags() |= fl_onground;
-
-                // fix jump_fall.
-                if (record->m_layers[4].m_weight != 1.f && previous->m_layers[4].m_weight == 1.f &&
-                    record->m_layers[5].m_weight != 0.f)
-                    m_ent->flags() |= fl_onground;
-
-                if (record->m_flags & fl_onground && !(previous->m_flags & fl_onground))
+                }
+                else if (record->m_layers[4].m_cycle != previous->m_layers[4].m_cycle &&
+                         record->m_layers[5].m_cycle == previous->m_layers[5].m_cycle)
+                {
                     m_ent->flags() &= ~fl_onground;
+                }
 
                 // fix crouching players.
                 // the duck amount we receive when people choke is of the last
@@ -688,7 +690,6 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
     m_ent->lower_body_yaw() = record->m_body;
 
     // write potentially resolved angles.
-    g_resolver.resolve(*this, record);
 
     // for ( auto i = 0; i < info->m_lag; i++ ) {
     //
@@ -706,9 +707,13 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
     //	// 'm_animating' returns true if being called from SetupVelocity, passes
     // raw velocity to animstate.
     //
+    auto backup_overlay_count = m_ent->anim_overlay_vec().Count();
+    m_ent->anim_overlay_vec().m_Size = (0);
+
     m_ent->eye_angles() = record->m_eye_angles;
     m_ent->client_side_anim() = true;
     {
+        g_resolver.resolve(*this, record);
         std::unique_lock<std::mutex> lock(g_thread_handler.queue_mutex);
         // backup curtime.
         const auto curtime = g.m_interfaces->globals()->m_curtime;
@@ -746,11 +751,11 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
             bool index_found = false;
             if (mode_data && record->m_resolver_data.m_dir_data.size() == mode_data->m_dir_data.size())
             {
-                for (auto i = 0; i < mode_data->m_dir_data.size(); i++)
+                for (uint32_t i = 0; i < mode_data->m_dir_data.size(); i++)
                 {
                     auto& record_dir_data = record->m_resolver_data.m_dir_data[i];
-                    // std::memcpy( state, &m_resolver_data.m_states[ i ],
-                    // sizeof( anim_state ) );
+                    std::memcpy( state, &m_resolver_data.m_states[ i ],
+                    sizeof( anim_state ) );
 
                     m_ent->eye_angles().y = math::normalize_angle(record_dir_data.angles, 180);
 
@@ -761,14 +766,14 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                         state->feetYawRate = m_records[1]->feet_yaw_rate;
                         state->feetCycle = m_records[1]->feet_cycle;
 
-                        m_ent->SetAnimLayers(m_records[1]->m_layers);
+                        //m_ent->SetAnimLayers(m_records[1]->m_layers);
                     }
                     else
                     {
                         state->feetYawRate = record->feet_yaw_rate;
                         state->feetCycle = record->feet_cycle;
 
-                        m_ent->SetAnimLayers(record->m_layers);
+                        //m_ent->SetAnimLayers(record->m_layers);
                     }
                     m_ent->iEFlags() &= ~0x1000;
                     m_ent->update_client_side_animation();
@@ -776,8 +781,8 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                     m_ent->GetPoseParameters(record_dir_data.poses);
                     record_dir_data.m_abs_angles = m_ent->abs_angles();
 
-                    // std::memcpy( &m_resolver_data.m_states[ i ], state,
-                    // sizeof( anim_state ) );
+                    std::memcpy( &m_resolver_data.m_states[ i ], state,
+                    sizeof( anim_state ) );
 
                     if (mode_data->m_index == i)
                     {
@@ -789,7 +794,7 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
 
                     memcpy(state, &backup_anim_state, sizeof(anim_state));
                     m_ent->SetPoseParameters(backup.m_poses);
-                    m_ent->SetAnimLayers(backup.m_layers);
+                    //m_ent->SetAnimLayers(backup.m_layers);
                 }
             }
             if (index_found)
@@ -806,14 +811,14 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                     state->feetYawRate = m_records[1]->feet_yaw_rate;
                     state->feetCycle = m_records[1]->feet_cycle;
 
-                    m_ent->SetAnimLayers(m_records[1]->m_layers);
+                    //m_ent->SetAnimLayers(m_records[1]->m_layers);
                 }
                 else
                 {
                     state->feetYawRate = record->feet_yaw_rate;
                     state->feetCycle = record->feet_cycle;
 
-                    m_ent->SetAnimLayers(record->m_layers);
+                    //m_ent->SetAnimLayers(record->m_layers);
                 }
 
                 m_ent->iEFlags() &= ~0x1000;
@@ -821,7 +826,7 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                 record->m_abs_angles = m_ent->abs_angles();
                 // store updated/animated poses and rotation in lagrecord.
                 m_ent->GetPoseParameters(record->m_poses);
-                m_ent->SetAnimLayers(backup.m_layers);
+                //m_ent->SetAnimLayers(backup.m_layers);
             }
         }
         else
@@ -835,14 +840,14 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                 state->feetYawRate = m_records[1]->feet_yaw_rate;
                 state->feetCycle = m_records[1]->feet_cycle;
 
-                m_ent->SetAnimLayers(m_records[1]->m_layers);
+                //m_ent->SetAnimLayers(m_records[1]->m_layers);
             }
             else
             {
                 state->feetYawRate = record->feet_yaw_rate;
                 state->feetCycle = record->feet_cycle;
 
-                m_ent->SetAnimLayers(record->m_layers);
+                //m_ent->SetAnimLayers(record->m_layers);
             }
 
             m_ent->iEFlags() &= ~0x1000;
@@ -850,12 +855,13 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
             record->m_abs_angles = m_ent->abs_angles();
             // store updated/animated poses and rotation in lagrecord.
             m_ent->GetPoseParameters(record->m_poses);
-            m_ent->SetAnimLayers(backup.m_layers);
+            //m_ent->SetAnimLayers(backup.m_layers);
         }
 
         g.m_interfaces->globals()->m_curtime = curtime;
         g.m_interfaces->globals()->m_frametime = frametime;
     }
+    m_ent->anim_overlay_vec().m_Size = (backup_overlay_count);
     m_ent->client_side_anim() = false;
     //}
 
@@ -1117,7 +1123,7 @@ void player_manager_t::update()
         // data->update( player );
     }
     while (g_thread_handler.busy())
-        ;
+        continue;
 
     g_thread_handler.stop();
     bool all_finished = true;
@@ -1203,6 +1209,7 @@ void backup_record_t::store(player_t* player)
     bone_cache_t* cache = &player->bone_cache();
 
     // store bone data.
+    m_last_bone_setup = player->last_bone_setup_time();
     m_bones = cache->m_pCachedBones;
     m_bone_count = cache->m_CachedBoneCount;
     m_origin = player->origin();
@@ -1219,7 +1226,7 @@ void backup_record_t::restore(player_t* player) const
 
     cache->m_pCachedBones = m_bones;
     cache->m_CachedBoneCount = m_bone_count;
-
+    player->last_bone_setup_time() = m_last_bone_setup;
     player->origin() = m_origin;
     player->mins() = m_mins;
     player->maxs() = m_maxs;

@@ -6,6 +6,7 @@
 
 #include "detours.h"
 #include "esp.h"
+#include "grenade_pred.h"
 #include "hvh.h"
 #include "input_helper/input_helper.hh"
 #include "movement.h"
@@ -350,6 +351,7 @@ void __stdcall override_view(view_setup_t* view)
     const auto alive = g.m_local && g.m_local->alive();
     if (alive)
     {
+        g_grenade_pred.View();
         if (settings::misc::misc::thirdperson && !g.m_interfaces->input()->camera_is_third_person())
             g.m_interfaces->input()->camera_to_third_person();
         else if (!settings::misc::misc::thirdperson && g.m_interfaces->input()->camera_is_third_person())

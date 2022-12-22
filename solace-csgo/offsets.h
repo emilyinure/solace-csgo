@@ -25,6 +25,7 @@ public:
 
 	} m_entity;
 	struct {
+        uint32_t m_last_bone_setup_time = *(uint32_t*)(util::find("client.dll", "80 3D ? ? ? ? ? 74 16 A1 ? ? ? ? 48 C7 81") + 0x11);
 		NETVAR( "DT_CSPlayer", "m_flSimulationTime", m_simulation_time )
 		NETVAR( "DT_BasePlayer", "m_vecViewOffset[0]", m_view_offset )
 		NETVAR( "DT_CSPlayer", "m_iTeamNum", m_team )

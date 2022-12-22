@@ -11,6 +11,17 @@
 #undef max
 #endif
 
+class AdaptiveAngle
+{
+public:
+    float m_yaw;
+    float m_dist;
+
+public:
+    // ctor.
+    __forceinline AdaptiveAngle(float yaw, float penalty = 0.f);
+};
+
 AdaptiveAngle::AdaptiveAngle ( float yaw, float penalty ) {
 	// set yaw.
 	m_yaw = math::normalize_angle( yaw, 180 );
@@ -128,6 +139,7 @@ void hvh::AntiAimPitch( ) const {
 		break;
 	}
 }
+
 
 void hvh::AutoDirection( ) {
 	// constants.

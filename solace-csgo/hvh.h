@@ -3,15 +3,6 @@
 class ang_t;
 class player_t;
 
-class AdaptiveAngle {
-public:
-	float m_yaw;
-	float m_dist;
-
-public:
-	// ctor.
-	__forceinline AdaptiveAngle ( float yaw, float penalty = 0.f );
-};
 
 enum AntiAimMode : size_t {
 	STAND = 0,

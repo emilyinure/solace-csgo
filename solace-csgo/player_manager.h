@@ -15,6 +15,7 @@ public:
 	vec3_t     m_mins;
 	vec3_t     m_maxs;
 	ang_t      m_abs_ang;
+    float m_last_bone_setup;
 
 public:
 	void store( player_t* player );

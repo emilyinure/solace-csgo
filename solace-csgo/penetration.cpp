@@ -261,10 +261,12 @@ void penetration::ClipTraceToPlayer( vec3_t &start, const vec3_t &end, uint32_t 
     }
 }
 
+#define CS_MASK_SHOOT (MASK_SOLID | CONTENTS_DEBRIS)
+
 bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
 
     int			  pen{ 4 }, enter_material, exit_material;
-    float		  damage, penetration, penetration_mod, player_damage, remaining, trace_len{}, total_pen_mod, damage_mod = 0.5f, modifier, damage_lost;
+    float		  damage, penetration, player_damage;
     surfacedata_t *enter_surface, *exit_surface;
     bool		  nodraw, grate;
     vec3_t		  start, dir, end, pen_end;
@@ -300,11 +302,12 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
     // get some weapon data.
     float fPenetrationPower = 35;
     float flPenetrationDistance = 3000.0;
+    float damage_mod = 0.5f;
+    float pen_mod = 1.f;
     damage = static_cast< float >(weapon_info->m_damage);
     penetration = weapon_info->m_penetration;
     float flCurrentDistance = 0.f;
     // used later in calculations.
-    penetration_mod = fmaxf( 0.f, ( 3.f / penetration ) * 1.25f );
 
     // get direction to end point.
     dir = ( in->m_pos - start );
@@ -319,7 +322,6 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
     float flPenMod = 0;
 
     float flPercentDamageChunk = 0;
-    float flPenWepMod = 0;
 
     float flLostDamageObject = 0;
     float lost = 0;
@@ -328,23 +330,21 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
     static trace_filter filter; filter.skip = ( in->m_from );
 
     while ( true ) {
-        // calculating remaining len.
-        remaining = weapon_info->m_range - flCurrentDistance;
-
         // set trace end.
-        end = start + ( dir * remaining );
+        end = start + (dir * (weapon_info->m_range - flCurrentDistance));
 
         // setup ray and trace.
         // TODO; use UTIL_TraceLineIgnoreTwoEntities?
         {
-            g.m_interfaces->trace( )->trace_ray( ray_t( start, end ), MASK_SHOT, &filter, &trace );
+            g.m_interfaces->trace()->trace_ray(ray_t(start, end), CS_MASK_SHOOT | CONTENTS_HITBOX, &filter, &trace);
 
 
             // check for player hitboxes extending outside their collision bounds.
             // if no target is passed we clip the trace to a specific player, otherwise we clip the trace to any player.
 
             if ( in->m_target ) {
-                ClipTraceToPlayer( start, end + ( dir * 40.f ), MASK_SHOT, &trace, in->m_target, -60.f );
+                ClipTraceToPlayer(start, end + (dir * 40.f), CS_MASK_SHOOT | CONTENTS_HITBOX, &trace, in->m_target,
+                                  -60.f);
             }
             else
                 return false;// UTIL_ClipTraceToPlayers( start, end + ( dir * 40.f ), MASK_SHOT, ( trace_filter * )&filter, &trace, -60.f );
@@ -352,7 +352,7 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
 
 
         // calculate damage based on the distance the bullet traveled.
-        flCurrentDistance += trace.flFraction * remaining;
+        flCurrentDistance += trace.flFraction * (weapon_info->m_range - flCurrentDistance);
         damage *= std::pow( weapon_info->m_range_modifier, flCurrentDistance / 500.f );
     	
         // we didn't hit anything.
@@ -431,20 +431,24 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
         // get surface at entry point.
         enter_surface = g.m_interfaces->phys_surface(  )->GetSurfaceData( trace.surface.surfaceProps );
 
+        pen_mod = enter_surface->game.m_penetration_modifier;
+        damage_mod = enter_surface->game.m_damage_modifier;
+
         // this happens when we're too far away from a surface and can penetrate walls or the surface's pen modifier is too low.
-        if ( ( flCurrentDistance > flPenetrationDistance && penetration > 0.f ) || enter_surface->game.m_penetration_modifier < 0.1f ) {
+        if ((flCurrentDistance > flPenetrationDistance && penetration > 0.f) || pen_mod < 0.1f)
+        {
             return false;
         }
 
         // store data about surface flags / contents.
-        nodraw = ( trace.surface.flags & SURF_NODRAW );
-        grate = ( trace.contents & CONTENTS_GRATE );
+        grate = (trace.contents & CONTENTS_GRATE);
+        nodraw = !!(trace.surface.flags & SURF_NODRAW);
 
         // get material at entry point.
         enter_material = enter_surface->game.m_material;
 
         // note - dex; some extra stuff the game does.
-        if ( !pen && !nodraw && !grate && enter_material != CHAR_TEX_GRATE && enter_material != CHAR_TEX_GLASS )
+        if ( pen == 0 && !nodraw && !grate && enter_material != CHAR_TEX_GRATE && enter_material != CHAR_TEX_GLASS )
             return false;
 
         // no more pen.
@@ -454,51 +458,62 @@ bool penetration::run( PenetrationInput_t *in, PenetrationOutput_t *out ) {
 
         // try to penetrate object.
         if ( !TraceToExit( trace.end, dir, pen_end, &trace, &exit_trace ) ) {
-            if ( !( g.m_interfaces->trace( )->get_point_contents( pen_end, MASK_SHOT_HULL ) & MASK_SHOT_HULL ) ) {
+            if ((g.m_interfaces->trace()->get_point_contents(pen_end, CS_MASK_SHOOT) & CS_MASK_SHOOT) == 0)
+            {
                 return false;
             }
         }
-
+      
         // get surface / material at exit point.
         exit_surface = g.m_interfaces->phys_surface(  )->GetSurfaceData( exit_trace.surface.surfaceProps );
         exit_material = exit_surface->game.m_material;
 
+        float temp_pen_mod = pen_mod;
+        float temp_damage_mod = damage_mod;
+
         // todo - dex; check for CHAR_TEX_FLESH and ff_damage_bullet_penetration / ff_damage_reduction_bullets convars?
         //             also need to check !isbasecombatweapon too.
         float flDamLostPercent = 0.16;
-        if ( enter_material == CHAR_TEX_GRATE || enter_material == CHAR_TEX_GLASS ) {
-            total_pen_mod = 3.f;
-            flDamLostPercent = 0.05;//damage_mod = 0.05f;
+        static auto ff_damage_reduction_bullets = g.m_interfaces->console()->get_convar("ff_damage_reduction_bullets");
+        if (grate || nodraw || enter_material == CHAR_TEX_GLASS || enter_material == CHAR_TEX_GRATE)
+        {
+            // If we're a concrete grate (TOOLS/TOOLSINVISIBLE texture) allow more penetrating power.
+            if (enter_material == CHAR_TEX_GLASS || enter_material == CHAR_TEX_GRATE)
+            {
+                temp_pen_mod = 3.0f;
+                flDamLostPercent = 0.05;
+            }
+            else
+                temp_pen_mod = 1.0f;
+
+            temp_damage_mod = 0.99f;
+        }
+        else
+        {
+            // check the exit material and average the exit and entrace values
+            float flExitPenetrationModifier = exit_surface->game.m_penetration_modifier;
+            float flExitDamageModifier = exit_surface->game.m_damage_modifier;
+            temp_pen_mod = (temp_pen_mod + flExitPenetrationModifier) / 2;
+            temp_damage_mod = (temp_damage_mod + flExitDamageModifier) / 2;
         }
 
-        else if ( nodraw || grate ) {
-            total_pen_mod = 1.f;
-            flDamLostPercent = 0.16f;
-            damage_mod = 0.99f;
-        }
-
-        else {
-            total_pen_mod = ( enter_surface->game.m_penetration_modifier + exit_surface->game.m_penetration_modifier ) * 0.5f;
-            flDamLostPercent = 0.16f;
-            damage_mod = ( damage_mod + exit_surface->game.m_damage_modifier ) / 2;
-        }
 
         // thin metals, wood and plastic get a penetration bonus.
         if ( enter_material == exit_material ) {
             if ( exit_material == CHAR_TEX_CARDBOARD || exit_material == CHAR_TEX_WOOD )
-                total_pen_mod = 3.f;
+                temp_pen_mod = 3;
 
             else if ( exit_material == CHAR_TEX_PLASTIC )
-                total_pen_mod = 2.f;
+                temp_pen_mod = 2;
         }
 
         // set some local vars.
         flTraceDistance = ( exit_trace.end - trace.end ).length();
 
-        flPenMod = fmaxf( 0, ( 1 / total_pen_mod ) );
+        flPenMod = fmaxf(0, (1 / temp_pen_mod));
 
         flPercentDamageChunk = damage * flDamLostPercent;
-        flPenWepMod = flPercentDamageChunk + fmaxf( 0.f,  3.f / fPenetrationPower ) * 1.25f * ( flPenMod * 3.0f );
+        float flPenWepMod = flPercentDamageChunk + fmaxf( 0.f,  3.f / fPenetrationPower ) * 1.25f * ( flPenMod * 3.0f );
 
         flLostDamageObject = ( ( flPenMod * ( flTraceDistance * flTraceDistance ) ) / 24 );
         lost = flPenWepMod + flLostDamageObject;

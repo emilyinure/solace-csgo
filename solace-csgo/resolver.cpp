@@ -103,7 +103,7 @@ void resolver::MatchShot(ent_info_t* data, std::shared_ptr<player_record_t> reco
     if (g.time_to_ticks(shoot_time) > g.time_to_ticks(record->m_sim_time) - record->m_lag &&
         g.time_to_ticks(shoot_time) <= g.time_to_ticks(record->m_sim_time))
     {
-        if (record->m_lag <= 2)
+        if (g.time_to_ticks(shoot_time) == g.time_to_ticks(record->m_sim_time))
             record->m_shot = true;
 
         // more then 1 choke, cant hit pitch, apply prev pitch.
@@ -270,62 +270,129 @@ float resolver::get_rel(std::shared_ptr<player_record_t> record, int index)
     return 0;
 }
 
-float resolver::get_freestand_yaw(player_t* target) const
+class AdaptiveAngle
 {
-    vec3_t eye_pos;
-    ang_t angle;
+public:
+    float m_yaw;
+    float m_dist;
 
-    eye_pos = target->origin() + vec3_t(0.f, 0.f, 64.f);
-    angle = g.m_shoot_pos.look(eye_pos);
+public:
+    // ctor.
+    __forceinline AdaptiveAngle(float yaw, float penalty = 0.f);
+};
 
-    static auto get_rotated_pos = [](vec3_t start, float rotation, float distance)
+AdaptiveAngle::AdaptiveAngle(float yaw, float penalty)
+{
+    // set yaw.
+    m_yaw = math::normalize_angle(yaw, 180);
+
+    // init distance.
+    m_dist = 0.f;
+
+    // remove penalty.
+    m_dist -= penalty;
+}
+
+float resolver::get_freestand_yaw(player_t* player) const
+{
+    float best_rotation = 0.f;
+    // constants.
+    constexpr const auto STEP{2.f};
+    constexpr const auto RANGE{32.f};
+
+    // best target.
+    struct AutoTarget_t
     {
-        float rad = DEG2RAD(rotation);
-        start.x += cos(rad) * distance;
-        start.y += sin(rad) * distance;
-
-        return start;
+        float fov;
+        player_t* player;
     };
+    AutoTarget_t target{180.f + 1.f, player};
 
-    weapon_info_t* freestand_rifle = g.m_weapon_info;
-    if (!freestand_rifle)
-        return angle.y + 180.f;
+    vec3_t pos;
+    player->get_eye_pos(&pos);
 
-    float best_rotation = 9999.f;
-    float lowest_damage = 9999.f;
-    float highest_damage = 0.f;
+    vec3_t start;
+    g.m_local->get_eye_pos(&start);
+    float view = pos.look(start).y;
 
-    for (float rot = 0.f; rot < 360.f; rot += 45.f)
+
+    /*
+     * data struct
+     * 68 74 74 70 73 3a 2f 2f 73 74 65 61 6d 63 6f 6d 6d 75 6e 69 74 79 2e 63 6f 6d 2f 69 64 2f 73 69 6d 70 6c 65 72 65
+     * 61 6c 69 73 74 69 63 2f
+     */
+
+    // construct vector of angles to test.
+    std::vector<AdaptiveAngle> angles{};
+    angles.emplace_back(view - 180.f);
+    angles.emplace_back(view + 90.f);
+    angles.emplace_back(view - 90.f);
+
+    // start the trace at the enemy shoot pos.
+
+    // see if we got any valid result.
+    // if this is false the path was not obstructed with anything.
+    auto valid{false};
+
+    // iterate vector of angles.
+    for (auto it = angles.begin(); it != angles.end(); ++it)
     {
-        vec3_t pos = get_rotated_pos(eye_pos, angle.y + rot, -30.f);
 
-        penetration::PenetrationInput_t in;
-        in.m_from = g.m_local;
-        in.m_pos = pos;
-        in.m_start = g.m_shoot_pos;
-        in.m_target = target;
-        in.m_simulated_shot = true;
-        penetration::PenetrationOutput_t out;
-        penetration::run(&in, &out);
-        const float damage = out.m_damage;
+        // compute the 'rough' estimation of where our head will be.
+        vec3_t end{pos.x + std::cos(DEG2RAD(it->m_yaw)) * RANGE, pos.y + std::sin(DEG2RAD(it->m_yaw)) * RANGE, pos.z};
 
-        if (damage > highest_damage)
+        // draw a line for debugging purposes.
+        // g_csgo.m_debug_overlay->AddLineOverlay( start, end, 255, 0, 0, true, 0.1f );
+
+        // compute the direction.
+        auto dir = end - start;
+        const auto len = dir.length();
+        if (len <= 0.f)
+            continue;
+        dir /= len;
+
+        // step thru the total distance, 4 units per step.
+        for (auto i{0.f}; i < len; i += STEP)
         {
-            highest_damage = damage;
-        }
-        else if (damage < lowest_damage)
-        {
-            lowest_damage = damage;
-            best_rotation = rot;
+            // get the current step position.
+            auto point = start + (dir * i);
+
+            // get the contents at this point.
+            const auto contents = g.m_interfaces->trace()->get_point_contents(point, MASK_SHOT_HULL);
+
+            // contains nothing that can stop a bullet.
+            if (!(contents & MASK_SHOT_HULL))
+                continue;
+
+            auto mult = 1.f;
+
+            // over 50% of the total length, prioritize this shit.
+            const auto set = (i > (len * 0.5f)) || (i > (len * 0.75f)) || (i > (len * 0.9f));
+
+            mult = (i > len * 0.5f) * 1.25f + (i > len * 0.75f) * 1.25f + (i > len * 0.9f) * 2.f + !set * mult;
+
+            // append 'penetrated distance'.
+            it->m_dist += (STEP * mult);
+
+            // mark that we found anything.
+            valid = true;
         }
     }
 
-    if (lowest_damage > 0.0f || highest_damage == 0.0f)
+    if (!valid)
     {
-        return angle.y + 180.f;
+        // set angle to backwards.
+        return math::normalize_angle(view - 180.f, 180.f);
     }
 
-    return best_rotation;
+    // put the most distance at the front of the container.
+    std::sort(angles.begin(), angles.end(),
+              [](const AdaptiveAngle& a, const AdaptiveAngle& b) { return a.m_dist > b.m_dist; });
+
+    // the best angle should be at the front now.
+    const auto best = &angles.front();
+    // set yaw to the best result.
+    return math::normalize_angle(best->m_yaw, 180);
 }
 
 void resolver::ResolveStand(ent_info_t* data, std::shared_ptr<player_record_t> record) const
@@ -385,8 +452,6 @@ void resolver::ResolveStand(ent_info_t* data, std::shared_ptr<player_record_t> r
     const float free_stand_yaw = get_freestand_yaw(data->m_ent);
     if (data->m_resolver_data.m_moved)
     {
-        const auto delta = record->m_anim_time - move->m_anim_time;
-
         record->m_base_angle = move->m_body;
         record->m_mode = Modes::RESOLVE_STAND1;
 
@@ -566,7 +631,11 @@ resolver::trace_ret check_hit(penetration::PenetrationInput_t in, ent_info_t& in
     //	if( !trace.entity || trace.hitGroup != hitgroup )
     //		return resolver::trace_ret::spread;
     // }
-    if (!g_aimbot.collides(ray, &info, bones)) // !g_aimbot.collides( ray, info, cache->m_pCachedBones ) )
+    if (!g_aimbot.collides(
+            ray, &info, bones,
+            (hitgroup == hitgroup_head
+                ? settings::rage::hitbox::point_scale
+                : settings::rage::hitbox::body_scale) / 100.f)) // !g_aimbot.collides( ray, info, cache->m_pCachedBones ) )
         return resolver::trace_ret::spread;
     // if ( !penetration::run( &in, &out ) )
     //	return resolver::trace_ret::occlusion;
@@ -845,9 +914,9 @@ int resolver::miss_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& sta
             {
 
 #ifdef _DEBUG
-                g_aimbot.draw_hitboxes(impact->m_shot->m_target, (i1 == move_data->m_index)
-                                                                        ? record->m_bones
-                                                                        : record->m_fake_bones[fake_index]);
+                //g_aimbot.draw_hitboxes(impact->m_shot->m_target, (i1 == move_data->m_index)
+                //                                                        ? record->m_bones
+                //                                                        : record->m_fake_bones[fake_index]);
 #endif
                 dir_data.dir_enabled = false;
                 eliminations++;
