@@ -746,7 +746,6 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
     m_ent->eye_angles() = record->m_eye_angles;
     m_ent->client_side_anim() = true;
     {
-        g_resolver.resolve(*this, record);
         std::unique_lock<std::mutex> lock(g_thread_handler.queue_mutex);
         // backup curtime.
         const auto curtime = g.m_interfaces->globals()->m_curtime;
@@ -757,6 +756,7 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
 
         if (!m_teamate)
         {
+            g_resolver.resolve(*this, record);
             state->feetYawRate = 0.f;
 
             resolver_data::mode_data* mode_data = nullptr;
@@ -787,8 +787,7 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                 for (uint32_t i = 0; i < mode_data->m_dir_data.size(); i++)
                 {
                     auto& record_dir_data = record->m_resolver_data.m_dir_data[i];
-                    //std::memcpy( state, &m_resolver_data.m_states[ i ],
-                    //sizeof( anim_state ) );
+                    std::memcpy( state, &m_resolver_data.m_states[ i ], sizeof(anim_state));
 
                     m_ent->eye_angles().y = math::normalize_angle(record_dir_data.angles, 180);
 
@@ -814,8 +813,7 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                     m_ent->GetPoseParameters(record_dir_data.poses);
                     record_dir_data.m_abs_angles = m_ent->abs_angles();
 
-                    //std::memcpy( &m_resolver_data.m_states[ i ], state,
-                    //sizeof( anim_state ) );
+                    std::memcpy( &m_resolver_data.m_states[ i ], state, sizeof( anim_state ) );
 
                     if (mode_data->m_index == i)
                     {
