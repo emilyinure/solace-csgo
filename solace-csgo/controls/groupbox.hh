@@ -9,6 +9,7 @@ public:
 	c_base_control *selected_tab = nullptr;
 	std::vector<std::shared_ptr<c_base_control>> children_{ };
 public:
+ float offset = 0.f;
 	float scroll_y = 0;
 	explicit c_group_tab( const char *name_ ) {
 		name = name_;
@@ -40,7 +41,7 @@ public:
 				} break;
 				}
 			}
-
+   offset = child_offset.y + 6;
 			// draw.
 			auto has_focus = false;
 			for ( const auto &child : this->children_ ) {
@@ -187,6 +188,9 @@ public:
 		}
 		if ( this->selected_tab != nullptr ) {
 			//if ( input_helper.hovering( { this->area.x + 1, this->area.y + 20, this->area.w - 2, this->area.h - 21.f } ) )
+   float max_scroll = (this->selected_tab->offset - this->area.h);
+   if(-max_scroll > scroll_y)
+     scroll_y = max_scroll;
 			this->selected_tab->update( );
 		}
 	}
