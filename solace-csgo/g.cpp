@@ -149,7 +149,7 @@ void c_g::on_tick(cmd_t* cmd) {
 
   float updateRate =
       std::clamp<float>(updaterate, minupdaterate, maxupdaterate);
-  m_lerp = std::fmaxf(flLerpAmount, flLerpRatio / updateRate);
+  m_lerp = std::fmaxf(cl_interp->GetFloat(), cl_interp_ratio->GetFloat() / cl_updaterate->GetFloat());
 
   if (m_local && m_local->alive()) {
     prediction::update();
@@ -168,7 +168,7 @@ void c_g::on_tick(cmd_t* cmd) {
   //}
 
   m_last_lag = m_lag;
-  m_lag = g.m_interfaces->client_state()->m_choked_commands;
+  m_lag = g.m_interfaces->client_state()->chokedcommands;
 
   // cmd->m_buttons |= IN_BULLRUSH; // allow unlimited ducking
 
@@ -493,7 +493,7 @@ void UTIL_FieldHighLowTickBase(int* high, int* low, int* ideal) {
 		latency += net->GetLatency( 0 );
 
 	int	nIdealFinalTick = g.m_interfaces->globals()->m_tickcount + g.time_to_ticks( latency ) + nCorrectionTicks;
-	auto simulation_ticks = g.m_interfaces->client_state()->m_choked_commands;
+	auto simulation_ticks = g.m_interfaces->client_state()->chokedcommands;
 
 	// If client gets ahead of this, we'll need to correct
 	*high = nIdealFinalTick + nCorrectionTicks;
@@ -504,7 +504,7 @@ void UTIL_FieldHighLowTickBase(int* high, int* low, int* ideal) {
 }
 
 void UTIL_EmplaceTickBaseShift(int high, int low, int ideal, int ticks) {
-	auto simulation_ticks = g.m_interfaces->client_state( )->m_choked_commands;
+    auto simulation_ticks = g.m_interfaces->client_state()->chokedcommands;
 	int nEstimatedFinalTick = g.m_local->tick_base( ) + simulation_ticks;
 	if ( nEstimatedFinalTick > high ||
 		nEstimatedFinalTick < low ) {
@@ -556,7 +556,8 @@ void c_g::on_move ( float accumulated_extra_samples, bool bFinalTick, cl_move_t 
 		int high, low, ideal;
 		UTIL_FieldHighLowTickBase( &high, &low, &ideal );
 
-		const int iSequence = g.m_interfaces->client_state( )->m_last_outgoing_command + g.m_interfaces->client_state( )->m_choked_commands;
+		const int iSequence =
+            g.m_interfaces->client_state()->lastoutgoingcommand + g.m_interfaces->client_state()->chokedcommands;
 		const cmd_t* const pCmd = g.m_interfaces->input( )->get_user_cmd( 0, iSequence );
 
 		assert( pCmd );

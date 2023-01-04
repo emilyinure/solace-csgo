@@ -24,45 +24,60 @@ public:
 	PAD( 0x18 );
 	event_info_t *m_next;
 };
-class client_state_t {
+
+struct CClockDriftMgr
+{
 private:
-	PAD( 0x9C );                                // 0x0000
+    uint8_t m_pad_00[72];
 
 public:
-	int& m_nMaxClients( ) {
-		return *( int* )( ( uintptr_t )this + 0x0310 );
-	}
-	i_net_channel *m_net_channel;				// 0x009C
+    int32_t m_iCurClockOffset;
+    int32_t m_nServerTick;
+    int32_t m_nClientTick;
+};
 
-private:
-	PAD( 0x70 );                                // 0x00A0
-
+class client_state_t
+{
 public:
-	int				m_next_message_time;		// 0x0110
-
-public:
-	float           m_net_cmd_time;             // 0x0114
-	uint32_t        m_server_count;             // 0x0118
-	uint32_t        current_sequence;             // 0x011C
-private:
-	PAD( 0x48 );								// 0x0120
-
-public:
-	int             m_unk;                      // 0x0168
-	int             m_server_tick;              // 0x016C
-	int             m_client_tick;              // 0x0170
-	int             m_delta_tick;               // 0x0174
+    int& m_nMaxClients()
+    {
+        return *(int*)((uintptr_t)this + 0x0310);
+    }
+    void* m_vmt_1;
+    void* m_vmt_2;
+    void* m_vmt_3;
 
 private:
-	PAD( 0x4B30 );                              // 0x0178
+    uint8_t m_pad_00[144];
 
 public:
-	float           m_frame_time;               // 0x4CA8
-	int             m_last_outgoing_command;    // 0x4CAC
-	int             m_choked_commands;          // 0x4CB0
-	int             m_last_command_ack;         // 0x4CB4
-	int			last_server_tick;	// same update pattern as last_command_ack, but with server ticks
-	int			command_ack;		// current command sequence acknowledged by server
-	PAD( 0x12C );                               // 0x4CB8
-	event_info_t *m_events;					// 0x4DEC
+    i_net_channel* m_NetChannel;
+
+private:
+    uint8_t m_pad_01[104];
+
+public:
+    int32_t m_nSignonState;
+
+private:
+    uint8_t m_pad_02[4];
+
+public:
+    double m_flNextCmdTime;
+    int32_t m_nServerCount;
+    int32_t m_nCurrentSequence;
+    CClockDriftMgr m_ClockDriftMgr;
+    int32_t m_nDeltaTick;
+
+private:
+    uint8_t m_pad_03[19252];
+
+public:
+    int32_t lastoutgoingcommand;
+    int32_t chokedcommands;
+    int32_t last_command_ack;
+    int32_t last_server_tick;
+    int32_t command_ack;
+    PAD(0x12C);             // 0x4CB8
+    event_info_t* m_events; // 0x4DEC
 };

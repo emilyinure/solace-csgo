@@ -87,8 +87,9 @@ void hvh::fake_walk() const {
 
   // zero forwardmove and sidemove.
   if (ticks > ((max - 1) -
-               g.m_interfaces->client_state()->m_choked_commands) ||
-      !g.m_interfaces->client_state()->m_choked_commands) {
+               g.m_interfaces->client_state()->chokedcommands) ||
+      !g.m_interfaces->client_state()->chokedcommands)
+  {
     g.m_cmd->m_forwardmove = g.m_cmd->m_sidemove = 0.f;
   }
 }

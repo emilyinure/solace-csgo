@@ -451,129 +451,6 @@ class pre_speed_node
     }
 };
 
-bool movement::check_rotations( float start_yaw, vec3_t origin, vec3_t velocity, float &end_speed, float stamina, int iter )
-{
-    if (iter > 2)
-        return true;
-    float mod, min, max, step, strafe, angle;
-    vec3_t plane;
-    const float speed = velocity.length_2d();
-    float ideal = (speed > 1.f) ? RAD2DEG(std::asinf(30.f / speed)) : 90.f;
-
-    if (isnan(ideal))
-    {
-        ideal = 0.f;
-    }
-
-    // min and max values are based on 128 ticks.
-    mod = g.m_interfaces->globals()->m_interval_per_tick * 128.f;
-
-    // scale min and max based on tickrate.
-    max = ideal * 2.f;
-    min = ideal * 2.f;
-
-    // compute ideal strafe angle for moving in a circle.
-    strafe = ideal;
-
-    // init step.
-    step = strafe;
-
-    while (true)
-    {
-        // if we will not collide with an object or we wont accelerate from such a
-        // big step anymore then stop.
-        vec3_t vel = velocity;
-        vec3_t orig = origin;
-        bool on_ground = true;
-        float end_yaw;
-        float new_stam = stamina;
-
-        if (!WillCollide(step, start_yaw, &vel, &orig, &on_ground, &end_yaw, &new_stam))
-        {
-            float end_speed = 0;
-            if (!check_rotations(end_yaw, orig, vel, end_speed, new_stam, iter + 1))
-            {
-                step = max + 1.f;
-            }
-            break;
-        }
-        if (max <= step)
-            break;
-
-        // if we will collide with an object with the current strafe step then
-        // increment step to prevent a collision.
-        step += 0.1f;
-    }
-
-    if (step > max)
-    {
-        // reset step.
-        step = strafe;
-
-        while (true)
-        {
-            vec3_t vel = velocity;
-            vec3_t orig = origin;
-            bool on_ground = true;
-            float end_yaw;
-            // if we will not collide with an object or we wont accelerate from such a
-            // big step anymore then stop.
-            float new_stam = stamina;
-
-            if (!WillCollide(step, start_yaw, &vel, &orig, &on_ground, &end_yaw, &new_stam))
-            {
-                float end_speed = 0;
-                if (!check_rotations(end_yaw, orig, vel, end_speed, new_stam, iter + 1))
-                {
-                    step = -min;
-                }
-                break;
-            }
-            if (step <= 0.f)
-                break;
-
-            // if we will collide with an object with the current strafe step
-            // decrement step to prevent a collision.
-            step -= 0.1f;
-        }
-
-        if (step < 0.f)
-        {
-            step = -min;
-
-            while (true)
-            {
-                // if we will not collide with an object or we wont accelerate from such
-                // a big step anymore then stop.
-                vec3_t vel = velocity;
-                vec3_t orig = origin;
-                bool on_ground = true;
-                float end_yaw;
-                float new_stam = stamina;
-
-                if (!WillCollide(step, start_yaw, &vel, &orig, &on_ground, &end_yaw, &new_stam))
-                {
-                    float end_speed = 0;
-                    if (!check_rotations(end_yaw, orig, vel, end_speed, new_stam, iter + 1))
-                    {
-                        step = max + 1.f;
-                    }
-                    break;
-                }
-                if (step >= 0.f)
-                    break;
-
-                // if we will collide with an object with the current strafe step
-                // decrement step to prevent a collision.
-                step += 0.1f;
-            }
-            if (step > 0)
-                return false;
-        }
-    }
-    return true;
-}
-
 void movement::DoPrespeed()
 {
     if (!settings::misc::movement::pre_speed || !(g.m_cmd->m_buttons & IN_JUMP))
@@ -617,10 +494,10 @@ void movement::DoPrespeed()
     strafe = ideal;
 
     // calculate time.
-    time = 140.f / speed;
+    time = 320.f / speed;
 
     // clamp time.
-    time = std::clamp<float>(time, 0.5f, 10.f);
+    time = std::clamp<float>(time, 0.7f, 3.f);
 
     // init step.
     step = strafe;
@@ -629,21 +506,7 @@ void movement::DoPrespeed()
     {
         // if we will not collide with an object or we wont accelerate from such a
         // big step anymore then stop.
-        vec3_t end_vel = velocity;
-        vec3_t end_origin = m_origin;
-        float end_yaw;
-        bool on_ground = false;
-        float new_stam = g.m_local->stamina();
-        if (!WillCollide(step, m_circle_yaw, &end_vel, &end_origin, &on_ground, &end_yaw, &new_stam))
-        {
-            float end_speed = 0;
-            if (!check_rotations(end_yaw, end_origin, end_vel, end_speed, new_stam, 1))
-            {
-                step = max + 1.f;
-            }
-            break;
-        }
-        if (max <= step)
+        if (!WillCollide(time, step, m_circle_yaw) || max < step)
             break;
 
         // if we will collide with an object with the current strafe step then
@@ -660,22 +523,7 @@ void movement::DoPrespeed()
         {
             // if we will not collide with an object or we wont accelerate from such a
             // big step anymore then stop.
-
-            vec3_t end_vel = velocity;
-            vec3_t end_origin = m_origin;
-            float end_yaw;
-            bool on_ground = false;
-            float new_stam = g.m_local->stamina();
-            if (!WillCollide(step, m_circle_yaw, &end_vel, &end_origin, &on_ground, &end_yaw, &new_stam))
-            {
-                float end_speed = 0;
-                if (!check_rotations(end_yaw, end_origin, end_vel, end_speed, new_stam, 1))
-                {
-                    step = -min;
-                }
-                break;
-            }
-            if( step <= 0.f)
+            if (!WillCollide(time, step, m_circle_yaw) || step < 0.f)
                 break;
 
             // if we will collide with an object with the current strafe step
@@ -691,21 +539,7 @@ void movement::DoPrespeed()
             {
                 // if we will not collide with an object or we wont accelerate from such
                 // a big step anymore then stop.
-                vec3_t end_vel = velocity;
-                vec3_t end_origin = m_origin;
-                float end_yaw;
-                bool on_ground = false;
-                float new_stam = g.m_local->stamina();
-                if (!WillCollide(step, m_circle_yaw, &end_vel, &end_origin, &on_ground, &end_yaw, &new_stam))
-                {
-                    float end_speed = 0;
-                    if (!check_rotations(end_yaw, end_origin, end_vel, end_speed, new_stam, 1))
-                    {
-                        step = 0.f;
-                    }
-                    break;
-                }
-                if (step >= 0.f)
+                if (!WillCollide(time, step, m_circle_yaw) || step > 0.f)
                     break;
 
                 // if we will collide with an object with the current strafe step
@@ -724,8 +558,14 @@ void movement::DoPrespeed()
                     step = -math::normalize_angle(m_circle_yaw - angle, 180.f) * 0.1f;
                 }
             }
+
+            else
+                step -= 0.1f;
         }
     }
+
+    else
+        step += 0.1f;
 
     // add the computed step to the steps of the previous circle iterations.
     m_circle_yaw = math::normalize_angle(m_circle_yaw + step, 180.f);
@@ -1101,7 +941,7 @@ void movement::try_touch_ground_in_quadrants(const vec3_t& start, const vec3_t& 
 //
 //   return blocked;
 // }
-inline bool movement::WillCollide(float change, float start, vec3_t* velocity, vec3_t* origin, bool *on_ground, float *end_yaw, float* stamina_)
+inline bool movement::WillCollide(float time, float change, float start)
 {
     struct PredictionData_t
     {
@@ -1120,35 +960,17 @@ inline bool movement::WillCollide(float change, float start, vec3_t* velocity, v
     static auto sv_staminalandcost = g.m_interfaces->console()->get_convar("sv_staminalandcost");
     static auto sv_staminarecoveryrate = g.m_interfaces->console()->get_convar("sv_staminarecoveryrate");
     static auto sv_staminamax = g.m_interfaces->console()->get_convar("sv_staminamax");
-    float stamina;
-    if (stamina_)
-        stamina = *stamina_;
-    else
-        stamina = g.m_local->stamina();
 
+    float stamina = g.m_local->stamina();
+    bool hit_ground = false;
     // set base data.
-    if (on_ground)
-        data.ground = *on_ground;
-    else
-        data.ground = g.m_local->flags() & fl_onground;
-    if (origin)
-    {
-        data.start = *origin;
-        data.end = *origin;
-    }
-    else
-    {
-        data.start = m_origin;
-        data.end = m_origin;
-    }
-    if (velocity)
-        data.velocity = *velocity;
-    else
-        data.velocity = g.m_local->velocity();
-
+    data.ground = g.m_local->flags() & fl_onground;
+    data.start = m_origin;
+    data.end = m_origin;
+    data.velocity = g.m_local->velocity();
     data.direction = start;
 
-    for (data.predicted = 0.f; data.predicted < 1.f; data.predicted += g.m_interfaces->globals()->m_interval_per_tick)
+    for (data.predicted = 0.f; data.predicted < time; data.predicted += g.m_interfaces->globals()->m_interval_per_tick)
     {
         // predict movement direction by adding the direction change.
         // make sure to normalize it, in case we go over the -180/180 turning point.
@@ -1231,23 +1053,13 @@ inline bool movement::WillCollide(float change, float start, vec3_t* velocity, v
             data.ground = trace.entity != nullptr;
         }
 
-        if (!data.ground)
-            data.velocity.z -= sv_gravity->GetFloat() * g.m_interfaces->globals()->m_interval_per_tick * 0.5f;
+        if (data.ground)
+            hit_ground = true;
         else
-        {
-            if (on_ground)
-                *on_ground = data.ground;
-            if (origin)
-                *origin = data.end;
-            if (velocity)
-                *velocity = data.velocity;
-            if (end_yaw)
-                *end_yaw = data.direction;
-            if (stamina_)
-                *stamina_ = stamina;
-            return false;
-        }
+            data.velocity.z -= sv_gravity->GetFloat() * g.m_interfaces->globals()->m_interval_per_tick * 0.5f;
     }
 
-    return true;
+    // the entire loop has ran
+    // we did not hit shit.
+    return !hit_ground;
 }

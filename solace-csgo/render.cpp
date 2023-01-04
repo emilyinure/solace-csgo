@@ -58,12 +58,13 @@ auto render_t::get_text_height(const char *text, font_t &font) -> int {
 }
 
 auto render_t::setup(IDirect3DDevice9 *device) -> void {
-  static std::once_flag setup{};
-  std::call_once(setup, [device, this]() {
+  static bool setup{false};
+  if (!setup) {
     this->device_ = device;
     this->create_fonts();
     this->device_->GetViewport(&this->screen_size_);
-  });
+  }
+  setup = true;
 }
 
 auto render_t::text(font_t &font, float x, float y, color col, const char *text,

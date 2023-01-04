@@ -175,8 +175,8 @@ private:
 	_BoneSetup *m_pBoneSetup;
 };
 
-void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaternion_t *q, int boneMask, float sim_time, CIKContext *ik ) {
-	const BoneSetup boneSetup( studioHdr, boneMask, player->pose_parameters( ) );
+void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaternion_t *q, int boneMask, float sim_time, CIKContext *ik, ang_t angles, vec3_t origin, float *poses, animation_layer_t*layers ) {
+    const BoneSetup boneSetup(studioHdr, boneMask, poses);
 	boneSetup.InitPose( pos, q );
 	boneSetup.AccumulatePose( pos, q, player->sequence( ), player->cycle( ), 1.f, sim_time, ik );
 
@@ -187,7 +187,7 @@ void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaterni
 	}
 
 	for ( auto i = 0; i < 15; i++ ) {
-		auto *pLayer = &player->anim_overlay()[ i ];
+        auto* pLayer = &layers[i];
 		pLayer->m_owner = player;
 		if ( ( pLayer->m_weight > 0.f ) && pLayer->m_sequence != -1 && pLayer->m_order >= 0 && pLayer->m_order < 15 ) {
 			layer[ pLayer->m_order ] = i;
@@ -224,7 +224,7 @@ void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaterni
 			weapon_world_model->m_pBoneMergeCache( )->MergeMatchingPoseParams( );
 
 			CIKContext weaponIK;
-			weaponIK.Init( weapon_studio_hdr, player->abs_angles( ), player->abs_origin( ), sim_time, 0, BONE_USED_BY_BONE_MERGE );
+            weaponIK.Init(weapon_studio_hdr, angles, origin, sim_time, 0, BONE_USED_BY_BONE_MERGE);
 
 			const BoneSetup weaponSetup( weapon_studio_hdr, BONE_USED_BY_BONE_MERGE, weapon_world_model->pose_parameters( ) );
 			alignas( 16 ) vec3_t weaponPos[ 128 ];
@@ -233,7 +233,7 @@ void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaterni
 			weaponSetup.InitPose( weaponPos, weaponQ );
 
 			for ( auto i = 0; i < 15; i++ ) {
-				auto *pLayer = &player->anim_overlay( )[ i ];
+                auto* pLayer = &layers[i];
 				if ( pLayer->m_sequence <= 1 || pLayer->m_cycle <= 0.f ) {
 					//if ( weapon_studio_hdr->m_pVModel )
 					//	seq_count = ((CUtlVector< virtualsequence_t > *)(weapon_studio_hdr->m_pVModel + 20))->Count( );
@@ -245,7 +245,7 @@ void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaterni
 
 						if ( ik ) {
 							auto &seqdesc = studioHdr->pSeqdesc( pLayer->m_sequence );
-							ik->AddDependencies( seqdesc, pLayer->m_sequence, pLayer->m_cycle, player->pose_parameters( ), pLayer->m_weight );
+                            ik->AddDependencies(seqdesc, pLayer->m_sequence, pLayer->m_cycle, poses, pLayer->m_weight);
 						}
 
 						weaponSetup.AccumulatePose( weaponPos, weaponQ, pLayer->m_nDispatchedDst, pLayer->m_cycle, pLayer->m_weight, sim_time, &weaponIK );
@@ -263,14 +263,14 @@ void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaterni
 	else {
 		for ( auto i = 0; i < 15; i++ ) {
 			if ( layer[ i ] >= 0 && layer[ i ] < 15 ) {
-				const auto pLayer = player->anim_overlay( )[ layer[ i ] ];
+                const auto pLayer = layers[layer[i]];
 				boneSetup.AccumulatePose( pos, q, pLayer.m_sequence, pLayer.m_cycle, pLayer.m_weight, sim_time, ik );
 			}
 		}
 	}
 
 	CIKContext auto_ik;
-	auto_ik.Init( studioHdr, player->abs_angles( ), player->abs_origin( ), sim_time, 0, boneMask );
+	auto_ik.Init( studioHdr, angles, origin, sim_time, 0, boneMask );
 	boneSetup.CalcAutoplaySequences( pos, q, sim_time, &auto_ik );
 
 	if ( studioHdr->m_pStudioHdr->bone_controllers_count > 0 ) {
@@ -391,7 +391,7 @@ bool bones_t::BuildBonesStripped( player_t *target, int mask, bone_array_t *out,
 	if ( ipk ) {
 		ipk->Init( hdr, target->abs_angles( ), target->abs_origin( ), g.m_interfaces->globals( )->m_curtime, g.m_interfaces->globals( )->m_tickcount, mask );
 		target->UpdateIKLocks( g.m_interfaces->globals( )->m_curtime );
-		GetSkeleton( target, hdr, pos, q, mask, g.m_interfaces->globals( )->m_curtime, ipk );
+		GetSkeleton( target, hdr, pos, q, mask, g.m_interfaces->globals( )->m_curtime, ipk, target->abs_angles(), target->abs_origin(), target->pose_parameters(), target->anim_overlay() );
 		ipk->UpdateTargets( pos, q, accessor->m_pBones, &computed[ 0 ] );
 		target->CalculateIKLocks( g.m_interfaces->globals( )->m_curtime );
 		ipk->SolveDependencies( pos, q, accessor->m_pBones, computed );
@@ -413,8 +413,6 @@ bool bones_t::BuildBonesStripped( player_t *target, int mask, bone_array_t *out,
 bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::shared_ptr<player_record_t> record, CIKContext *ipk ) {
 	alignas(16) vec3_t		     pos[ 128 ];
 	alignas(16) quaternion_t     q[ 128 ];
-	float            backup_poses[ 24 ];
-	animation_layer_t backup_layers[ 15 ];
 
 	// get hdr.
 
@@ -441,22 +439,16 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 
 	// backup original.
 	const auto mins = target->mins( ), maxs = target->maxs( );
-	const vec3_t backup_origin = target->abs_origin( );
-	const ang_t backup_angles = target->abs_angles( );
     const int backup_eflags = target->iEFlags();
-	target->GetPoseParameters( backup_poses );
-	target->GetAnimLayers( backup_layers );
 
 	// set non interpolated data.
     const auto old_effects = target->m_fEffects();
     target->iEFlags() &= ~0x1000;
-    target->iEFlags() &= ~(1 << 11);
-    target->iEFlags() |= (1 << 3);
-    target->InvalidatePhysicsRecursive(entity_t::ANGLES_CHANGED);
-    target->InvalidatePhysicsRecursive(entity_t::ANIMATION_CHANGED);
-    target->InvalidatePhysicsRecursive(entity_t::SEQUENCE_CHANGED);
-	target->set_abs_origin( record->m_pred_origin );
-	target->set_abs_angles( record->m_abs_angles );
+    //target->iEFlags() &= ~(1 << 11);
+    //target->iEFlags() |= (1 << 3);
+    //target->InvalidatePhysicsRecursive(entity_t::ANGLES_CHANGED);
+    //target->InvalidatePhysicsRecursive(entity_t::ANIMATION_CHANGED);
+    //target->InvalidatePhysicsRecursive(entity_t::SEQUENCE_CHANGED);
 	target->SetPoseParameters( record->m_poses );
 	target->SetAnimLayers( record->m_layers );
 
@@ -482,9 +474,10 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 
 		//target->StandardBlendingRules(hdr, pos, q, record->m_sim_time, mask);
 		if ( ipk ) {
-			ipk->Init( hdr, target->abs_angles( ), target->abs_origin( ), record->m_pred_time, g.time_to_ticks( record->m_pred_time ), mask );
+            ipk->Init(hdr, record->m_abs_angles, record->m_pred_origin, record->m_pred_time,
+                      g.time_to_ticks(record->m_pred_time), mask);
 			target->UpdateIKLocks( record->m_pred_time );
-			GetSkeleton( target, hdr, pos, q, mask, record->m_pred_time, ipk );
+			GetSkeleton( target, hdr, pos, q, mask, record->m_pred_time, ipk, record->m_abs_angles, record->m_origin, record->m_poses, record->m_layers );
 			ipk->UpdateTargets( pos, q, accessor->m_pBones, &computed[ 0 ] );
 			target->CalculateIKLocks( record->m_pred_time );
 			ipk->SolveDependencies( pos, q, accessor->m_pBones, computed );
@@ -493,7 +486,8 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 
 		}
 		// compute and build bones.
-		Studio_BuildMatrices( hdr->m_pStudioHdr, target->abs_angles( ), target->abs_origin( ), pos, q, -1, 1, accessor->m_pBones, mask );
+        Studio_BuildMatrices(hdr->m_pStudioHdr, record->m_abs_angles, record->m_origin, pos, q, -1, 1,
+                             accessor->m_pBones, mask);
 
 		accessor->m_pBones = backup_matrix;
 	}
@@ -501,10 +495,6 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 	// restore original interpolated entity data.
 	target->mins( ) = mins;
 	target->maxs( ) = maxs;
-	target->set_abs_origin( backup_origin );
-	target->set_abs_angles( backup_angles );
-	target->SetPoseParameters( backup_poses );
-	target->SetAnimLayers( backup_layers );
 
 	// revert to old game behavior.
 	m_running = false;

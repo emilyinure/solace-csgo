@@ -11,6 +11,8 @@ class movement {
 	vec3_t m_origin;
 	vec3_t m_mins;
 	vec3_t m_maxs;
+    float m_direction = 1;
+
 public:
 	void set_should_stop( bool state ) { m_should_stop = state; };
 	void set_force_strafe( bool state ) { m_force_strafe = state; };
@@ -37,8 +39,6 @@ public:
 	bool try_player_move( vec3_t& velocity, vec3_t& position, bool on_ground );
 	bool GetClosestPlane( vec3_t& plane );
     void try_touch_ground_in_quadrants(const vec3_t& start, const vec3_t& end, unsigned int fMask, trace_t& pm);
-    bool WillCollide(float change, float start, vec3_t* velocity = nullptr, vec3_t* origin = nullptr,
-                     bool* on_ground = nullptr, float* end_yaw = nullptr,
-                     float* stamina_ = nullptr);
+    bool WillCollide(float time, float change, float start);
 } inline g_movement;
 

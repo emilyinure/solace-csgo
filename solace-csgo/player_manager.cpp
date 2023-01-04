@@ -36,12 +36,12 @@ void player_record_t::cache(int index) const
 
 bool player_record_t::valid() const
 {
-    if (!g.m_interfaces->client_state()->m_net_channel)
+    if (!g.m_interfaces->client_state()->m_NetChannel)
         return false;
     // use prediction curtime for this.
     float curtime = g.ticks_to_time(g.m_local->tick_base());
     static auto* sv_maxunlag = g.m_interfaces->console()->get_convar("sv_maxunlag");
-    if (floorf(curtime - sv_maxunlag->GetFloat()) > m_pred_time)
+    if (floorf(curtime - sv_maxunlag->GetFloat()) > g.ticks_to_time(m_tick))
         return false;
 
     // correct is the amount of time we have to correct game time,
@@ -50,13 +50,13 @@ bool player_record_t::valid() const
     // stupid fake latency goes into the incoming latency.
     auto* nci = g.m_interfaces->engine()->get_net_channel_info();
     if (nci)
-        correct += nci->GetLatency(1);
+        correct += nci->GetLatency(1) + nci->GetLatency(0);
     // check bounds [ 0, sv_maxunlag ]
     correct = std::clamp<float>(correct, 0.f, sv_maxunlag->GetFloat());
 
     // calculate difference between tick sent by player and our latency based
     // tick. ensure this record isn't too old.
-    return std::fabsf(correct - (curtime - m_pred_time)) < 0.19f;
+    return std::fabsf(correct - (curtime - g.ticks_to_time(m_tick))) < 0.19f;
 }
 
 // bool player_record_t::valid() const {
@@ -122,7 +122,7 @@ player_record_t::player_record_t(ent_info_t* info, float last_sim)
     m_pred_velocity = m_velocity = info->m_ent->velocity();
     m_body = info->m_ent->lower_body_yaw();
 
-    m_tick = g.m_interfaces->client_state()->m_server_tick;
+    m_tick = g.m_interfaces->client_state()->m_ClockDriftMgr.m_nServerTick;
     m_ent->GetAnimLayers(m_layers);
     g.m_interfaces->mdlcache()->begin_lock();
     feet_cycle = m_layers[6].m_cycle;
@@ -638,17 +638,50 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                 // strip the on ground flag.
                 m_ent->flags() &= ~fl_onground;
 
-                float flLandTime = 0.0f;
+                //float flLandTime = 0.0f;
+                //bool bLandedOnServer = false;
+                //if (record->m_layers[4].m_cycle != previous->m_layers[4].m_cycle &&
+                //    record->m_layers[5].m_cycle != previous->m_layers[5].m_cycle && record->m_layers[5].m_cycle != 0)
+                //{
+                //    m_ent->flags() |= fl_onground;
+                //}
+                //else if (record->m_layers[4].m_cycle != previous->m_layers[4].m_cycle &&
+                //         record->m_layers[5].m_cycle == previous->m_layers[5].m_cycle)
+                //{
+                //    m_ent->flags() &= ~fl_onground;
+                //}
+
+                
+			    float flLandTime = 0.0f;
+                bool bJumped = false;
                 bool bLandedOnServer = false;
-                if (record->m_layers[4].m_cycle != previous->m_layers[4].m_cycle &&
-                    record->m_layers[5].m_cycle != previous->m_layers[5].m_cycle && record->m_layers[5].m_cycle != 0)
+                if (record->m_layers[4].m_cycle< 0.5f &&
+                    (!(record->m_flags & fl_onground) || !(previous->m_flags & fl_onground)))
                 {
-                    m_ent->flags() |= fl_onground;
+                    // note - VIO (violations btw);
+                    // well i guess when llama wrote v3, he was drunk or sum cuz this is incorrect. -> cuz he changed
+                    // this in v4. and alpha didn't realize this but i did, so its fine. improper way to do this ->
+                    // flLandTime = record->m_flSimulationTime - float( record->m_serverAnimOverlays[ 4
+                    // ].m_flPlaybackRate * record->m_serverAnimOverlays[ 4 ].m_flCycle ); we need to divide instead of
+                    // multiplication.
+                    flLandTime = record->m_sim_time -
+                                 float(record->m_layers[4].m_playback_rate / record->m_layers[4].m_playback_rate);
+                    bLandedOnServer = flLandTime >= previous->m_sim_time;
                 }
-                else if (record->m_layers[4].m_cycle != previous->m_layers[4].m_cycle &&
-                         record->m_layers[5].m_cycle == previous->m_layers[5].m_cycle)
+
+                bool bOnGround = record->m_flags & fl_onground;
+                // jump_fall fix
+                if (bLandedOnServer && !bJumped)
                 {
-                    m_ent->flags() &= ~fl_onground;
+                    if (flLandTime <= record->m_anim_time)
+                    {
+                        bJumped = true;
+                        bOnGround = true;
+                    }
+                    else
+                    {
+                        bOnGround = previous->m_flags & fl_onground;
+                    }
                 }
 
                 // fix crouching players.
@@ -707,8 +740,8 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
     //	// 'm_animating' returns true if being called from SetupVelocity, passes
     // raw velocity to animstate.
     //
-    auto backup_overlay_count = m_ent->anim_overlay_vec().Count();
-    m_ent->anim_overlay_vec().m_Size = (0);
+    //auto backup_overlay_count = m_ent->anim_overlay_vec().Count();
+    //m_ent->anim_overlay_vec().m_Size = (0);
 
     m_ent->eye_angles() = record->m_eye_angles;
     m_ent->client_side_anim() = true;
@@ -754,8 +787,8 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                 for (uint32_t i = 0; i < mode_data->m_dir_data.size(); i++)
                 {
                     auto& record_dir_data = record->m_resolver_data.m_dir_data[i];
-                    std::memcpy( state, &m_resolver_data.m_states[ i ],
-                    sizeof( anim_state ) );
+                    //std::memcpy( state, &m_resolver_data.m_states[ i ],
+                    //sizeof( anim_state ) );
 
                     m_ent->eye_angles().y = math::normalize_angle(record_dir_data.angles, 180);
 
@@ -766,35 +799,35 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                         state->feetYawRate = m_records[1]->feet_yaw_rate;
                         state->feetCycle = m_records[1]->feet_cycle;
 
-                        //m_ent->SetAnimLayers(m_records[1]->m_layers);
+                        m_ent->SetAnimLayers(record->m_layers);
                     }
                     else
                     {
                         state->feetYawRate = record->feet_yaw_rate;
                         state->feetCycle = record->feet_cycle;
 
-                        //m_ent->SetAnimLayers(record->m_layers);
+                        m_ent->SetAnimLayers(record->m_layers);
                     }
-                    m_ent->iEFlags() &= ~0x1000;
+                    //m_ent->iEFlags() &= ~0x1000;
                     m_ent->update_client_side_animation();
 
                     m_ent->GetPoseParameters(record_dir_data.poses);
                     record_dir_data.m_abs_angles = m_ent->abs_angles();
 
-                    std::memcpy( &m_resolver_data.m_states[ i ], state,
-                    sizeof( anim_state ) );
+                    //std::memcpy( &m_resolver_data.m_states[ i ], state,
+                    //sizeof( anim_state ) );
 
                     if (mode_data->m_index == i)
                     {
                         record->m_abs_angles = m_ent->abs_angles();
                         index_found = true;
                         std::memcpy(&index_state, state, sizeof(anim_state));
-                        memcpy(record->m_poses, record_dir_data.poses, sizeof(float) * 24);
+                        m_ent->GetPoseParameters(record->m_poses);
                     }
 
                     memcpy(state, &backup_anim_state, sizeof(anim_state));
                     m_ent->SetPoseParameters(backup.m_poses);
-                    //m_ent->SetAnimLayers(backup.m_layers);
+                    m_ent->SetAnimLayers(backup.m_layers);
                 }
             }
             if (index_found)
@@ -811,22 +844,22 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                     state->feetYawRate = m_records[1]->feet_yaw_rate;
                     state->feetCycle = m_records[1]->feet_cycle;
 
-                    //m_ent->SetAnimLayers(m_records[1]->m_layers);
+                    m_ent->SetAnimLayers(record->m_layers);
                 }
                 else
                 {
                     state->feetYawRate = record->feet_yaw_rate;
                     state->feetCycle = record->feet_cycle;
 
-                    //m_ent->SetAnimLayers(record->m_layers);
+                    m_ent->SetAnimLayers(record->m_layers);
                 }
 
-                m_ent->iEFlags() &= ~0x1000;
+                //m_ent->iEFlags() &= ~0x1000;
                 m_ent->update_client_side_animation();
                 record->m_abs_angles = m_ent->abs_angles();
                 // store updated/animated poses and rotation in lagrecord.
                 m_ent->GetPoseParameters(record->m_poses);
-                //m_ent->SetAnimLayers(backup.m_layers);
+                m_ent->SetAnimLayers(backup.m_layers);
             }
         }
         else
@@ -840,28 +873,28 @@ void ent_info_t::UpdateAnimations(std::shared_ptr<player_record_t> record)
                 state->feetYawRate = m_records[1]->feet_yaw_rate;
                 state->feetCycle = m_records[1]->feet_cycle;
 
-                //m_ent->SetAnimLayers(m_records[1]->m_layers);
+                m_ent->SetAnimLayers(record->m_layers);
             }
             else
             {
                 state->feetYawRate = record->feet_yaw_rate;
                 state->feetCycle = record->feet_cycle;
 
-                //m_ent->SetAnimLayers(record->m_layers);
+                m_ent->SetAnimLayers(record->m_layers);
             }
 
-            m_ent->iEFlags() &= ~0x1000;
+            //m_ent->iEFlags() &= ~0x1000;
             m_ent->update_client_side_animation();
             record->m_abs_angles = m_ent->abs_angles();
             // store updated/animated poses and rotation in lagrecord.
             m_ent->GetPoseParameters(record->m_poses);
-            //m_ent->SetAnimLayers(backup.m_layers);
+            m_ent->SetAnimLayers(backup.m_layers);
         }
 
         g.m_interfaces->globals()->m_curtime = curtime;
         g.m_interfaces->globals()->m_frametime = frametime;
     }
-    m_ent->anim_overlay_vec().m_Size = (backup_overlay_count);
+    //m_ent->anim_overlay_vec().m_Size = (backup_overlay_count);
     m_ent->client_side_anim() = false;
     //}
 

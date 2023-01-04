@@ -613,7 +613,7 @@ bool __fastcall NetShowFragmentsGetBool(void* this_ptr, uint32_t edx)
 
     if (_ReturnAddress() == reinterpret_cast<void*>(read_sub_channel_data_ret) && last_fragment > 0)
     {
-        const auto data = &reinterpret_cast<uint32_t*>(g.m_interfaces->client_state()->m_net_channel)[0x56];
+        const auto data = &reinterpret_cast<uint32_t*>(g.m_interfaces->client_state()->m_NetChannel)[0x56];
         const auto bytes_fragments = reinterpret_cast<uint32_t*>(data)[0x43];
 
         if (bytes_fragments == last_fragment)
@@ -625,7 +625,7 @@ bool __fastcall NetShowFragmentsGetBool(void* this_ptr, uint32_t edx)
 
     if (_ReturnAddress() == check_receiving_list_ret)
     {
-        const auto data = &reinterpret_cast<uint32_t*>(g.m_interfaces->client_state()->m_net_channel)[0x56];
+        const auto data = &reinterpret_cast<uint32_t*>(g.m_interfaces->client_state()->m_NetChannel)[0x56];
         const auto bytes_fragments = reinterpret_cast<uint32_t*>(data)[0x43];
 
         last_fragment = bytes_fragments;
