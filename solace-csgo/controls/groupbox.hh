@@ -186,8 +186,8 @@ public:
 			}
 		}
 		if ( this->selected_tab != nullptr ) {
-			if ( input_helper.hovering( { this->area.x + 1, this->area.y + 20, this->area.w - 2, this->area.h - 21.f } ) )
-				this->selected_tab->update( );
+			//if ( input_helper.hovering( { this->area.x + 1, this->area.y + 20, this->area.w - 2, this->area.h - 21.f } ) )
+			this->selected_tab->update( );
 		}
 	}
 	auto disable( ) -> void  override {
