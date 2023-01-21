@@ -69,7 +69,9 @@ auto c_form::update ( ) -> void {
 
 	if ( this->should_drag_ && this->clicked_ ) {
 		this->area_.x = mouse_position.x - this->drag_offset_.x;
-		this->area_.y = mouse_position.y - this->drag_offset_.y;
+        this->area_.y = mouse_position.y - this->drag_offset_.y;
+        this->area_.x = std::clamp<float>(this->area_.x, 0, g.m_render->m_screen_size().Width - this->area_.w); 
+        this->area_.y = std::clamp<float>(this->area_.y, 0, g.m_render->m_screen_size().Height - this->area_.h); 
 	}
 
 	if ( input_helper.hovering( {this->area_.x, this->area_.y, this->area_.w, 15} ) ) {
