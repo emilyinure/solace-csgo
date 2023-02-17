@@ -72,7 +72,6 @@ void c_g::on_render(IDirect3DDevice9* device)
 {
     m_render->m_verts.clear();
     m_render->m_idx.clear();
-    m_render->gradient(0, 0, 100, 100, color(255, 0, 0), color(0, 255, 0));
     m_render->setup(device);
     m_render->start();
 

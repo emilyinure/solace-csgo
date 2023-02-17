@@ -52,6 +52,7 @@ public:
             }
             offset = child_offset.y + 6;
             // draw.
+            g.m_render->push_clip(this->area.x + 1, this->area.y, this->area.w - 2, this->area.h - 1);
             auto has_focus = false;
             for (const auto& child : this->children_)
             {
@@ -63,6 +64,7 @@ public:
 
                 child->draw();
             }
+            g.m_render->pop_clip();
 
             if (has_focus && menu.focused_control)
                 menu.focused_control->draw();
@@ -176,7 +178,6 @@ public:
 
             // draw.
             auto has_focus = false;
-            g.m_render->push_clip(this->area.x + 1, this->area.y + 20, this->area.w, this->area.h - 21);
             for (const auto& child : this->children_)
             {
                 if (!selected_tab)
@@ -189,7 +190,6 @@ public:
                 child->draw();
             }
 
-            g.m_render->pop_clip();
         }
         // this->area.h = ( 16 * this->children_.size( ) );
     }

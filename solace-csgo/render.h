@@ -210,7 +210,8 @@ public:
 	auto outlined_rect( const float x, const float y, float w, float h, const color col ) const -> void;
 	auto line( const float x, const float y, const float x2, const float y2, const color color, const int dwWidth = 1) const -> void;
 	auto line( D3DXVECTOR2* lines, int count, const color color, const int dwWidth ) const -> void;
-	auto gradient( const float x, const float y, const float w, const float h, const color col, const color col2, const bool vertical = 0 ) -> void;
+    auto gradient(const float x, const float y, const float w, const float h, const color col, const color col2,
+                  const bool vertical = 0) const -> void;
 	auto push_clip( const float x, const float y, const float w, const float h ) -> void;
 	auto push_clip( area_t area ) -> void;
 	auto pop_clip( ) -> void;
