@@ -4,21 +4,49 @@
 
 #include "includes.h"
 
-class hurt_listener final : IGameEventListener2 {
-	void FireGameEvent( IGameEvent *evt ) override {
-		g_resolver.OnHurt( evt );
-	}
+class hurt_listener final : IGameEventListener2
+{
+    void FireGameEvent(IGameEvent* evt) override
+    {
+        g_resolver.OnHurt(evt);
+    }
+
 public:
-	void init( IGameEventManager2 *game_events ) {
-		game_events_ = ( game_events );
-		game_events_->AddListener( this, "player_hurt", false );
-	}
-	~hurt_listener( ) {
-		game_events_->RemoveListener( this );
-	}
+    void init(IGameEventManager2* game_events)
+    {
+        game_events_ = (game_events);
+        game_events_->AddListener(this, "player_hurt", false);
+    }
+    ~hurt_listener()
+    {
+        game_events_->RemoveListener(this);
+    }
+
 private:
-	IGameEventManager2 *game_events_;
+    IGameEventManager2* game_events_;
 } hurt_listener;
+
+class weapon_fire_listener final : IGameEventListener2
+{
+    void FireGameEvent(IGameEvent* evt) override
+    {
+        g_resolver.OnFire(evt);
+    }
+
+public:
+    void init(IGameEventManager2* game_events)
+    {
+        game_events_ = (game_events);
+        game_events_->AddListener(this, "weapon_fire", false);
+    }
+    ~weapon_fire_listener()
+    {
+        game_events_->RemoveListener(this);
+    }
+
+private:
+    IGameEventManager2* game_events_;
+} weapon_fire_listener;
 
 class impact_listener final : IGameEventListener2 {
 	void FireGameEvent( IGameEvent *evt ) override {
@@ -70,11 +98,13 @@ private:
 	IGameEventManager2 *game_events_;
 } end_listener;
 
-void events::init( ) {
-	hurt_listener.init( g.m_interfaces->events( ) );
-	impact_listener.init( g.m_interfaces->events( ) );
-	start_listener.init( g.m_interfaces->events( ) );
-	end_listener.init( g.m_interfaces->events( ) );
+void events::init()
+{
+    weapon_fire_listener.init(g.m_interfaces->events() );
+    impact_listener.init(g.m_interfaces->events());
+    hurt_listener.init(g.m_interfaces->events());
+    start_listener.init(g.m_interfaces->events());
+    end_listener.init(g.m_interfaces->events());
 }
 
 void events::destroy( ) {
@@ -82,6 +112,7 @@ void events::destroy( ) {
 	impact_listener.~impact_listener( );
 	start_listener.~start_listener( );
 	end_listener.~end_listener( );
+    weapon_fire_listener.~weapon_fire_listener();
 }
 
 void events::player_hurt( IGameEvent *evt ) {

@@ -121,7 +121,7 @@ public:
 	typedescription_t *find_var( const char *name ) const {
 		if ( !m_num_fields || m_num_fields > 200 || !m_desc || !m_name )
 			return nullptr;
-		if ( m_desc && m_num_fields > 0) {
+		if ( m_num_fields > 0) {
 			for ( int i{}; i < m_num_fields; ++i ) {
 				typedescription_t *var = &m_desc[ i ];
 				if ( !var->m_name )

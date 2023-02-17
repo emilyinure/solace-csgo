@@ -237,7 +237,8 @@ public:
 	ang_t &abs_angles( ) {
 		using original_fn = ang_t & ( __thiscall * )( void * );
 		return ( *( original_fn ** )this )[ 11 ]( this );;
-	}
+    }
+    
 
 	void *bone_merge_cache() {
 		return reinterpret_cast< void * >( reinterpret_cast< uintptr_t >( this ) + 0x28FC );
@@ -488,8 +489,9 @@ public:
 
 	}
 	OFFSET( vec3_t, abs_vel, 0x94 );
-	OFFSET( float, sim_time, g.m_offsets->m_player.m_simulation_time );
-	OFFSET( vec3_t, origin, g.m_offsets->m_player.m_origin );
+    OFFSET(float, sim_time, g.m_offsets->m_player.m_simulation_time);
+    OFFSET(vec3_t, origin, g.m_offsets->m_player.m_origin);
+    OFFSET(vec3_t, network_origin, g.m_offsets->m_player.m_network_origin);
 	OFFSET( int, active_weapon, g.m_offsets->m_player.m_active_weapon );
 	VFUNC( is_player( ), 152, bool( __thiscall * )( decltype( this ) ) )
 };
@@ -647,7 +649,8 @@ public:
                 OFFSET(int, m_ground_entity,
                        g.m_offsets->m_player.m_ground_ent);
                 OFFSET(float, stamina, g.m_offsets->m_player.m_stamina);
-	OFFSET( ang_t, aim_punch, g.m_offsets->m_player.m_aim_punch_angle );
+                OFFSET(ang_t, aim_punch, g.m_offsets->m_player.m_aim_punch_angle);
+                OFFSET(vec3_t, view_offset, g.m_offsets->m_player.m_view_offset);
 	OFFSET( ang_t, punch, g.m_offsets->m_player.m_punch_angle );
 	OFFSET( int, armor, g.m_offsets->m_player.m_armor );
 	OFFSET(float, duck_amount, g.m_offsets->m_player.m_duck_amount);

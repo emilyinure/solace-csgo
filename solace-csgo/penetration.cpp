@@ -2,7 +2,6 @@
 
 
 #include "includes.h"
-#include "thread_handler.h"
 
 using IsBreakableEntity_t = bool( __thiscall * )( entity_t * );
 bool penetration::IsBreakable( entity_t *ent ) {

@@ -80,6 +80,10 @@
     <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgEnabled>false</VcpkgEnabled>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
@@ -102,9 +106,9 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <FunctionLevelLinking>false</FunctionLevelLinking>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;CSSHACK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -121,6 +125,8 @@
       <FloatingPointModel>Precise</FloatingPointModel>
       <BrowseInformation>false</BrowseInformation>
       <DebugInformationFormat>None</DebugInformationFormat>
+      <Optimization>MaxSpeed</Optimization>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -166,6 +172,7 @@
     <ClInclude Include="address.h" />
     <ClInclude Include="aimbot.h" />
     <ClInclude Include="animstate.h" />
+    <ClInclude Include="atomic_lock.h" />
     <ClInclude Include="base_client.h" />
     <ClInclude Include="block_bot.h" />
     <ClInclude Include="bones.h" />
@@ -212,10 +219,12 @@
     <ClInclude Include="menu.hh" />
     <ClInclude Include="model_info.h" />
     <ClInclude Include="movement.h" />
+    <ClInclude Include="mutex.h" />
     <ClInclude Include="netvars.h" />
     <ClInclude Include="netvar_manager.h" />
     <ClInclude Include="notification.h" />
     <ClInclude Include="offsets.h" />
+    <ClInclude Include="packed_heap.h" />
     <ClInclude Include="penetration.h" />
     <ClInclude Include="physics.h" />
     <ClInclude Include="player.h" />
@@ -226,10 +235,12 @@
     <ClInclude Include="render.h" />
     <ClInclude Include="resolver.h" />
     <ClInclude Include="sdk.h" />
+    <ClInclude Include="semaphores.h" />
     <ClInclude Include="settings.h" />
+    <ClInclude Include="shared_mutex.h" />
     <ClInclude Include="studio.h" />
     <ClInclude Include="tfm.h" />
-    <ClInclude Include="thread_handler.h" />
+    <ClInclude Include="Threading.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="vec3.h" />
     <ClInclude Include="view_setup.h" />
@@ -240,6 +251,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="aimbot.cpp" />
+    <ClCompile Include="atomic_lock.cpp" />
     <ClCompile Include="block_bot.cpp" />
     <ClCompile Include="bones.cpp" />
     <ClCompile Include="buy_bot.cpp" />
@@ -256,10 +268,12 @@
     <ClCompile Include="math_funcs.cpp" />
     <ClCompile Include="menu.cc" />
     <ClCompile Include="movement.cpp" />
+    <ClCompile Include="mutex.cpp" />
     <ClCompile Include="netvars.cpp" />
     <ClCompile Include="datamap.h" />
     <ClCompile Include="netvar_manager.cpp" />
     <ClCompile Include="notification.cpp" />
+    <ClCompile Include="packed_heap.cpp" />
     <ClCompile Include="penetration.cpp" />
     <ClCompile Include="player.cpp" />
     <ClCompile Include="player_manager.cpp" />
@@ -267,8 +281,10 @@
     <ClCompile Include="predictioncopy.cpp" />
     <ClCompile Include="render.cpp" />
     <ClCompile Include="resolver.cpp" />
+    <ClCompile Include="semaphores.cpp" />
+    <ClCompile Include="shared_mutex.cpp" />
     <ClCompile Include="studio.cpp" />
-    <ClCompile Include="thread_hander.cpp" />
+    <ClCompile Include="Threading.cpp" />
     <ClCompile Include="vec3.cpp" />
     <ClCompile Include="view_matrix.cpp" />
   </ItemGroup>

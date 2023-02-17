@@ -29,9 +29,11 @@ struct player_record_t {
 	ent_info_t* m_info = nullptr;
 	
 	bool m_setup = false;
+    bool m_fake_bones_setup = false;
 	bool m_ukn_vel = false;
 	int m_tick{};
 	int m_lag = 0;
+    int m_backtrack_tick = 0;
 	bool m_dormant = false;
 	float m_duck_speed = 0.f;
 	float m_sim_time = 0.0f;
@@ -76,7 +78,7 @@ struct player_record_t {
 
 	void cache( int index = -1 ) const;
 
-	bool valid ( ) const;
+	bool valid ( );
     player_record_t(ent_info_t* info, float last_sim);
     float set_lerped_time(player_record_t* prev, player_record_t* next);
 	// lagfix stuff.
@@ -208,7 +210,6 @@ struct ent_info_t {
 	
 	bool m_valid = false;
 	bool m_teamate = false;
-	bool m_setup = false;
 	float m_spawn = -1.f;
 
 	bool m_dormant = false;

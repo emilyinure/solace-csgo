@@ -33,12 +33,12 @@ void adjust_time()
     }
 }
 
-void prediction::start(cmd_t* cmd)
+void prediction::start(player_t* player, cmd_t* cmd)
 {
-    if (!g.m_local)
+    if (!player)
         return;
 
-    g.m_interfaces->prediction()->SuppressHostEvents(g.m_local);
+    g.m_interfaces->prediction()->SuppressHostEvents(player);
     g.m_in_pred = true;
     static player_move_data data;
     if (!prediction_random_seed)
@@ -47,71 +47,71 @@ void prediction::start(cmd_t* cmd)
         prediction_player = address{g.m_interfaces->prediction().hook()->get_original(19)}.add(0x54).get<player_t*>();
 
     *prediction_random_seed = cmd->m_randomseed;
-    prediction_player = g.m_local;
+    prediction_player = player;
 
-    g.m_interfaces->move_helper()->set_host(g.m_local);
+    g.m_interfaces->move_helper()->set_host(player);
 
     typedef char(__thiscall * start_command_t)(void*, void*);
     static auto start_command = reinterpret_cast<start_command_t>(util::find("client.dll", "55 8B EC 8B 55 ? 3B CA"));
 
     auto dummy_cmd = *cmd;
 
-    g.m_local->m_cmd() = &dummy_cmd;
+    player->m_cmd() = &dummy_cmd;
     dummy_cmd.m_buttons |= IN_ATTACK;
-    start_command(&g.m_local->m_cmd_ukn(), &dummy_cmd);
+    start_command(&player->m_cmd_ukn(), &dummy_cmd);
 
     old_cur_time = g.m_interfaces->globals()->m_curtime;
     old_frame_time = g.m_interfaces->globals()->m_frametime;
 
-    g.m_interfaces->globals()->m_curtime = g.ticks_to_time(g.m_local->tick_base());
+    g.m_interfaces->globals()->m_curtime = g.ticks_to_time(player->tick_base());
     g.m_interfaces->globals()->m_frametime = g.m_interfaces->globals()->m_interval_per_tick;
 
     g.m_interfaces->prediction()->bIsFirstTimePredicted = false;
     g.m_interfaces->prediction()->bInPrediction = true;
 
-    g.m_interfaces->game_movement()->start_track_prediction_errors(g.m_local);
+    g.m_interfaces->game_movement()->start_track_prediction_errors(player);
     if (dummy_cmd.m_weaponselect != 0)
     {
         /// TODO: reverse and implement weapon selection
     }
 
-    dummy_cmd.m_buttons |= *(int*)((uintptr_t)g.m_local + 0x3310);
+    dummy_cmd.m_buttons |= *(int*)((uintptr_t)player + 0x3310);
 
-    g.m_local->UpdateButtons(g.m_local, dummy_cmd.m_buttons);
-    g.m_local->set_angles(dummy_cmd.m_viewangles);
+    player_t::UpdateButtons(player, dummy_cmd.m_buttons);
+    player->set_angles(dummy_cmd.m_viewangles);
 
-    g.m_interfaces->prediction()->check_moving_ground(g.m_local, g.m_interfaces->globals()->m_frametime);
+    g.m_interfaces->prediction()->check_moving_ground(player, g.m_interfaces->globals()->m_frametime);
 
     typedef char(__thiscall * physics_run_think_t)(void*, int);
     static auto physics_run_think = reinterpret_cast<physics_run_think_t>(
         util::find("client.dll", "55 8B EC 83 EC ? 53 56 57 8B F9 8B 87 ? ? ? ? C1 E8 ?"));
-    if (physics_run_think(g.m_local, 0))
-        g.m_local->PreThink();
+    if (physics_run_think(player, 0))
+        player->PreThink();
 
     typedef void(__thiscall * set_next_think_t)(void*, char);
     static auto set_next_think =
         reinterpret_cast<set_next_think_t>(util::find("client.dll", "55 8B EC 56 57 8B F9 8B B7 ? ? ? ? 8B C6"));
-    const auto next_think = g.m_local->m_next_think();
-    if (next_think > 0 && next_think <= *(int*)(g.m_local + 0x3430))
+    const auto next_think = player->m_next_think();
+    if (next_think > 0 && next_think <= *(int*)(player + 0x3430))
     {
-        g.m_local->m_next_think() = -1;
-        set_next_think(g.m_local, next_think);
-        g.m_local->Think(); // pPlayer->Think();
+        player->m_next_think() = -1;
+        set_next_think(player, next_think);
+        player->Think(); // pPlayer->Think();
     }
 
     memset(&data, 0, sizeof(data));
 
-    g.m_interfaces->prediction()->setup_move(g.m_local, &dummy_cmd, g.m_interfaces->move_helper(), &data);
+    g.m_interfaces->prediction()->setup_move(player, &dummy_cmd, g.m_interfaces->move_helper(), &data);
 
-    g.m_interfaces->game_movement()->process_movement(g.m_local, &data);
+    g.m_interfaces->game_movement()->process_movement(player, &data);
 
-    g.m_interfaces->prediction()->finish_move(g.m_local, &dummy_cmd, &data);
+    g.m_interfaces->prediction()->finish_move(player, &dummy_cmd, &data);
 
-    // g.m_local->PostThink( );
-    g.m_interfaces->game_movement()->finish_track_prediction_errors(g.m_local);
+    // player->PostThink( );
+    g.m_interfaces->game_movement()->finish_track_prediction_errors(player);
 
     g.m_interfaces->prediction()->bIsFirstTimePredicted = false;
-    g.m_local->tick_base()++;
+    player->tick_base()++;
     g.m_interfaces->prediction()->SuppressHostEvents(nullptr);
     g.m_in_pred = false;
 }

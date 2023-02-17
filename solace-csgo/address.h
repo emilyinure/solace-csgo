@@ -90,7 +90,7 @@ public:
 		auto out = m_base + offset;
 
 		// get rel32 offset.
-		const auto r = *reinterpret_cast< uintptr_t * >(out);
+		const auto r = *reinterpret_cast< int32_t* >(out);
 		if ( !r )
 			return t{};
 

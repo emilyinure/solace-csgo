@@ -103,13 +103,18 @@ class render_t {
 
 	IDirect3DDevice9 *device_{ nullptr };
 	IDirect3DVertexDeclaration9 *vertex_declaration_{ nullptr };
+    IDirect3DVertexBuffer9* vertex_buffer{nullptr};
+    IDirect3DIndexBuffer9* index_buffer{nullptr};
 	IDirect3DVertexShader9 *vertex_shader2_{ nullptr };
 	IDirect3DPixelShader9 *pixel_shader_{ nullptr };
 	DWORD dwold_d3drs_colorwriteenable_{ 0 };
 	DWORD dwold_d3dtexturestagestate_{ 0 };
 	DWORD dwold_d3drs_antialiasedlineenable_{ 0 };
 	DWORD dwold_d3drs_multisampleantialias_{ 0 };
-	DWORD dwold_d3drs_scissortestenable_{ 0 };
+    DWORD dwold_d3drs_scissortestenable_{0};
+    int32_t m_max_vtx_count = 1200;
+    int32_t m_max_idx_count = 2400;
+    
 
 	std::vector<RECT> scissor_buffer = {};
 	RECT backup_scissor_rect_{ 0, 0, 0, 0 };
@@ -135,6 +140,18 @@ public:
 
 		if (constantia_12_.font)
 			constantia_12_.font->OnLostDevice();
+
+		
+	    if (vertex_buffer)
+        {
+            vertex_buffer->Release();
+            vertex_buffer = nullptr;
+        }
+        if (index_buffer)
+        {
+            index_buffer->Release();
+            index_buffer = nullptr;
+        }
 	}
 
 	void on_reset_device() {
@@ -172,7 +189,10 @@ public:
 			this->h = rhw_;
 			this->col = color_;
 		}
-	};
+    };
+
+    std::vector<vertex_t> m_verts = {};
+    std::vector<uint16_t> m_idx = {};
 	
 	auto setup( IDirect3DDevice9 *device ) -> void;
 	static RECT get_text_rect( const char* text, font_t& font );
@@ -190,7 +210,7 @@ public:
 	auto outlined_rect( const float x, const float y, float w, float h, const color col ) const -> void;
 	auto line( const float x, const float y, const float x2, const float y2, const color color, const int dwWidth = 1) const -> void;
 	auto line( D3DXVECTOR2* lines, int count, const color color, const int dwWidth ) const -> void;
-	auto gradient( const float x, const float y, const float w, const float h, const color col, const color col2, const bool vertical = 0 ) const -> void;
+	auto gradient( const float x, const float y, const float w, const float h, const color col, const color col2, const bool vertical = 0 ) -> void;
 	auto push_clip( const float x, const float y, const float w, const float h ) -> void;
 	auto push_clip( area_t area ) -> void;
 	auto pop_clip( ) -> void;

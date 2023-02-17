@@ -132,7 +132,8 @@ namespace settings {
 		namespace config {
 			inline int slot = 1;
 		}
-		namespace misc {
+        namespace misc
+        {
 			inline bool thirdperson = false;
 			inline bool fake_latency = false;
 			inline float fake_latency_amt = 0;

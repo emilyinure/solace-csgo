@@ -297,8 +297,8 @@ void movement::edge_bug()
             CPredictionCopy(PC_EVERYTHING, static_cast<byte*>(startdata), true,
                             reinterpret_cast<const byte*>(g.m_local), false, CPredictionCopy::TRANSFERDATA_COPYONLY);
         CopyHelper.TransferData("edgebug_pre", g.m_local->index(), map);
-        float backup_fmove = g.m_cmd->m_forwardmove;
-        float backup_smove = g.m_cmd->m_sidemove;
+        const float backup_fmove = g.m_cmd->m_forwardmove;
+        const float backup_smove = g.m_cmd->m_sidemove;
         bool hit = false;
 
         static bool found = false;
@@ -324,7 +324,7 @@ void movement::edge_bug()
                     break;
                 }
                 ran = true;
-                prediction::start(g.m_cmd);
+                prediction::start(g.m_local, g.m_cmd);
                 if (bCheck() && original_orig.z > g.m_local->origin().z)
                 {
                     hit = true;

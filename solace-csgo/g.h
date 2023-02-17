@@ -97,6 +97,8 @@ public:
 	bool  *m_final_packet;
 	bool m_shot = false;
 	float m_poses[ 24 ];
+    vec3_t bones_maxs;
+    vec3_t bones_mins;
 	animation_layer_t m_layers[ 15 ];
 	float m_abs_yaw = 0;
 	float m_anim_time = 0;
@@ -141,7 +143,7 @@ public:
 
 	void  init_cheat( );
 
-	void ModifyEyePosition( anim_state* state, matrix_t* mat, vec3_t* pos );
+    static void ModifyEyePosition( anim_state* state, matrix_t* mat, vec3_t* pos );
 	void release ( ) const;
 	void on_render ( IDirect3DDevice9 *device );
 	void on_tick ( cmd_t * cmd );

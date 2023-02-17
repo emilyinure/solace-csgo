@@ -1,6 +1,5 @@
 #include "bones.h"
 #include "includes.h"
-#include "thread_handler.h"
 
 
 bool bones_t::setup( player_t *player, bone_array_t *out, std::shared_ptr<player_record_t> record, CIKContext *ipk ) {
@@ -11,12 +10,12 @@ bool bones_t::setup( player_t *player, bone_array_t *out, std::shared_ptr<player
 	g.m_interfaces->mdlcache( )->begin_coarse_lock( );
 	g.m_interfaces->mdlcache( )->begin_lock( );
 
-	record->m_setup = BuildBones( player, bone_used_by_anything & ~bone_used_by_bone_merge, out, record, ipk );
+    const bool setup = BuildBones( player, bone_used_by_anything & ~bone_used_by_bone_merge, out, record, ipk );
 
 	g.m_interfaces->mdlcache( )->end_lock( );
 	g.m_interfaces->mdlcache( )->end_coarse_lock( );
 
-	return record->m_setup;
+	return setup;
 }
 
 
@@ -24,12 +23,6 @@ class PoseDebugger;
 
 class _BoneSetup {
 public:
-	void init( const CStudioHdr* pStudioHdr, int boneMask, const float poseParameter[ ], PoseDebugger* pPoseDebugger = nullptr ) {
-		m_boneMask = boneMask;
-		m_flPoseParameters = poseParameter;
-		m_pStudioHdr = pStudioHdr;
-		m_pPoseDebugger = pPoseDebugger;
-	}
 	_BoneSetup( const CStudioHdr* pStudioHdr, int boneMask, const float poseParameter[ ], PoseDebugger* pPoseDebugger = nullptr ) {
 		m_boneMask = boneMask;
 		m_flPoseParameters = poseParameter;
@@ -153,11 +146,10 @@ public:
 class BoneSetup {
 public:
 	BoneSetup( const CStudioHdr *pStudioHdr, int boneMask, const float *poseParameter ) {
-		m_pBoneSetup = ( _BoneSetup* )malloc( sizeof( _BoneSetup ) );
-		m_pBoneSetup->init( pStudioHdr, boneMask, poseParameter );
+        m_pBoneSetup = std::make_unique<_BoneSetup>(pStudioHdr, boneMask, poseParameter);
 	}
 	~BoneSetup( ) {
-		free( m_pBoneSetup );
+
 	}
 	void InitPose( vec3_t *pos, quaternion_t *q ) const {
 		m_pBoneSetup->InitPose( pos, q );
@@ -172,10 +164,10 @@ public:
 		m_pBoneSetup->CalcBoneAdj( pos, q, encodedControllerArray );
 	}
 private:
-	_BoneSetup *m_pBoneSetup;
+	std::unique_ptr<_BoneSetup> m_pBoneSetup;
 };
 
-void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaternion_t *q, int boneMask, float sim_time, CIKContext *ik, ang_t angles, vec3_t origin, float *poses, animation_layer_t*layers ) {
+__forceinline void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaternion_t *q, int boneMask, float sim_time, CIKContext *ik, const ang_t &angles, const vec3_t &origin, const float *poses, animation_layer_t*layers ) {
     const BoneSetup boneSetup(studioHdr, boneMask, poses);
 	boneSetup.InitPose( pos, q );
 	boneSetup.AccumulatePose( pos, q, player->sequence( ), player->cycle( ), 1.f, sim_time, ik );
@@ -252,7 +244,7 @@ void GetSkeleton( player_t *player, CStudioHdr *studioHdr, vec3_t *pos, quaterni
 
 						weapon_world_model->m_pBoneMergeCache( )->CopyToFollow( weaponPos, weaponQ, BONE_USED_BY_BONE_MERGE, pos, q );
 
-						weaponIK.CopyTo( ik, *( int * )( weapon_world_model->m_pBoneMergeCache( ) + 160 ) );
+						weaponIK.CopyTo( ik, *( int * )( (uintptr_t)weapon_world_model->m_pBoneMergeCache( ) + 160 ) );
 					}
 				}
 				boneSetup.AccumulatePose( pos, q, pLayer->m_sequence, pLayer->m_cycle, pLayer->m_weight, sim_time, ik );
@@ -477,7 +469,8 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
             ipk->Init(hdr, record->m_abs_angles, record->m_pred_origin, record->m_pred_time,
                       g.time_to_ticks(record->m_pred_time), mask);
 			target->UpdateIKLocks( record->m_pred_time );
-			GetSkeleton( target, hdr, pos, q, mask, record->m_pred_time, ipk, record->m_abs_angles, record->m_origin, record->m_poses, record->m_layers );
+            GetSkeleton(target, hdr, pos, q, mask, record->m_pred_time, ipk, record->m_abs_angles,
+                        record->m_pred_origin, record->m_poses, record->m_layers);
 			ipk->UpdateTargets( pos, q, accessor->m_pBones, &computed[ 0 ] );
 			target->CalculateIKLocks( record->m_pred_time );
 			ipk->SolveDependencies( pos, q, accessor->m_pBones, computed );
@@ -486,7 +479,7 @@ bool bones_t::BuildBones( player_t *target, int mask, bone_array_t *out, std::sh
 
 		}
 		// compute and build bones.
-        Studio_BuildMatrices(hdr->m_pStudioHdr, record->m_abs_angles, record->m_origin, pos, q, -1, 1,
+        Studio_BuildMatrices(hdr->m_pStudioHdr, record->m_abs_angles, record->m_pred_origin, pos, q, -1, 1,
                              accessor->m_pBones, mask);
 
 		accessor->m_pBones = backup_matrix;

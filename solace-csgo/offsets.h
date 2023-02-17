@@ -55,7 +55,7 @@ public:
 		NETVAR( "DT_CSPlayer", "m_fFlags", m_flags )
 		NETVAR( "DT_BasePlayer", "m_viewPunchAngle", m_punch_angle )
 
-		NETVAR( "C_BaseEntity", "m_vecNetworkOrigin", m_network_origin )
+		NETVAR( "DT_BaseEntity", "m_vecNetworkOrigin", m_network_origin )
 
 		NETVAR( "DT_BaseEntity", "m_vecMins", m_mins )
 		NETVAR( "DT_BaseEntity", "m_vecMaxs", m_maxs )

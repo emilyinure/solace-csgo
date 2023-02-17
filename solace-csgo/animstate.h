@@ -146,7 +146,7 @@ public:
 		static auto UpdateAnimState = address( util::find( "client.dll", "E8 ? ? ? ? 0F 57 C0 0F 11 86" ) ).rel32<
 			uintptr_t >( 0x1 );
 
-		if ( !UpdateAnimState || (this == nullptr) )
+		if ( !UpdateAnimState )
 			return;
 
 		__asm {

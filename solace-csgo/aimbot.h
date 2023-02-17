@@ -32,12 +32,12 @@ public:
 	static void get_points( ent_info_t *info, studio_hdr_t *studio_model );
 	static bool collides( math::custom_ray_t ray, ent_info_t* info, bone_array_t bones[ 128 ], float add = 0.f );
 	static bool get_aim_matrix ( ang_t angle, bone_array_t *ret );
-	bool get_best_point( ent_info_t* info, bone_array_t* bones, vec3_t &eye );
+	bool get_best_point( ent_info_t* info, vec3_t &eye);
 	bool best_target ( ent_info_t *&info ) const;
-	void apply ( );
+	void apply (bone_array_t* bones);
 	static player_record_t *best_record( ent_info_t *info );
 	void backup_players ( bool restore );
-	std::vector<ent_info_t *> mp_threading ( ) const;
+	std::vector<ent_info_t *> mp_threading ( );
 	static std::shared_ptr<player_record_t> last_record( ent_info_t *info );
 	void draw_hitboxes ( player_t* ent = nullptr, bone_array_t *bones = nullptr ) const;
 	bool check_hitchance( ent_info_t* info, ang_t& view, std::shared_ptr<player_record_t> record, aim_point_t* point );

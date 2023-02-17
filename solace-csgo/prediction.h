@@ -2,8 +2,8 @@
 class cmd_t;
 class player_t;
 namespace prediction {
-	void start( cmd_t *cmd );
-	void update( );
+    void start(player_t* player, cmd_t* cmd);
+    void update();
 	void end( );
 	void finish_partial_frame( player_t *player, cmd_t *cmd );
 	void re_predict( cmd_t *cmd );

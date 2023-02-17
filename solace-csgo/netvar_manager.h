@@ -45,9 +45,10 @@ public:
 
 class prediction_netvar_manager {
 public:
+    ~prediction_netvar_manager();
     bool initalized = false;
 	bool setup_vars = false;
-	std::vector<managed_netvar*> vars;
+	std::vector<std::unique_ptr<managed_netvar>> vars;
 	std::vector<managed_netvar*> weapon_vars;
     bool called_once = false;
     void reset()

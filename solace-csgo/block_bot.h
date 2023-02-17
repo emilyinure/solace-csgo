@@ -10,7 +10,7 @@ class block_bot_t {
 
 public:
 	void on_draw ( ) const;
-	void friction ( float surface_friction, vec3_t *velocity );
+	static void friction ( float surface_friction, vec3_t *velocity );
 	void on_tick( );
 } inline g_block_bot;
 

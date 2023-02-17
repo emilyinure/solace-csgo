@@ -5,28 +5,12 @@ void notification::add ( const std::string text, color _color, float time, bool 
 	// modelled after 'CConPanel::AddToNotify'
 	m_notify_text.emplace_back( text, _color, g.m_interfaces->globals( )->m_curtime + time );
 
-	va_list list;
-	std::string buf;
-
 	if ( text.empty( ) )
 		return;
 
-	va_start( list, text );
-
-	// count needed size.
-	const int size = std::vsnprintf( 0, 0, text.c_str( ), list );
-
-	// allocate.
-	buf.resize( size );
-
-	// print to buffer.
-	std::vsnprintf( buf.data( ), size + 1, text.c_str( ), list );
-
-	va_end( list );
-
 	// print to console.
 	g.m_interfaces->console( )->console_color_printf( color( 0xDB, 0x2E, 0x2C, 20 ), "[solace] " );
-	g.m_interfaces->console( )->console_color_printf( color( 255, 255, 255 ), buf.c_str( ) );
+    g.m_interfaces->console()->console_color_printf(color(255, 255, 255), text.c_str());
 }
 
 void notification::think ( ) {

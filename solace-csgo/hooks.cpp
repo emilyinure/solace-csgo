@@ -6,7 +6,6 @@
 
 #include "detours.h"
 #include "esp.h"
-#include "grenade_pred.h"
 #include "hvh.h"
 #include "input_helper/input_helper.hh"
 #include "movement.h"
@@ -14,7 +13,6 @@
 #include "prediction.h"
 #include "predictioncopy.h"
 #include "resolver.h"
-#include "thread_handler.h"
 #include "windowsx.h"
 
 void _stdcall paint_traverse(long panel, bool repaint, bool force)
@@ -235,6 +233,9 @@ void __fastcall EstimateAbsVelocity(player_t* _this, uint32_t edx, vec3_t& vec)
     vec.y = velocity.y;
     vec.z = velocity.z;
 }
+
+
+
 void __fastcall AllocateIntermediateData(player_t* _this, uint32_t edx)
 {
     g.m_local = static_cast<player_t*>(
@@ -319,7 +320,6 @@ void __stdcall frame_stage_notify(client_frame_stage_t stage)
 
     if (stage == FRAME_NET_UPDATE_POSTDATAUPDATE_END)
     {
-        g_player_manager.update();
     }
     // else if ( stage == FRAME_NET_UPDATE_START ) {
     //	g_esp.NoSmoke( );
@@ -351,7 +351,6 @@ void __stdcall override_view(view_setup_t* view)
     const auto alive = g.m_local && g.m_local->alive();
     if (alive)
     {
-        g_grenade_pred.View();
         if (settings::misc::misc::thirdperson && !g.m_interfaces->input()->camera_is_third_person())
             g.m_interfaces->input()->camera_to_third_person();
         else if (!settings::misc::misc::thirdperson && g.m_interfaces->input()->camera_is_third_person())
@@ -581,14 +580,11 @@ void Body_proxy(c_recv_proxy_data* data, address ptr, address out)
     if ((stack.get(2) + sizeof(uintptr_t)) != RecvTable_Decode)
     {
         // convert to player.
-        auto player = ptr.as<player_t*>();
-
         // store data about the update.
-        if (player)
+        if (const auto player = ptr.as<player_t*>())
         {
-            auto* ent = &g_player_manager.m_ents[player->index() - 1];
-            if (ent)
-                g_resolver.OnBodyUpdate(ent, data->m_value.m_Float);
+            if (auto* ent = &g_player_manager.m_ents[player->index() - 1])
+                resolver::OnBodyUpdate(ent, data->m_value.m_Float);
         }
     }
 
@@ -660,10 +656,22 @@ void __stdcall PreEntityPacketReceived(int commands_acknowledged, int current_wo
 {
     g.m_local = static_cast<player_t*>(
         g.m_interfaces->entity_list()->get_client_entity(g.m_interfaces->engine()->local_player_index()));
-    if (g.m_local && g.m_local->alive())
+
+    if (g.m_local && g.m_local->alive() && commands_acknowledged > 0)
     {
+        using get_prediction_frame_t = byte*(__thiscall*)(player_t*, unsigned int);
+        static auto get_prediction_frame =
+            (get_prediction_frame_t)util::find("client.dll", "55 8B EC 57 8B F9 83 BF ? ? ? ? ?");
+        byte* pred_frame = get_prediction_frame(g.m_local, commands_acknowledged - 1);
+        if (pred_frame)
+        {
+            CPredictionCopy CopyHelper(PC_EVERYTHING, reinterpret_cast<byte*>(g.m_local), TD_OFFSET_NORMAL, pred_frame,
+                                       TD_OFFSET_PACKED, CPredictionCopy::TRANSFERDATA_COPYONLY);
+            CopyHelper.TransferData("PreEntityPacketReceived", g.m_local->index(), g.m_local->GetPredDescMap());
+        }
         g_pred_manager.pre_update(g.m_local);
     }
+
     typedef void(__thiscall * o_PostNetworkDataReceived)(void*, int, int, int);
     g.m_interfaces->prediction().hook()->get_original<o_PostNetworkDataReceived>(4)(
         g.m_interfaces->prediction(), commands_acknowledged, current_world_update_packet, server_ticks_elapsed);
@@ -700,7 +708,8 @@ void __stdcall PostNetworkDataReceived(int commands_acknowledged)
             }
         }
     }
-    if (g.m_local && g.m_local->alive())
+    g_player_manager.update();
+    if (g.m_local && g.m_local->alive() && commands_acknowledged > 0)
     {
         g_pred_manager.post_update(g.m_local);
     }
@@ -712,6 +721,7 @@ void __stdcall PostNetworkDataReceived(int commands_acknowledged)
 
 void __stdcall PostEntityPacketReceived()
 {
+
     typedef void(__thiscall * o_PostNetworkDataReceived)(void*);
     g.m_interfaces->prediction().hook()->get_original<o_PostNetworkDataReceived>(5)(g.m_interfaces->prediction());
     g.m_local = static_cast<player_t*>(
@@ -740,7 +750,7 @@ void __fastcall PacketStart(client_state_t* this_ptr, void* edx, int incoming_se
     if (!local || !local->alive() || !g.m_valid_round || !g.m_interfaces->engine()->is_connected() ||
         !g.m_interfaces->engine()->in_game())
         return m_cl_hook.get_original<packet_start_t>(5)(this_ptr, incoming_sequence, outgoing_acknowledged);
-    
+
     // if( this_ptr->m_last_command_ack == this_ptr->m_last_outgoing_command )
     // m_cl_hook.get_original<packet_start_t>( 5 )( this_ptr, incoming_sequence,
     // outgoing_acknowledged );; return;
@@ -845,6 +855,15 @@ void __stdcall LockCursor()
     if (menu.open)
         g.m_interfaces->surface()->UnlockCursor();
 }
+
+bool __stdcall IsPlayingDemo()
+{
+    static auto SetupVelocity = util::find("client.dll", "84 C0 75 ? 8B 4E ? 8D 54 24 ?");
+    if (_ReturnAddress() == reinterpret_cast<void*>(SetupVelocity))
+        return true;
+    return g.m_interfaces->engine().hook()->get_original<decltype(&IsPlayingDemo)>(328)();
+}
+
 hooks_t::hooks_t()
 {
     while (!((g.m_window = FindWindowA("Valve001", nullptr))))
@@ -856,7 +875,7 @@ hooks_t::hooks_t()
     auto net_show_fragments_v = g.m_interfaces->console()->get_convar("net_showfragments");
     net_show_fragments.init((uintptr_t)net_show_fragments_v);
     net_show_fragments.add(static_cast<void*>(NetShowFragmentsGetBool), 13);
-
+    g.m_interfaces->engine().hook()->add(IsPlayingDemo, 328);
     g.m_old_window =
         reinterpret_cast<WNDPROC>(SetWindowLongPtr(g.m_window, GWL_WNDPROC, reinterpret_cast<LONG_PTR>(wndproc)));
     g.m_interfaces->model_render().hook()->add(draw_model_execute, 21);
@@ -867,7 +886,7 @@ hooks_t::hooks_t()
     g.m_interfaces->client().hook()->add(frame_stage_notify, 36);
     g.m_interfaces->client().hook()->add(LevelInitPostEntity, 6);
     oLockCursor = (lock_cursor_t)g.m_interfaces->surface().hook()->add(LockCursor, 67);
-    //g.m_interfaces->client().hook()->add(LevelInitPostEntity, 6);
+    // g.m_interfaces->client().hook()->add(LevelInitPostEntity, 6);
     g.m_interfaces->surface().hook()->add(LockCursor, 67);
     // g.m_interfaces->viewrender( ).hook( )->add( static_cast< void * >(
     // RenderSmokeOverlay ), 40 );

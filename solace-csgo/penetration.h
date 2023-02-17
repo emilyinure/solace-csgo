@@ -10,8 +10,8 @@ namespace penetration {
         player_t *m_from = nullptr;
         player_t *m_target = nullptr;
         vec3_t  m_pos;
-        float	m_damage;
-        float   m_damage_pen;
+        float	m_damage = 0.f;
+        float m_damage_pen = 0.f;
         bool	m_can_pen = true;
         int m_group = -1;
         vec3_t m_start = vec3_t(0,0,0);

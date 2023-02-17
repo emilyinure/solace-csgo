@@ -49,6 +49,9 @@
     <Filter Include="helpers\render\input_helper">
       <UniqueIdentifier>{95b148f5-21c0-4016-adf1-3585633b059d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="helpers\threading">
+      <UniqueIdentifier>{348838db-22b0-4af7-8b22-a307fabf66c3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="address.h">
@@ -250,9 +253,6 @@
       <Filter>g\features</Filter>
     </ClInclude>
     <ClInclude Include="checksum_crc.h" />
-    <ClInclude Include="thread_handler.h">
-      <Filter>g</Filter>
-    </ClInclude>
     <ClInclude Include="buy_bot.h">
       <Filter>g\features</Filter>
     </ClInclude>
@@ -270,6 +270,24 @@
     </ClInclude>
     <ClInclude Include="delaunator.h">
       <Filter>sdk\valve\math</Filter>
+    </ClInclude>
+    <ClInclude Include="Threading.h">
+      <Filter>helpers\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="atomic_lock.h">
+      <Filter>helpers\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="packed_heap.h">
+      <Filter>helpers\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="mutex.h">
+      <Filter>helpers\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="semaphores.h">
+      <Filter>helpers\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="shared_mutex.h">
+      <Filter>helpers\threading</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -356,14 +374,29 @@
       <Filter>g\features</Filter>
     </ClCompile>
     <ClCompile Include="checksum_crc.cpp" />
-    <ClCompile Include="thread_hander.cpp">
-      <Filter>g</Filter>
-    </ClCompile>
     <ClCompile Include="buy_bot.cpp">
       <Filter>g\features</Filter>
     </ClCompile>
     <ClCompile Include="controls\window.cc">
       <Filter>helpers\render\controls</Filter>
+    </ClCompile>
+    <ClCompile Include="Threading.cpp">
+      <Filter>helpers\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="atomic_lock.cpp">
+      <Filter>helpers\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="mutex.cpp">
+      <Filter>helpers\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="packed_heap.cpp">
+      <Filter>helpers\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="semaphores.cpp">
+      <Filter>helpers\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="shared_mutex.cpp">
+      <Filter>helpers\threading</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

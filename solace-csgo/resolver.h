@@ -24,17 +24,29 @@ struct shot_record_t {
 	weapon_info_t m_weapon_info;
 	bool m_updated_time;
 	int m_tick;
+    vec3_t m_end;
 };
 
-struct impact_record_t {
+struct impact_record_t
+{
+    vec3_t m_pos;
+};
+
+struct weapon_fire_t
+{
+    weapon_fire_t(){}
+    ~weapon_fire_t()
+    {
+        m_impacts.clear();
+    }
+    int m_tick;
     std::weak_ptr<shot_record_t> m_shot;
-	int m_tick;
-	vec3_t m_pos;
-	int m_index;
-	bool m_indexs[8] = {};
-	bool m_resolved = false;
-	bool m_hit;
-	int m_group = 0;
+    std::deque<impact_record_t> m_impacts = {};
+    int m_index = 0;
+    bool m_indexs[8] = {};
+    bool m_resolved = false;
+    bool m_hit = false;
+    int m_group = 0;
 };
 
 class hit_record_t {
@@ -75,11 +87,12 @@ public:
 		RESOLVE_BODY,
 		RESOLVE_STOPPED_MOVING,
 	};
-	std::deque<std::shared_ptr<shot_record_t>> m_shots;
-	std::deque<impact_record_t> m_impacts;
+    std::deque<std::shared_ptr<shot_record_t>> m_shots;
+    std::deque<weapon_fire_t> m_weapon_fire;
 	std::deque<hit_record_t> m_hits;
 	static std::shared_ptr<player_record_t> FindIdealRecord ( ent_info_t *data );
-	std::shared_ptr<player_record_t> FindIdealBackRecord( ent_info_t* data );
+    std::shared_ptr<player_record_t> FindLastRecord(ent_info_t* data);
+    std::shared_ptr<player_record_t> FindIdealBackRecord(ent_info_t* data);
 	static void MatchShot ( ent_info_t *data, std::shared_ptr<player_record_t> record );
 	void update_shot_timing ( int sent_tick );
 	static void OnBodyUpdate ( ent_info_t *player, float value );
@@ -90,16 +103,17 @@ public:
 	void ResolveAir ( ent_info_t *data, std::shared_ptr<player_record_t> record ) const;
 	void resolve( ent_info_t &info, std::shared_ptr<player_record_t> record ) const;
 	void clear ( );
+    void OnFire(IGameEvent* evt);
 	static float get_rel (std::shared_ptr<player_record_t> record, int index );
 	float get_freestand_yaw ( player_t *target ) const;
 	void recieve_shot ( vec3_t point, int hit );
 	void on_impact ( IGameEvent *evt );
-	void OnHurt ( IGameEvent *evt );
-	int miss_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& start, vec3_t& end );
-	int hit_scan_boxes_and_eliminate( impact_record_t* impact, vec3_t& start, vec3_t& end ) const;
-	void resolve_hit ( impact_record_t *impact ) const;
-	void resolve_miss ( impact_record_t *impact );
+	void OnHurt (const IGameEvent *evt );
+	int miss_scan_boxes_and_eliminate(weapon_fire_t* weapon_fire, vec3_t& start, vec3_t& end);
+	int hit_scan_boxes_and_eliminate(weapon_fire_t* weapon_fire, vec3_t& start, vec3_t& end) const;
+	void resolve_hit (weapon_fire_t* weapon_fire) const;
+	void resolve_miss (weapon_fire_t* weapon_fire);
 	void update_shots ( );
-	void add_shot( ent_info_t* target, float damage, int bullets, std::shared_ptr<player_record_t> record );
+	void add_shot(ent_info_t* target, float damage, int bullets, std::shared_ptr<player_record_t> record, vec3_t point);
 } inline g_resolver;
 

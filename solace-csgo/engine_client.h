@@ -47,8 +47,12 @@ public:
 	VFUNC( GetAvgLatency( int flow ), 10, float( __thiscall * )( decltype( this ), int flow ), flow );
 	VFUNC( SendDatagram( void *data = nullptr ), 48, int( __thiscall * )( decltype( this ), void* ), data );
 	VFUNC( CanPacket( ), 58, bool( __thiscall * )( decltype( this ) ) );
-	VFUNC( IsLoopBack( ), 6, bool( __thiscall * )( decltype( this ) ) );
-	VFUNC( SetChoked( ), 47, void( __thiscall * )( decltype( this ) ) );
+    VFUNC(IsLoopBack(), 6, bool(__thiscall*)(decltype(this)));
+    VFUNC(SetChoked(), 47, void(__thiscall*)(decltype(this)));
+    void SendNetMessage(void* msg)
+    {
+        return util::get_virtual_function<void(__thiscall*)(decltype(this), void*, bool, bool)>(this, 42)(this, msg, false, false);
+    }
 	VFUNC( IsTimingOut( ), 7, bool( __thiscall * )( decltype( this ) ) );
 };
 

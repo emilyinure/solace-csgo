@@ -12,7 +12,6 @@
 #ifdef max
 #undef max
 #endif
-#include "thread_handler.h"
 
 shot_record_t::~shot_record_t()
 {
@@ -96,37 +95,34 @@ void resolver::MatchShot(ent_info_t* data, std::shared_ptr<player_record_t> reco
     {
         // with logging this time was always one tick behind.
         // so add one tick to the last shoot time.
-        shoot_time = weapon->last_shot_time();
+        shoot_time = weapon->last_shot_time() + g.m_interfaces->globals()->m_interval_per_tick;
     }
 
     // this record has a shot on it.
     if (g.time_to_ticks(shoot_time) > g.time_to_ticks(record->m_sim_time) - record->m_lag &&
         g.time_to_ticks(shoot_time) <= g.time_to_ticks(record->m_sim_time))
     {
-        if (g.time_to_ticks(shoot_time) == g.time_to_ticks(record->m_sim_time))
-            record->m_shot = true;
+        record->m_shot = true;
 
-        // more then 1 choke, cant hit pitch, apply prev pitch.
-        else
-            for (auto i = 1; i < data->m_records.size(); i++)
+        for (auto i = 1; i < data->m_records.size(); i++)
+        {
+            if (static_cast<int>(data->m_records.size()) > i)
             {
-                if (static_cast<int>(data->m_records.size()) > i)
-                {
-                    auto const& previous = data->m_records[i];
+                auto const& previous = data->m_records[i];
 
-                    if (previous && !previous->m_dormant && !previous->m_shot)
-                    {
-                        record->m_eye_angles.x = previous->m_eye_angles.x;
-                        record->m_poses[12] = (previous->m_eye_angles.x + 90.f) / 180.f;
-                        break;
-                    }
-                }
-                if (i == static_cast<int>(data->m_records.size() - 1))
+                if (previous && !previous->m_dormant && !previous->m_shot)
                 {
-                    record->m_poses[12] = (89.f + 90.f) / 180.f;
-                    record->m_eye_angles.x = 89.f;
+                    record->m_eye_angles.x = previous->m_eye_angles.x;
+                    record->m_poses[12] = (previous->m_eye_angles.x + 90.f) / 180.f;
+                    break;
                 }
             }
+            if (i == static_cast<int>(data->m_records.size() - 1))
+            {
+                record->m_poses[12] = (89.f + 90.f) / 180.f;
+                record->m_eye_angles.x = 89.f;
+            }
+        }
     }
 }
 
@@ -457,22 +453,25 @@ void resolver::ResolveStand(ent_info_t* data, std::shared_ptr<player_record_t> r
 
         int i = 0;
 
-        auto& mode_data = data->m_resolver_data.m_mode_data[resolver_data::STAND1];
+        const auto& mode_data = data->m_resolver_data.m_mode_data[resolver_data::STAND1];
         auto& record_dir_data = record->m_resolver_data.m_dir_data;
 
-        record->m_eye_angles.y = ((mode_data.m_index == 0) * free_stand_yaw) +
-                                 ((mode_data.m_index == 1) * (move->m_body)) + 
-                                 ((mode_data.m_index == 2) * away) +
-                                 ((mode_data.m_index == 3) * (record->m_body)) +
-                                 ((mode_data.m_index == 4) * (record->m_body + 180.f)) +
-                                 ((mode_data.m_index == 5) * (record->m_body + 135.f)) +
-                                 ((mode_data.m_index == 6) * (record->m_body - 135.f));
+        record->m_eye_angles.y = static_cast<float>(mode_data.m_index == 0) * (move->m_body) + 
+                                 static_cast<float>(mode_data.m_index == 1) * free_stand_yaw +
+                                 static_cast<float>(mode_data.m_index == 2) * away + 
+                                 static_cast<float>(mode_data.m_index == 3) * (move->m_body + 180.f) + 
+                                 static_cast<float>(mode_data.m_index == 4) * (record->m_body) +
+                                 static_cast<float>(mode_data.m_index == 5) * (record->m_body + 180.f) +
+                                 static_cast<float>(mode_data.m_index == 6) * (record->m_body + 135.f) +
+                                 static_cast<float>(mode_data.m_index == 7) * (record->m_body - 135.f);
+        
+        record_dir_data.emplace_back(move->m_body);
 
         record_dir_data.emplace_back(free_stand_yaw);
 
-        record_dir_data.emplace_back(move->m_body);
-
         record_dir_data.emplace_back(away);
+
+        record_dir_data.emplace_back(move->m_body + 180.f);
 
         record_dir_data.emplace_back(record->m_body);
 
@@ -504,16 +503,16 @@ void resolver::ResolveStand(ent_info_t* data, std::shared_ptr<player_record_t> r
     record->m_base_angle = record->m_body;
     record->m_mode = Modes::RESOLVE_STAND2;
     int i = 0;
-    auto& mode_data = data->m_resolver_data.m_mode_data[resolver_data::STAND2];
+    const auto& mode_data = data->m_resolver_data.m_mode_data[resolver_data::STAND2];
     auto& record_dir_data = record->m_resolver_data.m_dir_data;
 
     record->m_eye_angles.y =
-        ((mode_data.m_index == 0) * free_stand_yaw) + 
-        ((mode_data.m_index == 1) * (record->m_body + 180.f)) +
-        ((mode_data.m_index == 2) * away) + 
-        ((mode_data.m_index == 3) * (record->m_body + 135.f)) +
-        ((mode_data.m_index == 4) * (record->m_body - 135.f)) + 
-        ((mode_data.m_index == 5) * record->m_body);
+        static_cast<float>(mode_data.m_index == 0) * free_stand_yaw + 
+        static_cast<float>(mode_data.m_index == 1) * (record->m_body + 180.f) +
+        static_cast<float>(mode_data.m_index == 2) * away + 
+        static_cast<float>(mode_data.m_index == 3) * (record->m_body + 135.f) +
+        static_cast<float>(mode_data.m_index == 4) * (record->m_body - 135.f) + 
+        static_cast<float>(mode_data.m_index == 5) * record->m_body;
 
     record_dir_data.emplace_back(free_stand_yaw);
 
@@ -615,66 +614,22 @@ void resolver::clear()
 {
     m_shots.clear();
     m_hits.clear();
-    m_impacts.clear();
+    m_weapon_fire.clear();
 }
 
-resolver::trace_ret check_hit(penetration::PenetrationInput_t in, ent_info_t& info, bone_array_t* bones,
-                              bool check_hitbox = false, int hitgroup = 0)
-{
-    penetration::PenetrationOutput_t out;
-    trace_t trace;
-    const math::custom_ray_t ray{in.m_start, in.m_pos};
-    in.m_resolving = true;
-    // if (check_hitbox) {
-    //	static trace_filter_one_entity filter; filter.pEntity = info.m_ent;
-    //	g.m_interfaces->trace()->trace_ray(ray_t(in.m_start, in.m_pos), CONTENTS_HITBOX, &filter, &trace);
-    //	if( !trace.entity || trace.hitGroup != hitgroup )
-    //		return resolver::trace_ret::spread;
-    // }
-    if (!g_aimbot.collides(
-            ray, &info, bones,
-            (hitgroup == hitgroup_head
-                ? settings::rage::hitbox::point_scale
-                : settings::rage::hitbox::body_scale) / 100.f)) // !g_aimbot.collides( ray, info, cache->m_pCachedBones ) )
-        return resolver::trace_ret::spread;
-    // if ( !penetration::run( &in, &out ) )
-    //	return resolver::trace_ret::occlusion;
-    return resolver::trace_ret::hit;
-}
-
-void resolver::on_impact(IGameEvent* evt)
-{
-    vec3_t dir, start, end;
-    trace_t trace;
-
-    // screw this.
-    if (!evt)
-        return;
-
-    // get attacker, if its not us, screw it.
-    const auto attacker = g.m_interfaces->engine()->GetPlayerForUserID(evt->m_keys->FindKey("userid")->GetInt());
-    if (attacker != g.m_interfaces->engine()->local_player_index())
-        return;
+void resolver::OnFire(IGameEvent* evt) {
     g.m_local = static_cast<player_t*>(
         g.m_interfaces->entity_list()->get_client_entity(g.m_interfaces->engine()->local_player_index()));
-    if (!g.m_local)
+    if (!g.m_local || !g.m_local->alive())
         return;
-    // decode impact coordinates and convert to vec3.
-    const vec3_t pos = {evt->m_keys->FindKey("x")->GetFloat(), evt->m_keys->FindKey("y")->GetFloat(),
-                        evt->m_keys->FindKey("z")->GetFloat()};
-    g.m_interfaces->debug_overlay()->AddBoxOverlay(pos, -vec3_t(2, 2, 2), vec3_t(2, 2, 2), ang_t(), 255, 0, 0, 150, 5);
-
-    // get prediction time at this point.
-    const auto time = g.m_interfaces->globals()->m_curtime;
-
-    // add to visual impacts if we have features that rely on it enabled.
-    // todo - dex; need to match shots for this to have proper GetShootPosition, don't really care to do it anymore.
-    // if ( g_menu.main.visuals.impact_beams.get( ) )
-    //	m_vis_impacts.push_back( { pos, g_cl.m_local->GetShootPosition( ), g_cl.m_local->m_nTickBase( ) } );
+    if (g.m_interfaces->engine()->GetPlayerForUserID(evt->GetInt("userid")) != g.m_local->index())
+        return;
 
     // we did not take a shot yet.
     if (m_shots.empty())
         return;
+
+    const auto time = g.m_interfaces->globals()->m_curtime;
 
     struct ShotMatch_t
     {
@@ -700,8 +655,7 @@ void resolver::on_impact(IGameEvent* evt)
         // and the predicted arrival time of the shot.
 
         auto predicted = s->m_time;
-        auto* nci = g.m_interfaces->engine()->get_net_channel_info();
-        if (nci)
+        if (auto* nci = g.m_interfaces->engine()->get_net_channel_info())
         {
             const auto latency = nci->GetLatency(2);
             predicted += latency;
@@ -736,35 +690,94 @@ void resolver::on_impact(IGameEvent* evt)
     //	return;
 
     // not in nospread mode, see if the shot missed due to spread.
-    auto* const target = shot.lock()->m_target;
-    if (!target)
-        return;
-
-    for (auto i = 0; i < m_impacts.size(); i++)
     {
-        auto* impact = &m_impacts[i];
+        const auto* const target = shot.lock()->m_target;
+        if (!target)
+            return;
+    }
+
+    for (size_t i = 0; i < m_weapon_fire.size(); i++)
+    {
+        const auto* impact = &m_weapon_fire[i];
         if (impact->m_tick == g.m_local->tick_base())
         {
-            m_impacts.erase(m_impacts.begin() + i);
+            m_weapon_fire.erase(m_weapon_fire.begin() + i);
             i--;
-            continue;
         }
     }
+
+    weapon_fire_t fire;
+    fire.m_tick = g.m_local->tick_base();
+    fire.m_shot = shot;
+    
+    m_weapon_fire.push_back(fire);
+}
+
+resolver::trace_ret check_hit(penetration::PenetrationInput_t in, ent_info_t& info, bone_array_t* bones,
+                              bool check_hitbox = false, int hitgroup = 0)
+{
+    penetration::PenetrationOutput_t out;
+    trace_t trace;
+    const math::custom_ray_t ray{in.m_start, in.m_pos};
+    // if (check_hitbox) {
+    //	static trace_filter_one_entity filter; filter.pEntity = info.m_ent;
+    //	g.m_interfaces->trace()->trace_ray(ray_t(in.m_start, in.m_pos), CONTENTS_HITBOX, &filter, &trace);
+    //	if( !trace.entity || trace.hitGroup != hitgroup )
+    //		return resolver::trace_ret::spread;
+    // }
+    if (!aimbot_t::collides(
+            ray, &info, bones,
+            (hitgroup == hitgroup_head
+                ? settings::rage::hitbox::point_scale
+                : settings::rage::hitbox::body_scale) / 100.f)) // !g_aimbot.collides( ray, info, cache->m_pCachedBones ) )
+        return resolver::trace_ret::spread;
+    return resolver::trace_ret::hit;
+}
+
+void resolver::on_impact(IGameEvent* evt)
+{
+    if (m_weapon_fire.empty())
+        return;
+    vec3_t dir, start, end;
+    trace_t trace;
+
+    // screw this.
+    if (!evt)
+        return;
+
+    // get attacker, if its not us, screw it.
+    const auto attacker = g.m_interfaces->engine()->GetPlayerForUserID(evt->m_keys->FindKey("userid")->GetInt());
+    if (attacker != g.m_interfaces->engine()->local_player_index())
+        return;
+    g.m_local = static_cast<player_t*>(
+        g.m_interfaces->entity_list()->get_client_entity(g.m_interfaces->engine()->local_player_index()));
+    if (!g.m_local)
+        return;
+    // decode impact coordinates and convert to vec3.
+    const vec3_t pos = {evt->m_keys->FindKey("x")->GetFloat(), evt->m_keys->FindKey("y")->GetFloat(),
+                        evt->m_keys->FindKey("z")->GetFloat()};
+    g.m_interfaces->debug_overlay()->AddBoxOverlay(pos, -vec3_t(2, 2, 2), vec3_t(2, 2, 2), ang_t(), 255, 0, 0, 150, 5);
+
+    // get prediction time at this point.
+    const auto time = g.m_interfaces->globals()->m_curtime;
+
+    // add to visual impacts if we have features that rely on it enabled.
+    // todo - dex; need to match shots for this to have proper GetShootPosition, don't really care to do it anymore.
+    // if ( g_menu.main.visuals.impact_beams.get( ) )
+    //	m_vis_impacts.push_back( { pos, g_cl.m_local->GetShootPosition( ), g_cl.m_local->m_nTickBase( ) } );
+
 
     // not gonna bother anymore.
 
     // create new impact instance that we can match with a player hurt.
     impact_record_t impact;
-    impact.m_shot = shot;
-    impact.m_tick = g.m_local->tick_base();
     impact.m_pos = pos;
-    impact.m_hit = false;
 
-    m_impacts.push_front(impact);
+    m_weapon_fire.back().m_impacts.emplace_back(impact);
 
     // this record was deleted already.
 }
-void resolver::OnHurt(IGameEvent* evt)
+void resolver::OnHurt(const IGameEvent* evt)
 {
 
     g.m_local = static_cast<player_t*>(
@@ -845,13 +858,13 @@ void resolver::OnHurt(IGameEvent* evt)
     g_notification.add(out);
 
     // no impacts to match.
-    if (m_impacts.empty())
+    if (m_weapon_fire.empty())
         return;
 
-    impact_record_t* impact{nullptr};
+    weapon_fire_t* fire{nullptr};
 
     // iterate stored impacts.
-    for (auto& i : m_impacts)
+    for (auto& i : m_weapon_fire)
     {
 
         // this impact doesnt match with our current hit.
@@ -863,23 +876,23 @@ void resolver::OnHurt(IGameEvent* evt)
             continue;
 
         // shit fond.
-        impact = &i;
+        fire = &i;
         break;
     }
 
     // no impact matched.
-    if (!impact)
+    if (!fire)
         return;
 
     // setup new data for hit track and push to hit track.
-    impact->m_hit = true;
-    impact->m_group = group;
+    fire->m_hit = true;
+    fire->m_group = group;
 }
-int resolver::miss_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& start, vec3_t& end)
+int resolver::miss_scan_boxes_and_eliminate(weapon_fire_t* weapon_fire, vec3_t& start, vec3_t& end)
 {
-    if (impact->m_shot.expired())
+    if (weapon_fire->m_shot.expired())
         return 0;
-    auto shot = impact->m_shot.lock();
+    auto shot = weapon_fire->m_shot.lock();
     if (shot->m_record.expired())
         return 0;
     auto record = shot->m_record.lock();
@@ -891,6 +904,7 @@ int resolver::miss_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& sta
     pen_in.m_target = shot->m_target;
     pen_in.m_pos = end;
     pen_in.m_start = start;
+    pen_in.m_resolving = true;
 
     resolver_data::mode_data* move_data = nullptr;
     if (record->m_mode == RESOLVE_STAND1)
@@ -906,6 +920,10 @@ int resolver::miss_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& sta
     for (uint32_t i1 = 0; i1 < move_data->m_dir_data.size(); i1++)
     {
         auto& dir_data = move_data->m_dir_data[i1];
+        if (i1 == move_data->m_index)
+            record->cache();
+        else
+            record->cache(fake_index);
         auto hit_type = check_hit(pen_in, data,
                                     (i1 == move_data->m_index) ? record->m_bones : record->m_fake_bones[fake_index]);
         if (hit_type == trace_ret::hit)
@@ -914,7 +932,7 @@ int resolver::miss_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& sta
             {
 
 #ifdef _DEBUG
-                //g_aimbot.draw_hitboxes(impact->m_shot->m_target, (i1 == move_data->m_index)
+                //g_aimbot.draw_hitboxes(weapon_fire->m_shot->m_target, (i1 == move_data->m_index)
                 //                                                        ? record->m_bones
                 //                                                        : record->m_fake_bones[fake_index]);
 #endif
@@ -953,14 +971,14 @@ int resolver::miss_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& sta
     }
     return eliminations;
 }
-int resolver::hit_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& start, vec3_t& end) const
+int resolver::hit_scan_boxes_and_eliminate(weapon_fire_t* weapon_fire, vec3_t& start, vec3_t& end) const
 {
-    if (impact->m_shot.expired())
+    if (weapon_fire->m_shot.expired())
         return 0;
-    auto shot = impact->m_shot.lock();
+    const auto shot = weapon_fire->m_shot.lock();
     if (shot->m_record.expired())
         return 0;
-    auto record = shot->m_record.lock();
+    const auto record = shot->m_record.lock();
     ent_info_t& data = *record->m_info;
 
     resolver_data::mode_data* move_data = nullptr;
@@ -984,7 +1002,11 @@ int resolver::hit_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& star
     for (uint32_t i2 = 0; i2 < move_data->m_dir_data.size(); i2++)
     {
         auto& dir_data = move_data->m_dir_data[i2];
-        auto hit_type =
+        if (i2 == move_data->m_index)
+            record->cache();
+        else
+            record->cache(fake_index);
+        const auto hit_type =
             check_hit(pen_in, data, (i2 == move_data->m_index) ? record->m_bones : record->m_fake_bones[fake_index]);
         if (hit_type != trace_ret::hit)
         {
@@ -1050,26 +1072,28 @@ int resolver::hit_scan_boxes_and_eliminate(impact_record_t* impact, vec3_t& star
     return eliminations;
 }
 
-void resolver::resolve_hit(impact_record_t* impact) const
+void resolver::resolve_hit(weapon_fire_t* weapon_fire) const
 {
-    if (impact->m_shot.expired())
+    if (weapon_fire->m_shot.expired())
         return;
-    auto shot = impact->m_shot.lock();
+    auto shot = weapon_fire->m_shot.lock();
     if (shot->m_record.expired())
         return;
+
     auto record = shot->m_record.lock();
     auto& data = record->m_info;
 
     size_t mode = record->m_mode;
 
     auto start = shot->m_pos;
-    auto dir = (impact->m_pos - start).normalized();
+    auto& impact = weapon_fire->m_impacts.back();
+    auto dir = (impact.m_pos - start).normalized();
 
     // get end pos by extending direction forward.
     // todo; to do this properly should save the weapon range at the moment of the shot, cba..
 
     *g.m_weapon_info = shot->m_weapon_info;
-    auto end = impact->m_pos;
+    auto end = impact.m_pos;
 
     math::custom_ray_t ray(start, end);
     std::vector<int> possible_hit = {};
@@ -1079,11 +1103,13 @@ void resolver::resolve_hit(impact_record_t* impact) const
     in.m_target = shot->m_target;
     in.m_pos = end;
     in.m_start = start;
+    record->cache(-1);
 
     auto eliminations = 0;
     if (mode == RESOLVE_STAND1 || mode == RESOLVE_STAND2)
     {
-        eliminations = hit_scan_boxes_and_eliminate(impact, start, end);
+        if(data->build_fake_bones(record))
+            eliminations = hit_scan_boxes_and_eliminate(weapon_fire, start, end);
     }
     if (eliminations > 0)
     {
@@ -1092,21 +1118,22 @@ void resolver::resolve_hit(impact_record_t* impact) const
     }
 }
 
-void resolver::resolve_miss(impact_record_t* impact)
+void resolver::resolve_miss(weapon_fire_t* weapon_fire)
 {
-    if (impact->m_shot.expired())
+    if (weapon_fire->m_shot.expired())
         return;
-    auto shot = impact->m_shot.lock();
+    auto shot = weapon_fire->m_shot.lock();
     if (shot->m_record.expired())
         return;
-    auto record = shot->m_record.lock();
-    auto& data = *record->m_info;
+    const auto record = shot->m_record.lock();
+    const auto data = record->m_info;
 
     // start position of trace is where we took the shot.
     auto start = shot->m_pos;
-    auto dir = (impact->m_pos - start).normalized();
+    auto& impact = weapon_fire->m_impacts.back();
+    const auto dir = (impact.m_pos - start).normalized();
 
-    // the impact pos contains the spread from the server
+    // the weapon_fire pos contains the spread from the server
     // which is generated with the server seed, so this is where the bullet
     // actually went, compute the direction of this from where the shot landed
     // and from where we actually took the shot.
@@ -1123,73 +1150,117 @@ void resolver::resolve_miss(impact_record_t* impact)
     in.m_target = shot->m_target;
     in.m_pos = end;
     in.m_start = start;
-    // record->cache( -1 );
+    //record->cache( -1 );
 
-    auto hit_type = check_hit(in, data, record->m_bones);
+    auto hit_type = check_hit(in, *data, record->m_bones);
 
-    int eliminations = 0;
-    std::vector<int> new_possible = {};
+    bool occluded = (impact.m_pos - start).length_sqr() < (shot->m_end - start).length_sqr();
+
     size_t mode = record->m_mode;
     if (hit_type != trace_ret::hit)
     {
-        if (hit_type == trace_ret::occlusion)
-            g_notification.add(("shot missed due to occlusion\n"));
-        else
-            g_notification.add(("shot missed due to spread\n"));
+        g_notification.add(("shot missed due to spread\n"));
+    }
+    else if (occluded)
+    {
+        g_notification.add(("shot missed due to occlusion\n"));
     }
 
     // we should have 100% hit this player..
     // this is a miss due to wrong angles.
     else
     {
+        g_notification.add(("shot missed due to resolver\n"));
         // if we miss a shot on body update.
         // we can chose to stop shooting at them.
         if (mode == Modes::RESOLVE_BODY)
         {
-            auto& idx = data.m_resolver_data.m_mode_data[resolver_data::modes::LBY_MOVING].m_index;
+            auto& idx = data->m_resolver_data.m_mode_data[resolver_data::modes::LBY_MOVING].m_index;
             ++idx;
             if (idx > 2)
                 idx = 0;
         }
         //else if (mode == Modes::RESOLVE_STAND1)
         //{
-        //    auto& dir_data = data.m_resolver_data.m_mode_data[resolver_data::modes::STAND1];
-        //    dir_data.m_dir_data[dir_data.m_index].dir_enabled = false;
+        //    auto& mode_data = data->m_resolver_data.m_mode_data[resolver_data::modes::STAND1];
+        //    auto& dir_data = mode_data.m_dir_data;
+        //    dir_data[mode_data.m_index].dir_enabled = false;
+        //
+        //    bool any_true = false;
+        //    for (auto& i : dir_data)
+        //    {
+        //        if (i.dir_enabled)
+        //            any_true = true;
+        //    }
+        //    auto set = false;
+        //    for (uint32_t i1 = 0; i1 < dir_data.size(); i1++)
+        //    {
+        //        if (!any_true)
+        //            dir_data[i1].dir_enabled = true;
+        //        if (!set && dir_data[i1].dir_enabled)
+        //        {
+        //            mode_data.m_index = i1;
+        //            set = true;
+        //        }
+        //    }
         //}
         //else if (mode == Modes::RESOLVE_STAND2)
         //{
-        //    auto& dir_data = data.m_resolver_data.m_mode_data[resolver_data::modes::STAND2];
-        //    dir_data.m_dir_data[dir_data.m_index].dir_enabled = false;
+        //    auto mode_data = &data->m_resolver_data.m_mode_data[resolver_data::modes::STAND2];
+        //    auto dir_data = &mode_data->m_dir_data;
+        //    dir_data->at(mode_data->m_index).dir_enabled = false;
+        //
+        //    bool any_true = false;
+        //    for (size_t i = 0; i < dir_data->size(); i++)
+        //    {
+        //        if (dir_data->at(i).dir_enabled)
+        //            any_true = true;
+        //    }
+        //    auto set = false;
+        //    for (uint32_t i1 = 0; i1 < dir_data->size(); i1++)
+        //    {
+        //        if (!any_true)
+        //            dir_data->at(i1).dir_enabled = true;
+        //        if (!set && dir_data->at(i1).dir_enabled)
+        //        {
+        //            mode_data->m_index = i1;
+        //            set = true;
+        //        }
+        //    }
         //}
     }
-    if (mode == Modes::RESOLVE_STAND1 || mode == Modes::RESOLVE_STAND2)
+
+    if (!occluded && mode == Modes::RESOLVE_STAND1 || mode == Modes::RESOLVE_STAND2)
     {
-        impact->m_resolved = true;
-        eliminations = miss_scan_boxes_and_eliminate(impact, start, end);
+        int eliminations = 0;
+        weapon_fire->m_resolved = true;
+        if (data->build_fake_bones(record))
+            eliminations = miss_scan_boxes_and_eliminate(weapon_fire, start, end);
+
+        if (eliminations > 0)
+        {
+            auto out = tfm::format("eliminated %i resolves by miss\n", eliminations);
+            g_notification.add(out);
+        }
     }
 
-    if (eliminations > 0)
-    {
-        auto out = tfm::format("eliminated %i resolves by miss\n", eliminations);
-        g_notification.add(out);
-    }
 }
 
 void resolver::update_shots()
 {
-    for (size_t i = 0; i < m_impacts.size(); i++)
+    for (size_t i = 0; i < m_weapon_fire.size(); i++)
     {
-        auto* impact = &m_impacts[i];
-        auto shot = impact->m_shot.lock();
+        auto* weapon_fire = &m_weapon_fire[i];
+        auto shot = weapon_fire->m_shot.lock();
         if (!shot)
         {
-            m_impacts.erase(m_impacts.begin() + i);
+            m_weapon_fire.erase(m_weapon_fire.begin() + i);
             i--;
             continue;
         }
         if (fabsf(shot->m_time - g.m_interfaces->globals()->m_curtime) > 0.6f)
         {
-            m_impacts.erase(m_impacts.begin() + i);
+            m_weapon_fire.erase(m_weapon_fire.begin() + i);
             i--;
             continue;
         }
@@ -1205,25 +1276,25 @@ void resolver::update_shots()
 
         shot->m_matched = true;
         g_aimbot.m_backup[shot->m_target->index() - 1].store(shot->m_target);
-        if (impact->m_hit)
+        if (weapon_fire->m_hit)
         {
 
             // g_cl.print( "hit %x time: %f lat: %f dmg: %f\n", record, impact->m_shot->m_time, impact->m_shot->m_lat,
             // impact->m_shot->m_damage );
 
-            resolve_hit(impact);
+            resolve_hit(weapon_fire);
         }
         else
         {
 
-            resolve_miss(impact);
+            resolve_miss(weapon_fire);
         }
         g_aimbot.m_backup[shot->m_target->index() - 1].restore(shot->m_target);
     }
-    m_impacts.clear();
+    m_weapon_fire.clear();
 }
 
-void resolver::add_shot(ent_info_t* target, float damage, int bullets, std::shared_ptr<player_record_t> record)
+void resolver::add_shot(ent_info_t* target, float damage, int bullets, std::shared_ptr<player_record_t> record, vec3_t point)
 {
 
     // iterate all bullets in this shot.
@@ -1236,6 +1307,7 @@ void resolver::add_shot(ent_info_t* target, float damage, int bullets, std::shar
         shot.m_time = g.m_interfaces->globals()->m_curtime;
         shot.m_lat = g.m_latency;
         shot.m_damage = damage;
+        shot.m_end = point;
         shot.m_pos = g.m_shoot_pos;
         shot.m_weapon_info = *g.m_weapon_info;
         target->m_resolver_data.m_shots++;

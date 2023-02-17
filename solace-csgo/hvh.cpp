@@ -664,7 +664,8 @@ void hvh::DoFakeAntiAim( ) const {
 
 void hvh::AntiAim( ) {
 
-	if ( !settings::hvh::antiaim::enabled )
+	if (!settings::hvh::antiaim::enabled || g.m_local->move_type() == MOVETYPE_LADDER ||
+        g.m_local->move_type() == MOVETYPE_FLY)
 		return;
 
 	const bool attack = g.m_cmd->m_buttons & IN_ATTACK;
@@ -760,7 +761,7 @@ void hvh::AntiAim( ) {
 	//}
 	if ( settings::hvh::antiaim::fake_yaw ) {
 		// do not allow 2 consecutive sendpacket true if faking angles.
-		if ( *g.m_packet && g.m_old_packet )
+		if ( *g.m_packet && g.m_old_packet && !g.m_old_shot)
 			*g.m_packet = false;
 
 		// run the real on sendpacket false.

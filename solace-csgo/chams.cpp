@@ -111,7 +111,8 @@ void chams_t::player( player_t *player, uintptr_t ctx, void *state, const model_
 	}
 	
 	auto ent_info = &g_player_manager.m_ents[ player->index( ) - 1 ];
-	auto auto_draw = !ent_info->m_valid || ent_info->m_teamate || ent_info->m_records.empty( ) || !ent_info->m_records.front( ) || !ent_info->m_records.front( )->m_setup;
+    auto auto_draw = !ent_info->m_valid || ent_info->m_teamate || ent_info->m_records.empty() ||
+                     !ent_info->m_records.front() || !ent_info->m_records.front()->m_setup;
 	if ( auto_draw ) {
 		if ( ent_info->m_teamate ) {
 			if ( settings::visuals::players::chams_team_covered != 0 ) {
@@ -150,7 +151,7 @@ void chams_t::player( player_t *player, uintptr_t ctx, void *state, const model_
 		g.m_interfaces->render_view( )->modulate_color( color( 0x4F,0x9C,0x14 ) );
 		g.m_interfaces->render_view( )->set_blend( 1.f );
 
-		draw_model( g.m_interfaces->model_render( ), ctx, state, info, ent_info->m_records.front( )->m_bones );
+		draw_model(g.m_interfaces->model_render(), ctx, state, info, ent_info->m_records.front()->m_bones);
 		
 		g.m_interfaces->render_view( )->set_blend( 0.5f );
 		auto const record = g_aimbot.last_record( ent_info );
@@ -164,14 +165,14 @@ void chams_t::player( player_t *player, uintptr_t ctx, void *state, const model_
 		g.m_interfaces->model_render( )->override_material( settings::visuals::players::chams == 1 ? full : flat );
 		g.m_interfaces->render_view( )->modulate_color( color( 0x81, 0xFF, 0x21 ) );
 		g.m_interfaces->render_view( )->set_blend( 1.f );
-		const auto &front = ent_info->m_records.front( );
+        const auto& front = ent_info->m_records.front();
 #ifdef _DEBUG
-		if ( front )
+		if ( front && front->m_setup)
 			for( auto &i : front->m_fake_bones )
 				draw_model( g.m_interfaces->model_render( ), ctx, state, info, i );
 #endif
 		
-		if( front )
+		if (front && front->m_setup)
 			draw_model( g.m_interfaces->model_render( ), ctx, state, info, front->m_bones );
 		
 
@@ -179,9 +180,9 @@ void chams_t::player( player_t *player, uintptr_t ctx, void *state, const model_
 	
 	reset( );
 	
-	if ( settings::visuals::players::chams == 0 && ent_info->m_records.size() ) {
-		if( ent_info->m_records.front( ) )
-			draw_model( g.m_interfaces->model_render( ), ctx, state, info, ent_info->m_records.front( )->m_bones );
+	if ( settings::visuals::players::chams == 0 && ent_info->m_records.size() >= 2 ) {
+        if (ent_info->m_records[1] && ent_info->m_records[1]->m_setup)
+            draw_model(g.m_interfaces->model_render(), ctx, state, info, ent_info->m_records.front()->m_bones);
 	}
 
 }

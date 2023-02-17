@@ -268,9 +268,11 @@ auto c_menu::init( ) -> void {
 			{
 				auto misc_tab2 = std::make_shared<c_group_tab>( "Misc" ); {
 					misc_tab2->add_child( std::make_shared<c_toggle>( "Ping exploit", &settings::misc::misc::fake_latency ) );
-					misc_tab2->add_child( std::make_shared<c_slider>( "Ping amount", &settings::misc::misc::fake_latency_amt, 0, 1000 ) );
-					misc_tab2->add_child( std::make_shared<c_key_bind>( "Thirdperson", &settings::misc::misc::thirdperson, 2 ) );
-					misc_tab->add_child( misc_tab2 );
+                    misc_tab2->add_child(
+                        std::make_shared<c_slider>("Ping amount", &settings::misc::misc::fake_latency_amt, 0, 1000));
+                    misc_tab2->add_child(
+                        std::make_shared<c_key_bind>("Thirdperson", &settings::misc::misc::thirdperson, 2));
+                    misc_tab->add_child( misc_tab2 );
 				}
 				auto movement_tab = std::make_shared<c_group_tab>( "Config" ); {
 					movement_tab->add_child( std::make_shared<c_combobox>( "Config", &settings::misc::config::slot, std::vector<const char*> { "Auto", "Scout", "Pistol" } ) );
@@ -311,7 +313,7 @@ auto c_menu::draw( ) -> void {
 	if ( !open )
 		return;
 
-	for ( auto form : this->m_forms ) {
+	for (const auto& form : this->m_forms ) {
 		if ( !form->m_enabled( ) ) {
 			if ( form.get( ) == this->focused_form )	
 				menu.focused_form = nullptr;

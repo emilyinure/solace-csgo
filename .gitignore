@@ -115,3 +115,8 @@ _ReSharper*/
 
 # JetBrains Rider
 *.sln.iml
+.idea/codeStyles/codeStyleConfig.xml
+.idea/codeStyles/Project.xml
+.idea/modules.xml
+.idea/solace-csgo.iml
+.idea/vcs.xml
