@@ -75,7 +75,8 @@ void c_g::on_render(IDirect3DDevice9* device)
     m_render->setup(device);
     m_render->start();
 
-    input_helper.update();
+    if (GetForegroundWindow() == g.m_window)
+        input_helper.update();
 
     for (auto& it : menu.n_binds)
         it->update();

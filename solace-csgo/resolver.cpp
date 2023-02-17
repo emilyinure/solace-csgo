@@ -920,10 +920,6 @@ int resolver::miss_scan_boxes_and_eliminate(weapon_fire_t* weapon_fire, vec3_t& 
     for (uint32_t i1 = 0; i1 < move_data->m_dir_data.size(); i1++)
     {
         auto& dir_data = move_data->m_dir_data[i1];
-        if (i1 == move_data->m_index)
-            record->cache();
-        else
-            record->cache(fake_index);
         auto hit_type = check_hit(pen_in, data,
                                     (i1 == move_data->m_index) ? record->m_bones : record->m_fake_bones[fake_index]);
         if (hit_type == trace_ret::hit)
@@ -1002,10 +998,6 @@ int resolver::hit_scan_boxes_and_eliminate(weapon_fire_t* weapon_fire, vec3_t& s
     for (uint32_t i2 = 0; i2 < move_data->m_dir_data.size(); i2++)
     {
         auto& dir_data = move_data->m_dir_data[i2];
-        if (i2 == move_data->m_index)
-            record->cache();
-        else
-            record->cache(fake_index);
         const auto hit_type =
             check_hit(pen_in, data, (i2 == move_data->m_index) ? record->m_bones : record->m_fake_bones[fake_index]);
         if (hit_type != trace_ret::hit)
@@ -1180,54 +1172,54 @@ void resolver::resolve_miss(weapon_fire_t* weapon_fire)
             if (idx > 2)
                 idx = 0;
         }
-        //else if (mode == Modes::RESOLVE_STAND1)
-        //{
-        //    auto& mode_data = data->m_resolver_data.m_mode_data[resolver_data::modes::STAND1];
-        //    auto& dir_data = mode_data.m_dir_data;
-        //    dir_data[mode_data.m_index].dir_enabled = false;
-        //
-        //    bool any_true = false;
-        //    for (auto& i : dir_data)
-        //    {
-        //        if (i.dir_enabled)
-        //            any_true = true;
-        //    }
-        //    auto set = false;
-        //    for (uint32_t i1 = 0; i1 < dir_data.size(); i1++)
-        //    {
-        //        if (!any_true)
-        //            dir_data[i1].dir_enabled = true;
-        //        if (!set && dir_data[i1].dir_enabled)
-        //        {
-        //            mode_data.m_index = i1;
-        //            set = true;
-        //        }
-        //    }
-        //}
-        //else if (mode == Modes::RESOLVE_STAND2)
-        //{
-        //    auto mode_data = &data->m_resolver_data.m_mode_data[resolver_data::modes::STAND2];
-        //    auto dir_data = &mode_data->m_dir_data;
-        //    dir_data->at(mode_data->m_index).dir_enabled = false;
-        //
-        //    bool any_true = false;
-        //    for (size_t i = 0; i < dir_data->size(); i++)
-        //    {
-        //        if (dir_data->at(i).dir_enabled)
-        //            any_true = true;
-        //    }
-        //    auto set = false;
-        //    for (uint32_t i1 = 0; i1 < dir_data->size(); i1++)
-        //    {
-        //        if (!any_true)
-        //            dir_data->at(i1).dir_enabled = true;
-        //        if (!set && dir_data->at(i1).dir_enabled)
-        //        {
-        //            mode_data->m_index = i1;
-        //            set = true;
-        //        }
-        //    }
-        //}
+        else if (mode == Modes::RESOLVE_STAND1)
+        {
+            auto& mode_data = data->m_resolver_data.m_mode_data[resolver_data::modes::STAND1];
+            auto& dir_data = mode_data.m_dir_data;
+            dir_data[mode_data.m_index].dir_enabled = false;
+        
+            //bool any_true = false;
+            //for (auto& i : dir_data)
+            //{
+            //    if (i.dir_enabled)
+            //        any_true = true;
+            //}
+            //auto set = false;
+            //for (uint32_t i1 = 0; i1 < dir_data.size(); i1++)
+            //{
+            //    if (!any_true)
+            //        dir_data[i1].dir_enabled = true;
+            //    if (!set && dir_data[i1].dir_enabled)
+            //    {
+            //        mode_data.m_index = i1;
+            //        set = true;
+            //    }
+            //}
+        }
+        else if (mode == Modes::RESOLVE_STAND2)
+        {
+            const auto mode_data = &data->m_resolver_data.m_mode_data[resolver_data::modes::STAND2];
+            const auto dir_data = &mode_data->m_dir_data;
+            dir_data->at(mode_data->m_index).dir_enabled = false;
+        
+            //bool any_true = false;
+            //for (size_t i = 0; i < dir_data->size(); i++)
+            //{
+            //    if (dir_data->at(i).dir_enabled)
+            //        any_true = true;
+            //}
+            //auto set = false;
+            //for (uint32_t i1 = 0; i1 < dir_data->size(); i1++)
+            //{
+            //    if (!any_true)
+            //        dir_data->at(i1).dir_enabled = true;
+            //    if (!set && dir_data->at(i1).dir_enabled)
+            //    {
+            //        mode_data->m_index = i1;
+            //        set = true;
+            //    }
+            //}
+        }
     }
 
     if (!occluded && mode == Modes::RESOLVE_STAND1 || mode == Modes::RESOLVE_STAND2)
