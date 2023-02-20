@@ -5,8 +5,8 @@
 #include <fstream>
 
 class c_slider : public c_base_control {
-    int* ivalue_;
-	float* fvalue_;
+    int* ivalue_{nullptr};
+	float* fvalue_{nullptr};
 	float minimum_{ 0.f }, maximum_{ 100.f };
 	bool dragging_{ false };
 	area_t button_area_{ 0,0,0,0 };
