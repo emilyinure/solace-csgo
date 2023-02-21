@@ -22,16 +22,26 @@ void esp_t::run()
         if (!networkable)
             continue;
         const auto client_class_id = networkable->client_class();
-        if (client_class_id->m_ClassID == 35)
-            player(ent);
-        else if (strcmp(client_class_id->m_pNetworkName, "CInferno") == 0)
-            inferno(ent);
-        else if (strcmp(client_class_id->m_pNetworkName, "CSmokeGrenadeProjectile") == 0)
-            smoke(ent);
-        else if (strcmp(client_class_id->m_pNetworkName, "CMolotovProjectile") == 0)
-            molotov(ent);
-        else if (strcmp(client_class_id->m_pNetworkName, "CBaseCSGrenadeProjectile") == 0)
-            flying_grenade(ent);
+        switch (client_class_id->m_ClassID)
+        {
+            case CCSPlayer:
+                player(ent);
+                break;
+            case CInferno:
+                inferno(ent);
+                break;
+            case CSmokeGrenadeProjectile:
+                smoke(ent);
+                break;
+            case CMolotovProjectile:
+                molotov(ent);
+                break;
+            case CBaseCSGrenadeProjectile:
+                flying_grenade(ent);
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -39,7 +49,7 @@ void esp_t::smoke(entity_t* ent)
 {
     if (!settings::visuals::world::wire_smoke)
         return;
-    if (((weapon_t*)ent)->smoke_effect_begin_tick())
+    if (static_cast<weapon_t*>(ent)->smoke_effect_begin_tick())
         g.m_render->world_circle(ent->abs_origin(), 144, menu.main_theme);
     else
     {
@@ -81,7 +91,7 @@ void esp_t::molotov(entity_t* ent)
     vec3_t screen;
     if (!math::world_to_screen(ent->abs_origin(), screen))
         return;
-    g.m_render->text(g.m_render->m_tahoma_14(), screen.x, screen.y, menu.dark_accent, "MOLOTOV", Horizontal | Vertical);
+    render_t::text(g.m_render->m_tahoma_14(), screen.x, screen.y, menu.dark_accent, "MOLOTOV", Horizontal | Vertical);
 }
 
 void esp_t::inferno(entity_t* ent)
@@ -109,7 +119,8 @@ void esp_t::inferno(entity_t* ent)
         const auto point =
             vec3_t{static_cast<float>(fire_x[k]), static_cast<float>(fire_y[k]), static_cast<float>(fire_z[k])};
         vec3_t screen = origin + point;
-        //			m_render->text( m_render->m_tahoma_12( ), screen.x, screen.y, color( 255, 255, 255 ), std::to_string( k
+        //			m_render->text( m_render->m_tahoma_12( ), screen.x, screen.y, color( 255, 255, 255 ), std::to_string(
+        //k
         //).c_str( ) );
         points.push_back(screen.x);
         points.push_back(screen.y);
@@ -160,13 +171,13 @@ void esp_t::inferno(entity_t* ent)
 
     // for ( std::size_t i = 0; i < delaunator.halfedges.size( ); i += 3 ) {
     //	//verts[ 0 ] = ( render_t::vertex_t{ static_cast< float >( delaunator.coords[ 2 * delaunator.halfedges[ i ] ] ),
-    //static_cast< float >( delaunator.coords[ 2 * delaunator.halfedges[ i ] + 1 ] ), 0, 1, color( 180, 0,0, 100 ) } );
+    // static_cast< float >( delaunator.coords[ 2 * delaunator.halfedges[ i ] + 1 ] ), 0, 1, color( 180, 0,0, 100 ) } );
     //	//verts[ 1 ] = ( render_t::vertex_t{ static_cast< float >( delaunator.coords[ 2 * delaunator.halfedges[ i + 1 ]
     //] ), static_cast< float >( delaunator.coords[ 2 * delaunator.halfedges[ i + 1 ] + 1 ] ), 0, 1, color( 180, 0,0,
-    //100 ) } ); 	g.m_render->line( static_cast< float >(delaunator.coords[3 * delaunator.halfedges[i]]), 	                  static_cast<
-    //float >(delaunator.coords[3 * delaunator.halfedges[i] + 1]), 	                  static_cast< float >(delaunator.coords[3 *
-    //delaunator.halfedges[i + 1]]), 	                  static_cast< float >(delaunator.coords[3 * delaunator.halfedges[i + 1] + 1]),
-    //	                  color( 180, 0, 0, 100 ) );
+    // 100 ) } ); 	g.m_render->line( static_cast< float >(delaunator.coords[3 * delaunator.halfedges[i]]),
+    // static_cast< float >(delaunator.coords[3 * delaunator.halfedges[i] + 1]), 	                  static_cast< float
+    // >(delaunator.coords[3 * delaunator.halfedges[i + 1]]), 	                  static_cast< float
+    // >(delaunator.coords[3 * delaunator.halfedges[i + 1] + 1]), 	                  color( 180, 0, 0, 100 ) );
     // }
 }
 
@@ -269,17 +280,19 @@ bool esp_t::get_player_box(player_t* player, area_t* box)
 
 void esp_t::offscreen(player_t* ent)
 {
-    if (!g.m_local)
+    if (!g.m_local || !g.m_local->alive())
         return;
 
-    auto observer_target = static_cast<player_t*>(g.m_interfaces->entity_list()->get_client_entity_handle(g.m_local->observer_target()));
-    if (observer_target == ent)
+    const auto observer_target =
+        static_cast<player_t*>(g.m_interfaces->entity_list()->get_client_entity_handle(g.m_local->observer_target()));
+    if (observer_target == ent || ent == g.m_local)
         return;
     vec3_t vec_delta = ent->origin();
     if (observer_target)
         vec_delta -= observer_target->origin() + observer_target->view_offset();
     else
         vec_delta -= g.m_shoot_pos;
+
     const auto yaw = RAD2DEG(atan2(vec_delta.y, vec_delta.x));
     ang_t angles;
     g.m_interfaces->engine()->get_view_angles(angles);
@@ -291,7 +304,7 @@ void esp_t::offscreen(player_t* ent)
     r_x *= screen_size.Width / 2.f;
     r_y *= screen_size.Height / 2.f;
 
-    const auto triangle_size = 15.f;
+    constexpr auto triangle_size = 15.f;
 
     render_t::vertex_t triag[3] = {
         {screen_size.Width / 2.f + cos(yaw_delta) * (r_x), screen_size.Height / 2.f + sin(yaw_delta) * (r_y), 0, 1,
@@ -375,7 +388,8 @@ void esp_t::player(player_t* ent)
     //		auto const& record = info.m_records[0];
     //		if ( record ) {
     //			std::string name = std::to_string( record->m_anim_velocity.length( ) );
-    //			g.m_render->text( g.m_render->m_tahoma_12( ), box.x + box.w / 2.f, box.y + box.h + 1, color( 255, 255, 255
+    //			g.m_render->text( g.m_render->m_tahoma_12( ), box.x + box.w / 2.f, box.y + box.h + 1, color( 255, 255,
+    //255
     //), name.c_str( ), 1 );
     //		}
     //	}

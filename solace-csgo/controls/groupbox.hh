@@ -206,6 +206,7 @@ public:
                 break;
             }
         }
+        const float last_scroll = scroll_y;
         if (input_helper.hovering({static_cast<float>(area.x), area.y, area.w, area.h}))
             scroll_y = fminf(0, roundf(scroll_y + input_helper.scroll()));
         if (this->children_.size() > 1)
@@ -238,6 +239,11 @@ public:
             if (-max_scroll > scroll_y)
                 scroll_y = -max_scroll;
             this->selected_tab->update();
+        }
+        if (fabsf(last_scroll - scroll_y) > 0.01f && menu.focused_control)
+        {
+            menu.focused_control->disable();
+            menu.focused_control = nullptr;
         }
     }
     auto disable() -> void override
