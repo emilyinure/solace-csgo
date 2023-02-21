@@ -63,10 +63,10 @@ public:
 
                 child->draw();
             }
-            g.m_render->pop_clip();
 
             if (has_focus && menu.focused_control)
                 menu.focused_control->draw();
+            g.m_render->pop_clip();
         }
     }
     auto disable() -> void override
