@@ -52,7 +52,6 @@ public:
             }
             offset = child_offset.y + 6;
             // draw.
-            g.m_render->push_clip(this->area.x + 1, this->area.y, this->area.w - 2, this->area.h - 1);
             auto has_focus = false;
             for (const auto& child : this->children_)
             {
@@ -177,6 +176,7 @@ public:
             }
 
             // draw.
+            g.m_render->push_clip(this->area.x + 1, this->area.y + 20, this->area.w - 2, this->area.h - 20);
             auto has_focus = false;
             for (const auto& child : this->children_)
             {

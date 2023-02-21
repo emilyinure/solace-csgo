@@ -271,7 +271,15 @@ void esp_t::offscreen(player_t* ent)
 {
     if (!g.m_local)
         return;
-    const auto vec_delta = ent->origin() - g.m_shoot_pos;
+
+    auto observer_target = static_cast<player_t*>(g.m_interfaces->entity_list()->get_client_entity_handle(g.m_local->observer_target()));
+    if (observer_target == ent)
+        return;
+    vec3_t vec_delta = ent->origin();
+    if (observer_target)
+        vec_delta -= observer_target->origin() + observer_target->view_offset();
+    else
+        vec_delta -= g.m_shoot_pos;
     const auto yaw = RAD2DEG(atan2(vec_delta.y, vec_delta.x));
     ang_t angles;
     g.m_interfaces->engine()->get_view_angles(angles);

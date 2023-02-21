@@ -41,9 +41,13 @@ public:
 			}
 
 			// draw.
-			for ( const auto &child : this->children_ ) {
-				child->draw( );
-			}
+			while
+            {
+                const auto& child = this->children_[i];
+                child->draw();
+                if (i == 0)
+                break;
+            }
 		}
 		//this->area.h = ( 16 * this->children_.size( ) );
 	}
