@@ -41,6 +41,7 @@ public:
 	static std::shared_ptr<player_record_t> last_record( ent_info_t *info );
 	void draw_hitboxes ( player_t* ent = nullptr, bone_array_t *bones = nullptr ) const;
 	bool check_hitchance( ent_info_t* info, ang_t& view, std::shared_ptr<player_record_t> record, aim_point_t* point );
+    bool autoscope();
 	void StripAttack( );
 	virtual void on_tick ( );
 } inline g_aimbot;

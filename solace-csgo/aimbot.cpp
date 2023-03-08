@@ -605,6 +605,7 @@ void aimbot_t::apply(bone_array_t *bones)
                                        settings::rage::general::delay_shot; // Unused for now, used for
 
     g_movement.set_should_stop(true);
+    autoscope();
 
     if (const auto bone_cache = &g.m_local->bone_cache())
     {
@@ -768,6 +769,23 @@ bool aimbot_t::check_hitchance(ent_info_t* info, ang_t& view, std::shared_ptr<pl
             return false;
     }
     return false;
+}
+
+bool aimbot_t::autoscope()
+{
+    if (!g.m_cmd)
+        return false;
+
+    if (g.m_weapon_type != WEAPONTYPE_SNIPER_RIFLE)
+        return false;
+
+    if (g.m_weapon->zoom_level() >= 1)
+        return false;
+
+    g.m_cmd->m_buttons &= ~IN_ATTACK;
+    g.m_cmd->m_buttons |= IN_ATTACK2;
+
+    return true;
 }
 
 std::shared_ptr<player_record_t> aimbot_t::last_record(ent_info_t* info)
