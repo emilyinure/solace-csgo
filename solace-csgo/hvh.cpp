@@ -664,8 +664,7 @@ void hvh::DoFakeAntiAim( ) const {
 
 void hvh::AntiAim( ) {
 
-	if (!settings::hvh::antiaim::enabled || g.m_local->move_type() == MOVETYPE_LADDER ||
-        g.m_local->move_type() == MOVETYPE_FLY)
+	if (!settings::hvh::antiaim::enabled || g.m_local->move_type() == MOVETYPE_LADDER || g.m_local->move_type() == MOVETYPE_NOCLIP)
 		return;
 
 	const bool attack = g.m_cmd->m_buttons & IN_ATTACK;
