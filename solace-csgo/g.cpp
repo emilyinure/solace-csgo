@@ -70,6 +70,9 @@ void c_g::release() const
 
 void c_g::on_render(IDirect3DDevice9* device)
 {
+    if (!m_render)
+        return;
+
     m_render->m_verts.clear();
     m_render->m_idx.clear();
     m_render->setup(device);
