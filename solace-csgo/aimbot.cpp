@@ -604,7 +604,10 @@ void aimbot_t::apply(bone_array_t *bones)
         m_best_target->m_shot_wanted = m_best_target->m_selected_record->m_sim_time +
                                        settings::rage::general::delay_shot; // Unused for now, used for
 
-    g_movement.set_should_stop(true);
+    // don't auto stop if local is fakewalking.
+    if (!settings::hvh::antiaim::fakewalk)
+        g_movement.set_should_stop(true);
+
     autoscope();
 
     if (const auto bone_cache = &g.m_local->bone_cache())

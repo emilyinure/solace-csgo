@@ -94,7 +94,7 @@ public:
 		NETVAR( "DT_BaseAnimating", "m_bClientSideAnimation", m_client_side_animation )
 		NETVAR( "DT_CSPlayer", "m_nSequence", m_nSequence )
 		NETVAR( "DT_CSPlayer", "m_flCycle", m_flCycle )
-		NETVAR( "DT_BasePlayer", "m_MoveType", m_move_type );
+		NETVAR( "C_BaseEntity", "m_MoveType", m_move_type );
 		NETVAR( "C_BaseEntity", "m_angAbsRotation", m_angAbsRotation );
 		NETVAR( "C_BaseEntity", "m_angRotation", m_angRotation );
 		NETVAR( "C_BaseEntity", "m_angNetworkAngles", m_angNetworkAngles );
